@@ -2,16 +2,18 @@
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Specs.Domain;
+using Specs.Domain.Exceptions;
 
 namespace ConsoleExample
 {
     internal class BuildContext : IRunContext
     {
         private readonly BuildContext? parent;
-        //private readonly List<BuildContext> childContexts = new List<BuildContext>();
+        private readonly List<Runner> beforeEach = new List<Runner>();
 
         public string Name { get; }
 
@@ -52,6 +54,9 @@ namespace ConsoleExample
                 try
                 {
                     var action = ((SpecDefinition)spec).Action;
+
+                    this.DoBeforeEach();
+
                     action.Invoke();
                     this.SuccessCount++;
                 }
@@ -66,7 +71,6 @@ namespace ConsoleExample
         public IRunContext CreateChildContext(string name)
         {
             var child = new BuildContext(name, this);
-            //this.childContexts.Add(child);
             return child;
         }
 
@@ -83,6 +87,41 @@ namespace ConsoleExample
         }
 
 
+        public void AddBeforeEach(Runner runner)
+        {
+            this.beforeEach.Add(runner);
+        }
+
+        private void DoBeforeEach()
+        {
+            this.ProcessRunners(this.beforeEach, () => this.parent!.DoBeforeEach());
+        }
+
+        private void ProcessRunners(List<Runner> runners, Action parentInvocation)
+        {
+            try
+            {
+                if(this.parent != null)
+                {
+                    parentInvocation.Invoke();
+                }
+
+                foreach(Runner runner in runners)
+                {
+                    runner.Run();
+                }
+            }
+
+            catch (ContextException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ContextException(ex);
+            }
+        }
+
         private void WriteException(Exception ex)
         {
             var exIndent = this.indentLevel + 2;
@@ -93,6 +132,11 @@ namespace ConsoleExample
 
             this.descriptionBuilder.AppendLine();
             this.AppendLine("CALL STACK", exIndent);
+
+            if(ex is ContextException)
+            {
+                ex = ex.InnerException!;
+            }
 
             var lines = ex.StackTrace!.Split('\n');
             foreach (var line in lines)

@@ -91,5 +91,9 @@ namespace ConsoleExample
         {
             return new string(' ', indentLevel * 2);
         }
+
+        public void AddBeforeEach(Runner runner)
+        {
+        }
     }
 }

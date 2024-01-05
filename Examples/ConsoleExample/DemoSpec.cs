@@ -1,4 +1,5 @@
-﻿using Specs;
+﻿using FluentAssertions;
+using Specs;
 
 namespace ConsoleExample
 {
@@ -7,26 +8,54 @@ namespace ConsoleExample
 
         public void TryIt()
         {
+            NumberCruncher subject = null!;
+            int speed = 0;
+
+            Func<int> act = () => subject.CrunchNumbers(speed);
+
+            BeforeEach = () =>
+            {
+                speed = 0;
+                subject = new NumberCruncher();
+            };
+
+
             Context["number cruncher"] = () =>
             {
-                It["will crunch numbers"] = () => { };
+                It["will crunch numbers"] = () =>
+                {
+                    subject.CrunchNumbers().Should().Be(0);
+                };
 
                 Context["when it runs faster..."] = () =>
                 {
-                    It["will crunch numbers faster"] = () => { };
+                    BeforeEach = () => speed = 100;
+
+                    It["will crunch numbers faster"] = () =>
+                    {
+                        act().Should().Be(100);
+                    };
                 };
 
-                Describe["when runs too fast..."] = () =>
+                Describe["when it runs too fast..."] = () =>
                 {
-                    It["will catch on fire"] = () => throw new Exception("I went to fast!");
+                    BeforeEach = () => speed = 200;
+
+                    It["will catch on fire"] = () =>
+                    {
+                        act().Should().Be(200);
+                    };
                 };
             };
 
 
-            Context["When something else happens..."] = () =>
+            Describe["when something else happens..."] = () =>
             {
-                It["Will Run differently"] = TODO;
+                BeforeEach = () => { };
+
+                It["will run differently"] = TODO;
             };
         }
+
     }
 }
