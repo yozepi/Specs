@@ -12,5 +12,9 @@
             return speed;
         }
 
+        public Task<int> CrunchNumbersAsync(int speed = 0)
+        {
+            return Task.FromResult(this.CrunchNumbers(speed));
+        }
     }
 }

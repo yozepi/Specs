@@ -1,10 +1,4 @@
-﻿using System;
-using System.CodeDom.Compiler;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Specs.Domain;
 using Specs.Domain.Exceptions;
 
@@ -40,7 +34,7 @@ namespace ConsoleExample
             this.AppendLine(this.Name, this.indentLevel);
         }
 
-        public void AddSpec(AbstractSpecDefinition spec)
+        public void AddSpec(ISpecDefinition spec)
         {
             this.SpecCount++;
 
@@ -53,11 +47,8 @@ namespace ConsoleExample
                 this.AppendLine(spec.Name, this.indentLevel + 1);
                 try
                 {
-                    var action = ((SpecDefinition)spec).Action;
-
                     this.DoBeforeEach();
-
-                    action.Invoke();
+                    spec.Run();
                     this.SuccessCount++;
                 }
                 catch (Exception ex)
@@ -145,7 +136,7 @@ namespace ConsoleExample
             }
             this.descriptionBuilder.AppendLine();
         }
-        private void SkipSpec(AbstractSpecDefinition spec)
+        private void SkipSpec(ISpecDefinition spec)
         {
             this.AppendLine($"SKIPPED - {spec.Name}", this.indentLevel + 1);
             this.SkippedCount++;

@@ -13,7 +13,7 @@
             Console.WriteLine("== DISCOVERY ==============================");
             Console.WriteLine();
 
-            var specs = new DemoSpec();
+            var specs = new NumberCruncherSpecs();
 
             var context = new DiscoveryContext(specs.GetType().Name);
 
@@ -39,7 +39,7 @@
             Console.WriteLine("== RUN ====================================");
             Console.WriteLine();
 
-            var specs = new DemoSpec();
+            var specs = new NumberCruncherSpecs();
 
             var context = new BuildContext(specs.GetType().Name);
 

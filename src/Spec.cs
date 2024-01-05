@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Threading.Tasks;
 using Specs.Domain;
 
 namespace Specs
@@ -9,7 +10,8 @@ namespace Specs
 
         internal IRunContext RunContext { get; set; }
 
-        public IndexedRunner<Action> It => new IndexedRunner<Action>((name, action) => this.AddSpec(new SpecDefinition(name, action, dontRun: action == TODO)));
+        public IndexedRunner<Action> It => new IndexedRunner<Action>((name, action) => this.AddSpec(new ActionSpecDefinition(name, action, dontRun: action == TODO)));
+        public IndexedRunner<Func<Task>> ItAsync => new IndexedRunner<Func<Task>>((name, func) => this.AddSpec(new TaskSpecDefinition(name, func, dontRun: func == TODOAsync)));
 
         public IndexedRunner<Action> Context => new IndexedRunner<Action>(this.SwitchContext);
 
@@ -24,6 +26,14 @@ namespace Specs
             }
         }
 
+        public Func<Task> BeforeEachAsync
+        {
+            set
+            {
+                this.AddBeforeEach(new TaskRunner(value));
+            }
+        }
+
         private void SwitchContext(string name, Action action)
         {
             var originalContext = this.RunContext;
@@ -34,7 +44,7 @@ namespace Specs
             this.RunContext.ContextRestored(childContext);
         }
 
-        private void AddSpec(AbstractSpecDefinition spec)
+        private void AddSpec(ISpecDefinition spec)
         {
             this.RunContext.AddSpec(spec);
         }
@@ -45,5 +55,7 @@ namespace Specs
         }
 
         public static Action TODO => () => { };
+
+        public static Func<Task> TODOAsync = () => Task.CompletedTask;
     }
 }

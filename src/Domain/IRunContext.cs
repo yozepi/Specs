@@ -2,7 +2,7 @@
 {
     internal interface IRunContext
     {
-        void AddSpec(AbstractSpecDefinition spec);
+        void AddSpec(ISpecDefinition spec);
 
         IRunContext CreateChildContext(string name);
 

@@ -18,7 +18,7 @@ namespace ConsoleExample
 
         public string Name { get; }
 
-        public void AddSpec(AbstractSpecDefinition spec)
+        public void AddSpec(ISpecDefinition spec)
         {
             specMethods.Add((name: spec.Name, wontRun: spec.DontRun));
         }
