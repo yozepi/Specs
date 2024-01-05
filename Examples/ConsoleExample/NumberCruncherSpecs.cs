@@ -10,12 +10,12 @@ namespace ConsoleExample
         {
             NumberCruncher subject = null!;
             int speed = 0;
-            int aftertracker = 0;
+            int actual = 0;
 
             BeforeEach = () =>
             {
                 speed = 0;
-                aftertracker = 0;
+                actual = 0;
                 subject = new NumberCruncher();
             };
 
@@ -24,69 +24,61 @@ namespace ConsoleExample
             {
                 Context["syncronous chrunching..."] = () =>
                 {
-                    Func<int> act = () => subject.CrunchNumbers(speed);
+                    Act = () => actual = subject.CrunchNumbers(speed);
 
-                    AfterEach = () => aftertracker = 1;
 
                     It["will crunch numbers"] = () =>
                     {
-                        subject.CrunchNumbers().Should().Be(0);
+                        actual.Should().Be(0);
                     };
 
                     Context["when it runs faster..."] = () =>
                     {
                         BeforeEach = () => speed = 100;
-                        AfterEach = () => aftertracker = 2;
 
                         It["will crunch numbers faster"] = () =>
                         {
-                            act().Should().Be(100);
+                            actual.Should().Be(100);
                         };
                     };
 
                     Describe["when it runs too fast..."] = () =>
                     {
                         BeforeEach = () => speed = 200;
-                        AfterEach = () => aftertracker = 1;
 
                         It["will catch on fire"] = () =>
                         {
-                            act().Should().Be(200);
+                            actual.Should().Be(200);
                         };
                     };
                 };
 
                 Context["asyncronous chrunching..."] = () =>
                 {
-                    AfterEachAsync = () => Task.FromResult(aftertracker = 1);
+                    ActAsync = async () => actual = await subject.CrunchNumbersAsync(speed);
 
-                    Func<Task<int>> act = async () => await subject.CrunchNumbersAsync(speed);
-
-                    ItAsync["will crunch numbers"] = async () =>
+                    It["will crunch numbers"] = () =>
                     {
-                        (await subject.CrunchNumbersAsync()).Should().Be(0);
+                        actual.Should().Be(0);
                     };
 
                     Context["when it runs faster..."] = () =>
                     {
-
                         BeforeEach = () => speed = 100;
-                        AfterEachAsync = () => Task.FromResult(aftertracker = 2);
 
-                        ItAsync["will crunch numbers faster"] = async () =>
+                        It["will crunch numbers faster"] = () =>
                         {
-                            (await act()).Should().Be(speed);
+                            actual.Should().Be(speed);
                         };
                     };
 
                     Describe["when it runs too fast..."] = () =>
                     {
                         BeforeEach = () => speed = 200;
-                        AfterEachAsync = () => Task.FromResult(aftertracker = 1);
 
-                        ItAsync["will catch on fire"] = async () =>
+                        It["will catch on fire"] = () =>
                         {
-                            (await act()).Should().Be(speed);
+                            actual.Should().Be(speed);
                         };
                     };
                 };

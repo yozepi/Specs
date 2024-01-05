@@ -35,6 +35,23 @@ namespace Specs
         }
 
 
+        public Action Act
+        {
+            set
+            {
+                this.AddAct(new ActionRunner(value));
+            }
+        }
+
+        public Func<Task> ActAsync
+        {
+            set
+            {
+                this.AddAct(new TaskRunner(value));
+            }
+        }
+
+
         public Action AfterEach
         {
             set
@@ -69,6 +86,11 @@ namespace Specs
         private void AddBeforeEach(Runner runner)
         {
             this.RunContext.AddBeforeEach(runner);
+        }
+
+        private void AddAct(Runner runner)
+        {
+            this.RunContext.AddAct(runner);
         }
 
         private void AddAfterEach(Runner runner)

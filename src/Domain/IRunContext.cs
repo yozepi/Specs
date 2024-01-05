@@ -10,6 +10,8 @@
 
         void AddBeforeEach(Runner runner);
 
+        void AddAct(Runner runner);
+
         void AddAfterEach(Runner runner);
     }
 }

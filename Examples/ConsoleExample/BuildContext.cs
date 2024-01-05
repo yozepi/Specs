@@ -8,6 +8,7 @@ namespace ConsoleExample
     {
         private readonly BuildContext? parent;
         private readonly List<Runner> beforeEach = new List<Runner>();
+        private readonly List<Runner> act = new List<Runner>();
         private readonly List<Runner> afterEach = new List<Runner>();
 
         public string Name { get; }
@@ -49,6 +50,7 @@ namespace ConsoleExample
                 try
                 {
                     this.DoBeforeEach();
+                    this.DoAct();
                     spec.Run();
                     this.DoAfterEach();
                     this.SuccessCount++;
@@ -85,6 +87,11 @@ namespace ConsoleExample
             this.beforeEach.Add(runner);
         }
 
+        public void AddAct(Runner runner)
+        {
+            this.act.Add(runner);
+        }
+
         public void AddAfterEach(Runner runner)
         {
             this.afterEach.Add(runner);
@@ -100,6 +107,31 @@ namespace ConsoleExample
                 }
 
                 foreach (Runner runner in this.beforeEach)
+                {
+                    runner.Run();
+                }
+            }
+
+            catch (ContextException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ContextException(ex);
+            }
+        }
+
+        private void DoAct()
+        {
+            try
+            {
+                if (this.parent != null)
+                {
+                    parent.DoAct();
+                }
+
+                foreach (Runner runner in this.act)
                 {
                     runner.Run();
                 }
