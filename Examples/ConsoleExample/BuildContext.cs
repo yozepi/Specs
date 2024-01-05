@@ -8,6 +8,7 @@ namespace ConsoleExample
     {
         private readonly BuildContext? parent;
         private readonly List<Runner> beforeEach = new List<Runner>();
+        private readonly List<Runner> afterEach = new List<Runner>();
 
         public string Name { get; }
 
@@ -49,6 +50,7 @@ namespace ConsoleExample
                 {
                     this.DoBeforeEach();
                     spec.Run();
+                    this.DoAfterEach();
                     this.SuccessCount++;
                 }
                 catch (Exception ex)
@@ -83,21 +85,21 @@ namespace ConsoleExample
             this.beforeEach.Add(runner);
         }
 
-        private void DoBeforeEach()
+        public void AddAfterEach(Runner runner)
         {
-            this.ProcessRunners(this.beforeEach, () => this.parent!.DoBeforeEach());
+            this.afterEach.Add(runner);
         }
 
-        private void ProcessRunners(List<Runner> runners, Action parentInvocation)
+        private void DoBeforeEach()
         {
             try
             {
-                if(this.parent != null)
+                if (this.parent != null)
                 {
-                    parentInvocation.Invoke();
+                    parent.DoBeforeEach();
                 }
 
-                foreach(Runner runner in runners)
+                foreach (Runner runner in this.beforeEach)
                 {
                     runner.Run();
                 }
@@ -110,6 +112,27 @@ namespace ConsoleExample
             catch (Exception ex)
             {
                 throw new ContextException(ex);
+            }
+        }
+
+        private void DoAfterEach()
+        {
+            try
+            {
+                foreach (Runner runner in this.afterEach)
+                {
+                    runner.Run();
+                }
+
+                if (this.parent != null)
+                {
+                    parent.DoAfterEach();
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
 

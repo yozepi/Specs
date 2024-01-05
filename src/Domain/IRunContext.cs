@@ -9,5 +9,7 @@
         void ContextRestored(IRunContext childContext);
 
         void AddBeforeEach(Runner runner);
+
+        void AddAfterEach(Runner runner);
     }
 }

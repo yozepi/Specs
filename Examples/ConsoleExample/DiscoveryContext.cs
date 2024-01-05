@@ -95,5 +95,9 @@ namespace ConsoleExample
         public void AddBeforeEach(Runner runner)
         {
         }
+
+        public void AddAfterEach(Runner runner)
+        {
+        }
     }
 }

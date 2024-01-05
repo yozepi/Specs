@@ -10,10 +10,12 @@ namespace ConsoleExample
         {
             NumberCruncher subject = null!;
             int speed = 0;
+            int aftertracker = 0;
 
             BeforeEach = () =>
             {
                 speed = 0;
+                aftertracker = 0;
                 subject = new NumberCruncher();
             };
 
@@ -24,6 +26,8 @@ namespace ConsoleExample
                 {
                     Func<int> act = () => subject.CrunchNumbers(speed);
 
+                    AfterEach = () => aftertracker = 1;
+
                     It["will crunch numbers"] = () =>
                     {
                         subject.CrunchNumbers().Should().Be(0);
@@ -32,6 +36,7 @@ namespace ConsoleExample
                     Context["when it runs faster..."] = () =>
                     {
                         BeforeEach = () => speed = 100;
+                        AfterEach = () => aftertracker = 2;
 
                         It["will crunch numbers faster"] = () =>
                         {
@@ -42,6 +47,7 @@ namespace ConsoleExample
                     Describe["when it runs too fast..."] = () =>
                     {
                         BeforeEach = () => speed = 200;
+                        AfterEach = () => aftertracker = 1;
 
                         It["will catch on fire"] = () =>
                         {
@@ -52,6 +58,7 @@ namespace ConsoleExample
 
                 Context["asyncronous chrunching..."] = () =>
                 {
+                    AfterEachAsync = () => Task.FromResult(aftertracker = 1);
 
                     Func<Task<int>> act = async () => await subject.CrunchNumbersAsync(speed);
 
@@ -64,6 +71,7 @@ namespace ConsoleExample
                     {
 
                         BeforeEach = () => speed = 100;
+                        AfterEachAsync = () => Task.FromResult(aftertracker = 2);
 
                         ItAsync["will crunch numbers faster"] = async () =>
                         {
@@ -73,9 +81,8 @@ namespace ConsoleExample
 
                     Describe["when it runs too fast..."] = () =>
                     {
-                        int actual = 0;
-
                         BeforeEach = () => speed = 200;
+                        AfterEachAsync = () => Task.FromResult(aftertracker = 1);
 
                         ItAsync["will catch on fire"] = async () =>
                         {

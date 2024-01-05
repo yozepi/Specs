@@ -34,6 +34,23 @@ namespace Specs
             }
         }
 
+
+        public Action AfterEach
+        {
+            set
+            {
+                this.AddAfterEach(new ActionRunner(value));
+            }
+        }
+
+        public Func<Task> AfterEachAsync
+        {
+            set
+            {
+                this.AddAfterEach(new TaskRunner(value));
+            }
+        }
+
         private void SwitchContext(string name, Action action)
         {
             var originalContext = this.RunContext;
@@ -52,6 +69,11 @@ namespace Specs
         private void AddBeforeEach(Runner runner)
         {
             this.RunContext.AddBeforeEach(runner);
+        }
+
+        private void AddAfterEach(Runner runner)
+        {
+            this.RunContext.AddAfterEach(runner);
         }
 
         public static Action TODO => () => { };
