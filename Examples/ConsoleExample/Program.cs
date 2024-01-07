@@ -46,6 +46,7 @@
             specs.RunContext = context;
 
             specs.TryIt();
+            context.WriteContextErrors();
 
             Console.WriteLine($"TOTAL:   {context.SpecCount}");
             Console.WriteLine($"PASSED:  {context.SuccessCount}");

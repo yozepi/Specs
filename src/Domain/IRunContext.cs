@@ -1,7 +1,12 @@
-﻿namespace Specs.Domain
+﻿using System;
+using System.Collections.Generic;
+
+namespace Specs.Domain
 {
     internal interface IRunContext
     {
+        IEnumerable<Exception> ContextErrors { get; }
+
         void AddSpec(ISpecDefinition spec);
 
         IRunContext CreateChildContext(string name);
@@ -13,5 +18,7 @@
         void AddAct(Runner runner);
 
         void AddAfterEach(Runner runner);
+
+        void WriteContextErrors();
     }
 }

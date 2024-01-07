@@ -18,6 +18,9 @@ namespace ConsoleExample
 
         public string Name { get; }
 
+        public IEnumerable<Exception> ContextErrors => throw new NotImplementedException();
+
+
         public void AddSpec(ISpecDefinition spec)
         {
             specMethods.Add((name: spec.Name, wontRun: spec.DontRun));
@@ -102,6 +105,11 @@ namespace ConsoleExample
 
         public void AddAct(Runner runner)
         {
+        }
+
+        public void WriteContextErrors()
+        {
+            throw new NotImplementedException();
         }
     }
 }

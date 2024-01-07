@@ -1,15 +1,20 @@
 ﻿using System.Text;
 using Specs.Domain;
-using Specs.Domain.Exceptions;
 
 namespace ConsoleExample
 {
     internal class BuildContext : IRunContext
     {
         private readonly BuildContext? parent;
+        private readonly List<BuildContext> children = new List<BuildContext>();
+
         private readonly List<Runner> beforeEach = new List<Runner>();
         private readonly List<Runner> act = new List<Runner>();
         private readonly List<Runner> afterEach = new List<Runner>();
+
+        private readonly List<Exception> beforeEachErrors = new List<Exception>();
+        private readonly List<Exception> actErrors = new List<Exception>();
+        private readonly List<Exception> afterEachErrors = new List<Exception>();
 
         public string Name { get; }
 
@@ -22,6 +27,27 @@ namespace ConsoleExample
 
         private readonly StringBuilder descriptionBuilder = new StringBuilder();
         public string Description => descriptionBuilder.ToString();
+
+        public IEnumerable<Exception> ContextErrors
+        {
+            get
+            {
+                foreach (var ex in this.AggregateBeforeEachErrors())
+                {
+                    yield return ex;
+                }
+
+                foreach (var ex in this.AggregateActErrors())
+                {
+                    yield return ex;
+                }
+
+                foreach (var ex in this.AggregateAfterEachErrors())
+                {
+                    yield return ex;
+                }
+            }
+        }
 
         public BuildContext(string name, BuildContext? parent = null)
         {
@@ -47,12 +73,11 @@ namespace ConsoleExample
             else
             {
                 this.AppendLine(spec.Name, this.indentLevel + 1);
+                this.DoBeforeEach();
+                this.DoAct();
                 try
                 {
-                    this.DoBeforeEach();
-                    this.DoAct();
                     spec.Run();
-                    this.DoAfterEach();
                     this.SuccessCount++;
                 }
                 catch (Exception ex)
@@ -60,12 +85,14 @@ namespace ConsoleExample
                     this.FailCount++;
                     WriteException(ex);
                 }
+                this.DoAfterEach();
             }
         }
 
         public IRunContext CreateChildContext(string name)
         {
             var child = new BuildContext(name, this);
+            this.children.Add(child);
             return child;
         }
 
@@ -99,72 +126,114 @@ namespace ConsoleExample
 
         private void DoBeforeEach()
         {
-            try
+            this.beforeEachErrors.Clear();
+            if (this.parent != null)
             {
-                if (this.parent != null)
-                {
-                    parent.DoBeforeEach();
-                }
+                parent.DoBeforeEach();
+            }
 
-                foreach (Runner runner in this.beforeEach)
+            foreach (Runner runner in this.beforeEach)
+            {
+                try
                 {
                     runner.Run();
                 }
-            }
-
-            catch (ContextException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new ContextException(ex);
+                catch (Exception ex)
+                {
+                    this.beforeEachErrors.Add(ex);
+                }
             }
         }
 
         private void DoAct()
         {
-            try
-            {
-                if (this.parent != null)
-                {
-                    parent.DoAct();
-                }
+            this.actErrors.Clear();
 
-                foreach (Runner runner in this.act)
+            if (this.parent != null)
+            {
+                parent.DoAct();
+            }
+
+            foreach (Runner runner in this.act)
+            {
+                try
                 {
                     runner.Run();
                 }
-            }
-
-            catch (ContextException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new ContextException(ex);
+                catch (Exception ex)
+                {
+                    this.actErrors.Add(ex);
+                }
             }
         }
 
         private void DoAfterEach()
         {
-            try
+            this.afterEachErrors.Clear();
+
+            foreach (Runner runner in this.afterEach)
             {
-                foreach (Runner runner in this.afterEach)
+                try
                 {
                     runner.Run();
                 }
-
-                if (this.parent != null)
+                catch (Exception ex)
                 {
-                    parent.DoAfterEach();
+                    this.afterEachErrors.Add(ex);
                 }
             }
-            catch (Exception)
-            {
 
-                throw;
+            if (this.parent != null)
+            {
+                parent.DoAfterEach();
+            }
+        }
+
+        private IEnumerable<Exception> AggregateBeforeEachErrors()
+        {
+            foreach (var ex in this.beforeEachErrors)
+            {
+                yield return ex;
+            }
+
+            foreach (var child in this.children)
+            {
+                foreach (var ex in child.AggregateBeforeEachErrors())
+                {
+                    yield return ex;
+                }
+            }
+        }
+
+        private IEnumerable<Exception> AggregateActErrors()
+        {
+            foreach (var ex in this.actErrors)
+            {
+                yield return ex;
+            }
+
+            foreach (var child in this.children)
+            {
+                foreach (var ex in child.AggregateActErrors())
+                {
+                    yield return ex;
+                }
+            }
+        }
+
+        private IEnumerable<Exception> AggregateAfterEachErrors()
+        {
+            foreach (var child in this.children)
+            {
+                foreach (var ex in child.AggregateAfterEachErrors())
+                {
+                    yield return ex;
+                }
+            }
+
+            foreach (var ex in this.afterEachErrors)
+            {
+                yield return ex;
             }
         }
 
@@ -178,11 +247,6 @@ namespace ConsoleExample
 
             this.descriptionBuilder.AppendLine();
             this.AppendLine("CALL STACK", exIndent);
-
-            if(ex is ContextException)
-            {
-                ex = ex.InnerException!;
-            }
 
             var lines = ex.StackTrace!.Split('\n');
             foreach (var line in lines)
@@ -205,6 +269,22 @@ namespace ConsoleExample
         private string Tab(int indentLevel)
         {
             return new string(' ', indentLevel * 2);
+        }
+
+        public void WriteContextErrors()
+        {
+            var errors = this.ContextErrors.ToList();
+            if (errors.Any())
+            {
+                this.descriptionBuilder.AppendLine();
+                this.descriptionBuilder.AppendLine();
+
+                this.AppendLine("CONTEXT ERRORS", this.indentLevel);
+                foreach (var ex in ContextErrors)
+                {
+                    this.WriteException(ex);
+                }
+            }
         }
     }
 }
