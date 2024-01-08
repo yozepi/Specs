@@ -20,6 +20,7 @@ namespace ConsoleExample
 
         public IEnumerable<Exception> ContextErrors => throw new NotImplementedException();
 
+        public Exception? LastActError => throw new NotImplementedException();
 
         public void AddSpec(ISpecDefinition spec)
         {
@@ -108,6 +109,11 @@ namespace ConsoleExample
         }
 
         public void WriteContextErrors()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void LastActErrorHandled()
         {
             throw new NotImplementedException();
         }

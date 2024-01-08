@@ -24,8 +24,10 @@ namespace ConsoleExample
         public int SkippedCount { get; private set; }
 
         private int indentLevel = 0;
+        private bool actErrorHandled = false;
 
         private readonly StringBuilder descriptionBuilder = new StringBuilder();
+
         public string Description => descriptionBuilder.ToString();
 
         public IEnumerable<Exception> ContextErrors
@@ -48,6 +50,8 @@ namespace ConsoleExample
                 }
             }
         }
+
+        public Exception? LastActError { get; private set; }
 
         public BuildContext(string name, BuildContext? parent = null)
         {
@@ -72,13 +76,26 @@ namespace ConsoleExample
             }
             else
             {
+                this.actErrorHandled = false;
+                this.LastActError = null;
+
                 this.AppendLine(spec.Name, this.indentLevel + 1);
                 this.DoBeforeEach();
                 this.DoAct();
+                this.LastActError = this.AggregateParentAndSelfActErrors().LastOrDefault();
                 try
                 {
                     spec.Run();
-                    this.SuccessCount++;
+
+                    if (this.LastActError != null && !this.actErrorHandled)
+                    {
+                        WriteException(this.LastActError);
+                        this.FailCount++;
+                    }
+                    else
+                    {
+                        this.SuccessCount++;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -122,6 +139,27 @@ namespace ConsoleExample
         public void AddAfterEach(Runner runner)
         {
             this.afterEach.Add(runner);
+        }
+
+        public void WriteContextErrors()
+        {
+            var errors = this.ContextErrors.ToList();
+            if (errors.Any())
+            {
+                this.descriptionBuilder.AppendLine();
+                this.descriptionBuilder.AppendLine();
+
+                this.AppendLine("CONTEXT ERRORS", this.indentLevel);
+                foreach (var ex in ContextErrors)
+                {
+                    this.WriteException(ex);
+                }
+            }
+        }
+
+        public void LastActErrorHandled()
+        {
+            this.actErrorHandled = true;
         }
 
         private void DoBeforeEach()
@@ -205,6 +243,23 @@ namespace ConsoleExample
             }
         }
 
+        private IEnumerable<Exception> AggregateParentAndSelfActErrors()
+        {
+
+            if(this.parent != null)
+            {
+                foreach (var ex in parent.AggregateParentAndSelfActErrors())
+                {
+                    yield return ex;
+                }
+            }
+
+            foreach (var ex in this.actErrors)
+            {
+                yield return ex;
+            }
+        }
+
         private IEnumerable<Exception> AggregateActErrors()
         {
             foreach (var ex in this.actErrors)
@@ -269,22 +324,6 @@ namespace ConsoleExample
         private string Tab(int indentLevel)
         {
             return new string(' ', indentLevel * 2);
-        }
-
-        public void WriteContextErrors()
-        {
-            var errors = this.ContextErrors.ToList();
-            if (errors.Any())
-            {
-                this.descriptionBuilder.AppendLine();
-                this.descriptionBuilder.AppendLine();
-
-                this.AppendLine("CONTEXT ERRORS", this.indentLevel);
-                foreach (var ex in ContextErrors)
-                {
-                    this.WriteException(ex);
-                }
-            }
         }
     }
 }

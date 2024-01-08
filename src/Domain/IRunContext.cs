@@ -7,6 +7,10 @@ namespace Specs.Domain
     {
         IEnumerable<Exception> ContextErrors { get; }
 
+        Exception? LastActError { get; }
+
+        void LastActErrorHandled();
+
         void AddSpec(ISpecDefinition spec);
 
         IRunContext CreateChildContext(string name);

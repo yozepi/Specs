@@ -26,7 +26,6 @@ namespace ConsoleExample
                 {
                     Act = () => actual = subject.CrunchNumbers(speed);
 
-
                     It["will crunch numbers"] = () =>
                     {
                         actual.Should().Be(0);
@@ -46,10 +45,7 @@ namespace ConsoleExample
                     {
                         BeforeEach = () => speed = 200;
 
-                        It["will catch on fire"] = () =>
-                        {
-                            actual.Should().Be(200);
-                        };
+                        It["will catch on fire"] = ShouldThrow<Exception>(ex => ex.Message == "I'm running too fast!", "the exception message is wrong");
                     };
                 };
 
@@ -76,20 +72,59 @@ namespace ConsoleExample
                     {
                         BeforeEach = () => speed = 200;
 
-                        It["will catch on fire"] = () =>
-                        {
-                            actual.Should().Be(speed);
-                        };
+                        It["will catch on fire"] = ShouldThrow<Exception>(ex => ex.Message == "I'm running too fast!", "the exception message is wrong");
                     };
                 };
             };
 
 
-            Describe["when something else happens..."] = () =>
+            Describe["exception handling examples"] = () =>
             {
-                BeforeEach = () => { };
+                Describe["Exceptions within \"It\""] = () =>
+                {
+                    Describe["Syncronous exception handling..."] = () =>
+                    {
+                        It["capture any exception"] = ShouldThrow(() => throw new Exception("Boom!"));
 
-                It["will run differently"] = TODO;
+                        It["capture a specific exception type"] = ShouldThrow<InvalidCastException>(() => throw new InvalidCastException());
+
+                        It["capture a specific exception type and predicate match"] = ShouldThrow<InvalidCastException>(() => throw new InvalidCastException("Crows"), ex => ex.Message == "Crows");
+                    };
+
+                    Describe["Async exception handling..."] = () =>
+                    {
+                        ItAsync["capture any exception"] = ShouldThrowAsync(() => Task.FromException(new Exception("Boom!")));
+
+                        ItAsync["capture a specific exception type"] = ShouldThrowAsync<InvalidCastException>(() => Task.FromException(new InvalidCastException()));
+
+                        ItAsync["capture a specific exception type and predicate match"] = ShouldThrowAsync<InvalidCastException>(() => Task.FromException(new InvalidCastException("Crows")), ex => ex.Message == "Crows");
+                    };
+                };
+
+                Describe["Exceptions within \"Act\""] = () =>
+                {
+                    Describe["Syncronous exception handling..."] = () =>
+                    {
+                        Act = () => throw new InvalidCastException("Crows");
+
+                        It["capture any exception"] = ShouldThrow();
+
+                        It["capture a specific exception type"] = ShouldThrow<InvalidCastException>();
+
+                        It["capture a specific exception type and predicate match"] = ShouldThrow<InvalidCastException>(ex => ex.Message == "Crows");
+                    };
+
+                    Describe["Async exception handling..."] = () =>
+                    {
+                        ActAsync = () => Task.FromException(new InvalidCastException("Crows"));
+
+                        It["capture any exception"] = ShouldThrow();
+
+                        It["capture a specific exception type"] = ShouldThrow<InvalidCastException>();
+
+                        It["capture a specific exception type and predicate match"] = ShouldThrow<InvalidCastException>(ex => ex.Message == "Crows");
+                    };
+                };
             };
         }
 
