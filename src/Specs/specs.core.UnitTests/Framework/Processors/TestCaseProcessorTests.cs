@@ -1,6 +1,6 @@
 ﻿using Autofac.Extras.Moq;
-using FluentAssertions;
 using Moq;
+using NFluent;
 using NUnit.Framework.Internal;
 using specs.core.Framework.Adaptors;
 using specs.core.Framework.Processors;
@@ -56,7 +56,7 @@ namespace specs.core.UnitTests.Framework.Processors
                 mocker.Dispose();
             };
 
-            act = () => 
+            act = () =>
             {
                 logger = mocker.Create<ILoggingAdapter>();
                 assert = mocker.Create<IAssertAdapter>();
@@ -119,8 +119,11 @@ namespace specs.core.UnitTests.Framework.Processors
 
                 it["should execute the setup adapter before asserting the test."] = () =>
                 {
-                    adapterCallOrder.Should()
-                        .ContainInOrder(CalledAdapters.SetupAdapter, CalledAdapters.AssertAdapter);
+                    Check
+                        .That(adapterCallOrder)
+                        .ContainsExactly(
+                            CalledAdapters.SetupAdapter,
+                            CalledAdapters.AssertAdapter);
                 };
 
                 context["when the setup adapter fails..."] = () =>
@@ -139,7 +142,7 @@ namespace specs.core.UnitTests.Framework.Processors
 
                     it["should throw the exception"] = expect<InvalidEnumArgumentException>();
 
-                    it["should not assert the test"] = () => 
+                    it["should not assert the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
@@ -158,8 +161,12 @@ namespace specs.core.UnitTests.Framework.Processors
                     it
                     ["should execute the adapters in the following order: Setup, Act, Assert"] = () =>
                     {
-                        adapterCallOrder.Should()
-                            .ContainInOrder(CalledAdapters.SetupAdapter, CalledAdapters.ActAdapter, CalledAdapters.AssertAdapter);
+                        Check
+                            .That(adapterCallOrder)
+                            .ContainsExactly(
+                                CalledAdapters.SetupAdapter,
+                                CalledAdapters.ActAdapter,
+                                CalledAdapters.AssertAdapter);
                     };
                     context["when the act adapter fails..."] = () =>
                     {
@@ -196,8 +203,13 @@ namespace specs.core.UnitTests.Framework.Processors
 
                         it["should execute the adapters in the following order: Setup, Act, Assert, Teardown"] = () =>
                         {
-                            adapterCallOrder.Should()
-                               .ContainInOrder(CalledAdapters.SetupAdapter, CalledAdapters.ActAdapter, CalledAdapters.AssertAdapter, CalledAdapters.TeardownAdapter);
+                            Check
+                                .That(adapterCallOrder)
+                                .ContainsExactly(
+                                    CalledAdapters.SetupAdapter,
+                                    CalledAdapters.ActAdapter,
+                                    CalledAdapters.AssertAdapter,
+                                    CalledAdapters.TeardownAdapter);
                         };
 
                         context["when the TearDown adapter fails..."] = () =>
@@ -216,7 +228,7 @@ namespace specs.core.UnitTests.Framework.Processors
 
                             it["should throw the exception"] = expect<InvalidCastException>();
 
-                            it["should have already asserte the test"] = () =>
+                            it["should have already asserted the test"] = () =>
                             {
                                 mocker.Mock<ILoggingAdapter>()
                                     .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
