@@ -22,13 +22,10 @@ namespace specs.core.UnitTests.Framework.Processors
             TestCaseProcessor subject = null!;
             TestCaseProcessorSettings settings = null!;
             string testCaseDescription = "I'm a test case!";
-            IAssertAdapter assert = null!;
+            ITestContext testContext = null!;
             ILoggingAdapter logger = null!;
-            ISetupTestAdapter setup = null!;
-            IActAdapter subjectAct = null!;
-            ITeardownAdapter tearDown = null!;
 
-            List<CalledAdapters> adapterCallOrder = null!;
+            List<CalledMethods> methodCallOrder = null!;
 
             AutoMock mocker = null!;
 
@@ -36,19 +33,15 @@ namespace specs.core.UnitTests.Framework.Processors
             {
                 subject = null!;
                 settings = new TestCaseProcessorSettings(() => testCaseDescription);
-                assert = null!;
                 logger = null!;
-                setup = null!;
-                subjectAct = null!;
-                tearDown = null!;
 
-                adapterCallOrder = new List<CalledAdapters>();
+                methodCallOrder = new List<CalledMethods>();
 
                 mocker = AutoMock.GetLoose();
                 mocker.Mock<ILoggingAdapter>();
-                mocker.Mock<IAssertAdapter>()
+                mocker.Mock<ITestContext>()
                     .Setup(m => m.Assert())
-                    .Callback(() => adapterCallOrder.Add(CalledAdapters.AssertAdapter));
+                    .Callback(() => methodCallOrder.Add(CalledMethods.Assert));
             };
 
             afterEach = () =>
@@ -59,15 +52,12 @@ namespace specs.core.UnitTests.Framework.Processors
             act = () =>
             {
                 logger = mocker.Create<ILoggingAdapter>();
-                assert = mocker.Create<IAssertAdapter>();
+                testContext = mocker.Create<ITestContext>();
 
                 subject = new TestCaseProcessor(
                     settings,
                     logger,
-                    assert,
-                    setup,
-                    subjectAct,
-                    tearDown
+                    testContext
                 );
 
                 subject.ProcessTestCase();
@@ -83,7 +73,7 @@ namespace specs.core.UnitTests.Framework.Processors
             {
                 beforeEach = () =>
                 {
-                    mocker.Mock<IAssertAdapter>()
+                    mocker.Mock<ITestContext>()
                         .Setup(x => x.Assert())
                         .Throws(new AssertionException("Test Failed"));
                 };
@@ -105,32 +95,29 @@ namespace specs.core.UnitTests.Framework.Processors
                 };
             };
 
-            describe["when a setup adapter is included"] = () =>
+            context["running Setup..."] = () =>
             {
                 beforeEach = () =>
                 {
-                    mocker.Mock<ISetupTestAdapter>()
+                    mocker.Mock<ITestContext>()
                         .Setup(x => x.Setup())
-                        .Callback(() => adapterCallOrder.Add(CalledAdapters.SetupAdapter));
-
-                    setup = mocker.Create<ISetupTestAdapter>();
-
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Setup));
                 };
 
-                it["should execute the setup adapter before asserting the test."] = () =>
+                it["should execute Setup before asserting the test"] = () =>
                 {
                     Check
-                        .That(adapterCallOrder)
+                        .That(methodCallOrder)
                         .ContainsExactly(
-                            CalledAdapters.SetupAdapter,
-                            CalledAdapters.AssertAdapter);
+                            CalledMethods.Setup,
+                            CalledMethods.Assert);
                 };
 
-                context["when the setup adapter fails..."] = () =>
+                context["when the Setup method fails..."] = () =>
                 {
                     beforeEach = () =>
                     {
-                        mocker.Mock<ISetupTestAdapter>().Setup(m => m.Setup())
+                        mocker.Mock<ITestContext>().Setup(m => m.Setup())
                             .Throws<InvalidEnumArgumentException>();
                     };
 
@@ -148,104 +135,123 @@ namespace specs.core.UnitTests.Framework.Processors
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
+            };
 
-                describe["when an act adapter is included"] = () =>
+            context["running Act..."] = () =>
+            {
+                beforeEach = () =>
+                {
+                    mocker.Mock<ITestContext>()
+                        .Setup(x => x.Act())
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Act));
+                };
+                it
+                ["should execute Act before asserting the test"] = () =>
+                {
+                    Check
+                        .That(methodCallOrder)
+                        .ContainsExactly(
+                            CalledMethods.Act,
+                            CalledMethods.Assert);
+                };
+                context["when the Act method fails..."] = () =>
                 {
                     beforeEach = () =>
                     {
-                        mocker.Mock<IActAdapter>()
-                            .Setup(x => x.Act())
-                            .Callback(() => adapterCallOrder.Add(CalledAdapters.ActAdapter));
-                        subjectAct = mocker.Create<IActAdapter>();
+                        mocker.Mock<ITestContext>().Setup(m => m.Act())
+                            .Throws<NullReferenceException>();
                     };
-                    it
-                    ["should execute the adapters in the following order: Setup, Act, Assert"] = () =>
+
+                    it["should log the failure"] = () =>
                     {
-                        Check
-                            .That(adapterCallOrder)
-                            .ContainsExactly(
-                                CalledAdapters.SetupAdapter,
-                                CalledAdapters.ActAdapter,
-                                CalledAdapters.AssertAdapter);
+                        mocker.Mock<ILoggingAdapter>()
+                            .Verify(x => x.LogException(It.IsAny<NullReferenceException>()), Times.Once());
                     };
-                    context["when the act adapter fails..."] = () =>
+
+                    it["should throw the exception"] = expect<NullReferenceException>();
+
+                    it["should not assert the test"] = () =>
                     {
-                        beforeEach = () =>
-                        {
-                            mocker.Mock<IActAdapter>().Setup(m => m.Act())
-                                .Throws<NullReferenceException>();
-                        };
-
-                        it["should log the failure"] = () =>
-                        {
-                            mocker.Mock<ILoggingAdapter>()
-                                .Verify(x => x.LogException(It.IsAny<NullReferenceException>()), Times.Once());
-                        };
-
-                        it["should throw the exception"] = expect<NullReferenceException>();
-
-                        it["should not assert the test"] = () =>
-                        {
-                            mocker.Mock<ILoggingAdapter>()
-                                .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
-                        };
+                        mocker.Mock<ILoggingAdapter>()
+                            .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
+                };
+            };
 
-                    describe["when an teardown adapter is included"] = () =>
+            context["running Teardown..."] = () =>
+            {
+                beforeEach = () =>
+                {
+                    mocker.Mock<ITestContext>()
+                        .Setup(x => x.Teardown())
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Teardown));
+                };
+
+                it["should assert the test before running Teardown"] = () =>
+                {
+                    Check
+                        .That(methodCallOrder)
+                        .ContainsExactly(
+                            CalledMethods.Assert,
+                            CalledMethods.Teardown);
+                };
+
+                context["when TearDown fails..."] = () =>
+                {
+                    beforeEach = () =>
                     {
-                        beforeEach = () =>
-                        {
-                            mocker.Mock<ITeardownAdapter>()
-                                .Setup(x => x.Teardown())
-                                .Callback(() => adapterCallOrder.Add(CalledAdapters.TeardownAdapter));
-                            tearDown = mocker.Create<ITeardownAdapter>();
-                        };
-
-                        it["should execute the adapters in the following order: Setup, Act, Assert, Teardown"] = () =>
-                        {
-                            Check
-                                .That(adapterCallOrder)
-                                .ContainsExactly(
-                                    CalledAdapters.SetupAdapter,
-                                    CalledAdapters.ActAdapter,
-                                    CalledAdapters.AssertAdapter,
-                                    CalledAdapters.TeardownAdapter);
-                        };
-
-                        context["when the TearDown adapter fails..."] = () =>
-                        {
-                            beforeEach = () =>
-                            {
-                                mocker.Mock<ITeardownAdapter>().Setup(m => m.Teardown())
-                                    .Throws<InvalidCastException>();
-                            };
-
-                            it["should log the failure"] = () =>
-                            {
-                                mocker.Mock<ILoggingAdapter>()
-                                    .Verify(x => x.LogException(It.IsAny<InvalidCastException>()), Times.Once());
-                            };
-
-                            it["should throw the exception"] = expect<InvalidCastException>();
-
-                            it["should have already asserted the test"] = () =>
-                            {
-                                mocker.Mock<ILoggingAdapter>()
-                                    .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
-                            };
-                        };
+                        mocker.Mock<ITestContext>().Setup(m => m.Teardown())
+                            .Throws<InvalidCastException>();
                     };
+
+                    it["should log the failure"] = () =>
+                    {
+                        mocker.Mock<ILoggingAdapter>()
+                            .Verify(x => x.LogException(It.IsAny<InvalidCastException>()), Times.Once());
+                    };
+
+                    it["should throw the exception"] = expect<InvalidCastException>();
+
+                    it["should have already asserted the test"] = () =>
+                    {
+                        mocker.Mock<ILoggingAdapter>()
+                            .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
+                    };
+                };
+            };
+
+            describe["Setup, Act, Assert, and Teardown call order..."] = () =>
+            {
+                beforeEach = () =>
+                {
+                    mocker.Mock<ITestContext>()
+                        .Setup(x => x.Setup())
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Setup));
+                    mocker.Mock<ITestContext>()
+                        .Setup(x => x.Act())
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Act));
+                    mocker.Mock<ITestContext>()
+                        .Setup(x => x.Teardown())
+                        .Callback(() => methodCallOrder.Add(CalledMethods.Teardown));
+                };
+                it["should call call Setup, then Act, then Assert, then Teardown"] = () =>
+                {
+                    Check.That(methodCallOrder).ContainsExactly(
+                        CalledMethods.Setup,
+                        CalledMethods.Act,
+                        CalledMethods.Assert,
+                        CalledMethods.Teardown);
                 };
             };
         }
 
     }
 
-    enum CalledAdapters
+    enum CalledMethods
     {
-        SetupAdapter,
-        ActAdapter,
-        AssertAdapter,
-        TeardownAdapter
+        Setup,
+        Act,
+        Assert,
+        Teardown
     }
 }
