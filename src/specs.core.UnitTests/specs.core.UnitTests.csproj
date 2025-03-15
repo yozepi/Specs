@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\specs.core\specs.core.csproj" />
+    <ProjectReference Include="..\specs.core\specs.core.csproj" />
     <ProjectReference Include="..\TestHarness\TestHarness.csproj" />
   </ItemGroup>
 
