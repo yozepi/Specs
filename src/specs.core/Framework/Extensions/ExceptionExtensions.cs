@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime;
 
-namespace specs.core.Framework.Excensions
+namespace specs.core.Framework.Extensions
 {
     internal static class ExceptionExtensions
     {

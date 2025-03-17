@@ -1,12 +1,12 @@
 ﻿using System;
 
-namespace specs.core.Framework.Adaptors
+namespace specs.core.Framework.Adapters
 {
     public interface ILoggingAdapter
     {
         void Log(string message);
 
-        void LogAssertFailure(Exception exception);
+        void LogAssertFailure(Exception exception, string message);
 
         void LogAssertSuccess(string message);
 

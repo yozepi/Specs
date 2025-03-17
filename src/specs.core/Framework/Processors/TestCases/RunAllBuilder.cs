@@ -1,0 +1,45 @@
+﻿using specs.core.Framework.Extensions;
+using System;
+using System.Collections.Generic;
+
+namespace specs.core.Framework.Processors.TestCases
+{
+    /// <summary>
+    /// BeforeAll and AfterAll actions must only be allowed to run once.
+    /// This class manages the collection of thes actions and an action is built that will only run them once.
+    /// </summary>
+    internal class RunAllBuilder
+    {
+        private readonly List<Action> actions = new List<Action>();
+
+        private Lazy<Action?>? actionFactory = null;
+
+        private bool resetFactory = true;
+
+        public void AddAction(Action action)
+        {
+            action.OrThrowIfParameterIsNull(nameof(action));
+            actions.Add(action);
+            resetFactory = true;
+        }
+
+        public Action? Build()
+        {
+            if (resetFactory)
+            {
+                actionFactory = new Lazy<Action?>(() =>
+                {
+                    if (actions.Count == 0)
+                    {
+                        return null;
+                    }
+                    return new RunAllRunner(actions).RunAll;
+                });
+
+                resetFactory = false;
+            }
+
+            return actionFactory!.Value;
+        }
+    }
+}

@@ -11,10 +11,10 @@ namespace yozepi
     {
         #region properties
 
-        protected internal string? Tags { get; set; }
-        protected internal IFormatter? Formatter { get; set; }
+        protected internal string Tags { get; set; } = null;
+        protected internal IFormatter Formatter { get; set; } = null;
         protected bool FailFast { get; set; }
-        internal Func<Type[]>? specFinder { get; set; }
+        internal Func<Type[]> specFinder { get; set; } = null;
 
         #endregion //properties
 
@@ -77,7 +77,7 @@ namespace yozepi
             }
         }
 
-        protected internal void RunSpecs(Func<Type[]>? specFinder)
+        protected internal void RunSpecs(Func<Type[]> specFinder)
         {
             LoadSpecs(specFinder);
             RunSpecs();
