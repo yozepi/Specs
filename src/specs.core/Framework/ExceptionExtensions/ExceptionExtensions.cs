@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime;
 
-namespace specs.core.Framework.Extensions
+namespace specs.core.Framework.ParameterValidation
 {
     internal static class ExceptionExtensions
     {

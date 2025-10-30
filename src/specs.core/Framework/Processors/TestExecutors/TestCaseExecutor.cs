@@ -1,6 +1,7 @@
 ﻿using specs.core.Framework.Adapters;
-using specs.core.Framework.Extensions;
+using specs.core.Framework.ParameterValidation;
 using System;
+using System.Linq;
 
 namespace specs.core.Framework.Processors.TestExecutors
 {
@@ -30,32 +31,35 @@ namespace specs.core.Framework.Processors.TestExecutors
         {
             try
             {
-                testContext.SetupOnce();
-
                 var tests = testProvider.GetTestInstances();
-                foreach(var test in tests)
+                if (tests.Any())
                 {
-                    testContext.SetupEach();
-                    testContext.Act();
+                    testContext.SetupOnce();
 
-                    try
+                    foreach (var test in tests)
                     {
-                        test.Test.Invoke();
-                        logger.LogAssertSuccess(test.Description);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogAssertFailure(ex, test.Description);
-                        if (settings.StopOnAssertFailure)
+                        testContext.SetupEach();
+                        testContext.Act();
+
+                        try
                         {
-                            throw;
+                            test.Test.Invoke();
+                            logger.LogAssertSuccess(test.Description);
                         }
+                        catch (Exception ex)
+                        {
+                            logger.LogAssertFailure(ex, test.Description);
+                            if (settings.StopOnAssertFailure)
+                            {
+                                throw;
+                            }
+                        }
+
+                        testContext.TeardownEach();
                     }
 
-                    testContext.TeardownEach();
+                    testContext.TeardownOnce();
                 }
-
-                testContext.TeardownOnce();
             }
             catch (Exception ex)
             {

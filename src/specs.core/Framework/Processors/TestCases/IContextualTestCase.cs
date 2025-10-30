@@ -2,7 +2,7 @@
 
 namespace specs.core.Framework.Processors.TestCases
 {
-    internal interface IContextualTestCase
+    internal interface IContextualTestCase : ITestCase
     {
         IReadOnlyList<ITestCaseContext> ChildContexts { get; }
     }

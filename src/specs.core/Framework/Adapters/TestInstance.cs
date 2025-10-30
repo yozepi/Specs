@@ -1,4 +1,4 @@
-﻿using specs.core.Framework.Extensions;
+﻿using specs.core.Framework.ParameterValidation;
 using System;
 
 namespace specs.core.Framework.Adapters

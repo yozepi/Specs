@@ -9,12 +9,12 @@ using yozepi;
 
 namespace specs.core.UnitTests.Framework.Processors.TestExecutors
 {
-    public class TestCaseExecutorTests : nSpecTestHarness
+    public class TestCaseExecutor_Tests : nSpecTestHarness
     {
         [Test]
         public void Specs()
         {
-            RunSpecs();
+            RunMySpecs();
         }
 
         private void TestCaseExecutor_Specs()
@@ -218,6 +218,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
+                
+                context["when there are no tests to run..."] = () =>
+                {
+                    beforeEach = () =>
+                    {
+                        tests.Clear();
+                    };
+
+                    it[$"should not invoke {nameof(ITestContextAdapter.SetupOnce)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>()
+                            .Verify(x => x.SetupOnce(), Times.Never());
+                    };
+                };
             };
 
             describe[$"{nameof(ITestContextAdapter.SetupEach)} behavior..."] = () =>
@@ -228,8 +242,8 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         .Setup(x => x.SetupEach())
                         .Callback(() => methodCallOrder.Add(CalledMethods.SetupEach));
                 };
-                it
-                [$"should execute {nameof(ITestContextAdapter.SetupEach)} before asserting the test"] = () =>
+
+                it[$"should execute {nameof(ITestContextAdapter.SetupEach)} before asserting the test"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -260,6 +274,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
+
+                context["when there are no tests to run..."] = () =>
+                {
+                    beforeEach = () =>
+                    {
+                        tests.Clear();
+                    };
+
+                    it[$"should not invoke {nameof(ITestContextAdapter.SetupEach)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>()
+                            .Verify(x => x.SetupEach(), Times.Never());
+                    };
+                };
             };
 
             describe[$"{nameof(ITestContextAdapter.Act)} behavior..."] = () =>
@@ -270,8 +298,8 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         .Setup(x => x.Act())
                         .Callback(() => methodCallOrder.Add(CalledMethods.Act));
                 };
-                it
-                [$"should execute {nameof(ITestContextAdapter.Act)} before asserting the test"] = () =>
+
+                it[$"should execute {nameof(ITestContextAdapter.Act)} before asserting the test"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -300,6 +328,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
+                    };
+                };
+
+                context["when there are no tests to run..."] = () =>
+                {
+                    beforeEach = () =>
+                    {
+                        tests.Clear();
+                    };
+
+                    it[$"should not invoke {nameof(ITestContextAdapter.Act)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>()
+                            .Verify(x => x.Act(), Times.Never());
                     };
                 };
             };
@@ -344,6 +386,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
                     };
                 };
+
+                context["when there are no tests to run..."] = () =>
+                {
+                    beforeEach = () =>
+                    {
+                        tests.Clear();
+                    };
+
+                    it[$"should not invoke {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>()
+                            .Verify(x => x.TeardownEach(), Times.Never());
+                    };
+                };
             };
 
             describe[$"{nameof(ITestContextAdapter.TeardownOnce)} behavior..."] = () =>
@@ -384,6 +440,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
+                    };
+                };
+
+                context["when there are no tests to run..."] = () =>
+                {
+                    beforeEach = () =>
+                    {
+                        tests.Clear();
+                    };
+
+                    it[$"should not invoke {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>()
+                            .Verify(x => x.TeardownOnce(), Times.Never());
                     };
                 };
             };

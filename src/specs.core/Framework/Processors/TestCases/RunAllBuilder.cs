@@ -1,4 +1,4 @@
-﻿using specs.core.Framework.Extensions;
+﻿using specs.core.Framework.ParameterValidation;
 using System;
 using System.Collections.Generic;
 
@@ -6,7 +6,7 @@ namespace specs.core.Framework.Processors.TestCases
 {
     /// <summary>
     /// BeforeAll and AfterAll actions must only be allowed to run once.
-    /// This class manages the collection of thes actions and an action is built that will only run them once.
+    /// This class manages the collection of these actions and an action is built that will only run them once.
     /// </summary>
     internal class RunAllBuilder
     {
@@ -18,8 +18,7 @@ namespace specs.core.Framework.Processors.TestCases
 
         public void AddAction(Action action)
         {
-            action.OrThrowIfParameterIsNull(nameof(action));
-            actions.Add(action);
+            actions.Add(action.OrThrowIfParameterIsNull(nameof(action)));
             resetFactory = true;
         }
 

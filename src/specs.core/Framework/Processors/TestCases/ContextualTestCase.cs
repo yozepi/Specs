@@ -1,4 +1,4 @@
-﻿using specs.core.Framework.Extensions;
+﻿using specs.core.Framework.ParameterValidation;
 using System;
 using System.Collections.Generic;
 
@@ -6,7 +6,7 @@ namespace specs.core.Framework.Processors.TestCases
 {
     internal class ContextualTestCase : ITestCaseContext, IContextualTestCase
     {
-        public static ITestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts)
+        public static IContextualTestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts)
         {
             return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, tests, childContexts);
         }

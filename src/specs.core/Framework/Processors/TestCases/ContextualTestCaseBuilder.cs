@@ -1,4 +1,4 @@
-﻿using specs.core.Framework.Extensions;
+﻿using specs.core.Framework.ParameterValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace specs.core.Framework.Processors.TestCases
 {
-    internal class ContextualTestCaseBuilder : ITestCaseBuilder
+    internal class ContextualTestCaseBuilder : IContextualTestCaseBuilder
     {
         private readonly ContextualTestCaseBuilder? parentContext = null;
         private readonly List<ContextualTestCaseBuilder> childBuilders = new List<ContextualTestCaseBuilder>();
@@ -20,7 +20,7 @@ namespace specs.core.Framework.Processors.TestCases
         private readonly List<Action> teardownEachActions = new List<Action>();
         private readonly RunAllBuilder teardownOnceBuilder = new RunAllBuilder();
 
-        protected ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext)
+        internal ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext = null)
         {
             this.parentContext = parentContext;
         }
@@ -28,11 +28,11 @@ namespace specs.core.Framework.Processors.TestCases
         public string? Description { get; private set; }
 
         /// <summary>
-        /// Adds a setup action that will onlly be run once for all tests.
+        /// Adds a setup action that will only be run once for all tests.
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddSetupOnce(Action action)
+        public IContextualTestCaseBuilder AddSetupOnce(Action action)
         {
             setupOnceBuilder.AddAction(action);
             return this;
@@ -43,7 +43,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddSetupOnce(Func<Task> action)
+        public IContextualTestCaseBuilder AddSetupOnce(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddSetupOnce(newAction);
@@ -54,7 +54,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddSetupEach(Action action)
+        public IContextualTestCaseBuilder AddSetupEach(Action action)
         {
             setupEachActions.Add(action);
             return this;
@@ -65,7 +65,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddSetupEach(Func<Task> action)
+        public IContextualTestCaseBuilder AddSetupEach(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddSetupEach(newAction);
@@ -77,7 +77,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// <param name="description"></param>
         /// <param name="test"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTest(string description, Action test)
+        public IContextualTestCaseBuilder AddTest(string description, Action test)
         {
             testActions.Add((description, test));
             return this;
@@ -89,7 +89,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// <param name="description"></param>
         /// <param name="test"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTest(string description, Func<Task> test)
+        public IContextualTestCaseBuilder AddTest(string description, Func<Task> test)
         {
             var newTest = new Action(() => test().GetAwaiter().GetResult());
             return AddTest(description, newTest);
@@ -100,7 +100,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddAct(Action action)
+        public IContextualTestCaseBuilder AddAct(Action action)
         {
             actActions.Add(action);
             return this;
@@ -111,7 +111,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddAct(Func<Task> action)
+        public IContextualTestCaseBuilder AddAct(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddAct(newAction);
@@ -123,7 +123,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTeardownEach(Action action)
+        public IContextualTestCaseBuilder AddTeardownEach(Action action)
         {
             teardownEachActions.Add(action);
             return this;
@@ -134,7 +134,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTeardownEach(Func<Task> action)
+        public IContextualTestCaseBuilder AddTeardownEach(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddTeardownEach(newAction);
@@ -145,7 +145,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTeardownOnce(Action action)
+        public IContextualTestCaseBuilder AddTeardownOnce(Action action)
         {
             teardownOnceBuilder.AddAction(action);
             return this;
@@ -156,7 +156,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="action"></param>
         /// <returns></returns>
-        public ITestCaseBuilder AddTeardownOnce(Func<Task> action)
+        public IContextualTestCaseBuilder AddTeardownOnce(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddTeardownOnce(newAction);
@@ -168,7 +168,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// <param name="description"></param>
         /// <param name="configure"></param>
         /// <returns></returns>
-        public ITestCaseBuilder ChildTestCase(string description, Action<ITestCaseBuilder> configure)
+        public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
         {
             description.OrThrowIfParameterIsNull(nameof(description));
             configure.OrThrowIfParameterIsNull(nameof(configure));
@@ -189,7 +189,7 @@ namespace specs.core.Framework.Processors.TestCases
         /// Build the test case.
         /// </summary>
         /// <returns></returns>
-        public ITestCase Build()
+        public IContextualTestCase Build()
         {
 
             var setupOnce = new List<Action>();
