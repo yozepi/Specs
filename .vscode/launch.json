@@ -1,0 +1,79 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (TestHarness)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/TestHarness/bin/Debug/net8.0/TestHarness.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/TestHarness",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach"
+        },
+        {
+            "name": "Run Unit Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "dotnet",
+            "args": [
+                "test",
+                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "--no-build",
+                "--logger:console;verbosity=detailed"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": "Debug Unit Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "dotnet",
+            "args": [
+                "test",
+                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "--no-build",
+                "--filter",
+                "FullyQualifiedName~${input:testFilter}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": "Debug Current Test File",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-tests",
+            "program": "dotnet",
+            "args": [
+                "test",
+                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "--no-build",
+                "--filter",
+                "FullyQualifiedName~${fileBasenameNoExtension}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testFilter",
+            "type": "promptString",
+            "description": "Enter test filter (e.g., TestClassName or TestClassName.TestMethodName)",
+            "default": ""
+        }
+    ]
+}
