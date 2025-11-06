@@ -46,8 +46,8 @@
 
 ### Added (Untracked)
 - `.claude/settings.local.json` - Local Cline settings configuration
-- `src/memory-bank/changes/README.md` - Documentation for change tracking workflow and processes
-- `src/memory-bank/changes/_current.md` - This file - tracks ongoing changes
+- `memory-bank/changes/README.md` - Documentation for change tracking workflow and processes
+- `memory-bank/changes/_current.md` - This file - tracks ongoing changes
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/ContextualTestCaseBuilder_Tests/Act.cs` - Comprehensive tests for Act lifecycle phase
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/ContextualTestCaseBuilder_Tests/AllMethodsInteraction.cs` - Tests for interaction between all lifecycle phases
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/ContextualTestCaseBuilder_Tests/SetUpEach.cs` - Tests for SetUpEach lifecycle phase
@@ -58,8 +58,8 @@
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/RunAllRunner_Tests.cs` - Unit tests for RunAllRunner
 
 ### Modified (Unstaged)
-- `src/memory-bank/README.md` - Updated with change tracking workflow documentation (+30 lines)
-- `src/memory-bank/glossary.md` - Added new terms (+3 lines)
+- `memory-bank/README.md` - Updated with change tracking workflow documentation (+30 lines)
+- `memory-bank/glossary.md` - Added new terms (+3 lines)
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/ContextualTestCaseBuilder_Tests/ContextualTestCaseBuilder_Tests.cs` - Additional test scenarios (+29 lines)
 - `src/specs.core.UnitTests/Framework/Processors/TestCases/ContextualTestCaseBuilder_Tests/SetupOnce.cs` - Expanded SetupOnce tests (+281 lines)
 

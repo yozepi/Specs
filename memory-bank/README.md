@@ -128,7 +128,7 @@ This project uses a global Cline workflow for tracking and documenting solution 
 - Architectural impacts
 - Memory bank updates needed
 
-**Change Documentation**: `src/memory-bank/changes/`
+**Change Documentation**: `memory-bank/changes/`
 - `_current.md` - Work-in-progress changes
 - `YYYY-MM-DD.md` - Archived milestone changes
 

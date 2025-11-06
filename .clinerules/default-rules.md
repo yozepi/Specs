@@ -4,7 +4,7 @@
 
 **MANDATORY FIRST STEP**: Review the memory bank documentation before proceeding with any task.
 
-1. **Start here**: Read `src/memory-bank/README.md` for navigation
+1. **Start here**: Read `memory-bank/README.md` for navigation
 2. **Understand the context**: Review relevant documentation based on task type:
    - Architecture or design changes → `architecture.md`
    - Working with specific components → `core-components.md`
@@ -49,15 +49,15 @@
 ## 📍 Project Structure Reference
 
 ```
-src/
-├── specs.core/              # Core framework
-│   └── Framework/
-│       ├── Adapters/        # External dependency abstractions
-│       ├── Processors/      # Test case models & executors
-│       └── Settings/        # Configuration
-├── specs.core.UnitTests/    # Framework tests
-├── TestHarness/             # NSpec integration
-└── memory-bank/             # 📚 Documentation (READ THIS FIRST!)
+├── memory-bank/             # 📚 Documentation (READ THIS FIRST!)
+└── src/
+    ├── specs.core/          # Core framework
+    │   └── Framework/
+    │       ├── Adapters/    # External dependency abstractions
+    │       ├── Processors/  # Test case models & executors
+    │       └── Settings/    # Configuration
+    ├── specs.core.UnitTests/ # Framework tests
+    └── TestHarness/         # NSpec integration
 ```
 
 ## 🚫 Common Pitfalls to Avoid

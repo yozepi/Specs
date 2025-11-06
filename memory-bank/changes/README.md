@@ -73,8 +73,8 @@ After running the script, you should:
 After completing a milestone:
 ```bash
 # Stage all changes
-git add src/memory-bank/changes/
-git add src/memory-bank/*.md
+git add memory-bank/changes/
+git add memory-bank/*.md
 
 # Commit with milestone marker
 git commit -m "docs: Archive changes and update memory bank [MILESTONE]"
@@ -183,8 +183,8 @@ Each change file follows this structure:
 ## Related Documentation
 
 - **Workflow Guide**: `.claude/workflows/track-changes.md`
-- **Memory Bank Index**: `src/memory-bank/README.md`
-- **Glossary**: `src/memory-bank/glossary.md` (see "Global Workflow" entry)
+- **Memory Bank Index**: `memory-bank/README.md`
+- **Glossary**: `memory-bank/glossary.md` (see "Global Workflow" entry)
 
 ---
 

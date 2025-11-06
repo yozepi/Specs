@@ -4,13 +4,13 @@ A .NET testing framework providing a fluent, contextual test case builder patter
 
 ## 📚 Documentation
 
-**Before working on this project**, review the comprehensive documentation in the [Memory Bank](src/memory-bank/README.md):
+**Before working on this project**, review the comprehensive documentation in the [Memory Bank](memory-bank/README.md):
 
-- **[Project Overview](src/memory-bank/project-overview.md)** - Start here for project introduction
-- **[Architecture](src/memory-bank/architecture.md)** - Design patterns and architectural decisions
-- **[Core Components](src/memory-bank/core-components.md)** - Detailed component documentation
-- **[Test Patterns](src/memory-bank/test-patterns.md)** - Usage examples and best practices
-- **[Glossary](src/memory-bank/glossary.md)** - Complete terminology reference
+- **[Project Overview](memory-bank/project-overview.md)** - Start here for project introduction
+- **[Architecture](memory-bank/architecture.md)** - Design patterns and architectural decisions
+- **[Core Components](memory-bank/core-components.md)** - Detailed component documentation
+- **[Test Patterns](memory-bank/test-patterns.md)** - Usage examples and best practices
+- **[Glossary](memory-bank/glossary.md)** - Complete terminology reference
 
 ## Quick Start
 
