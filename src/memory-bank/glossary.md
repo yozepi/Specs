@@ -58,6 +58,9 @@ A test case that supports hierarchical organization through parent-child context
 ### Focus Tag (fcontext, fit)
 A special tag used to run only specific tests during development. When any test is focused, only focused tests will execute. Must be removed before committing code.
 
+### Global Workflow
+An automated Cline workflow stored in `~/OneDrive/Documents/Cline/Workflows/` that provides step-by-step instructions for common tasks across multiple projects. The track-changes workflow documents solution changes at project milestones, analyzes git history, detects new components, and guides memory bank updates. Global workflows are reusable across all projects and include memory bank detection to ensure compatibility.
+
 ### Test Instance
 A single test to be executed, consisting of a description and an action. Represented by the `TestInstance` class.
 

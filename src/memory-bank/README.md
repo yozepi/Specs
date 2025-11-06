@@ -115,6 +115,36 @@ When adding new features or making significant changes:
 - **Primary Dependencies**: NSpec, NUnit, NFluent
 - **Language**: C# with nullable reference types enabled
 
+## Change Tracking
+
+This project uses a global Cline workflow for tracking and documenting solution changes:
+
+**Global Workflow**: `~/OneDrive/Documents/Cline/Workflows/track-changes.md`
+
+**Purpose**: Automatically analyze and document:
+- Git commit history since last milestone
+- File additions, modifications, and deletions
+- New components (classes, interfaces)
+- Architectural impacts
+- Memory bank updates needed
+
+**Change Documentation**: `src/memory-bank/changes/`
+- `_current.md` - Work-in-progress changes
+- `YYYY-MM-DD.md` - Archived milestone changes
+
+**Usage**: From project root, run:
+```powershell
+# Windows
+~\OneDrive\Documents\Cline\Workflows\analyze-changes.ps1
+
+# Linux/Mac
+~/OneDrive/Documents/Cline/Workflows/analyze-changes.sh
+```
+
+**When to Use**: Run at project milestones such as feature completion, releases, or significant architectural changes.
+
+See the global workflow documentation for detailed usage instructions.
+
 ## Related Resources
 
 - [NSpec Documentation](http://nspec.org/)

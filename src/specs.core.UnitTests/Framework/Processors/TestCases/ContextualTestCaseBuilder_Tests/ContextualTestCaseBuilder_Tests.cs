@@ -12,5 +12,34 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
             RunSpecs(() => [typeof(SetupOnce)]);
         }
 
+       [Test]
+        public void SetupEach_Specs()
+        {
+            RunSpecs(() => [typeof(SetUpEach)]);
+        }
+
+        [Test]
+        public void Act_Specs()
+        {
+            RunSpecs(() => [typeof(Act)]);
+        }
+
+        [Test]
+        public void AllMethodsInteraction_Specs()
+        {
+            RunSpecs(() => [typeof(AllMethodsInteraction)]);
+        }
+
+        [Test]
+        public void TeardownEach_Specs()
+        {
+            RunSpecs(() => [typeof(TeardownEach)]);
+        }
+
+        [Test]
+        public void TeardownOnce_Specs()
+        {
+            RunSpecs(() => [typeof(TeardownOnce)]);
+        }
     }
 }
