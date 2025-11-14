@@ -358,7 +358,7 @@ Follow `memory-bank/devops-formatting.md` for formatting all structured content.
 **ACT MODE:**
 - Required for writing code and creating/modifying files
 - Required for running tests and validation
-- Required for creating Implementation_review.md
+- Required for documenting implementation in Azure DevOps
 - Required for updating Azure DevOps task status
 
 **Auto-Prompting:** If in PLAN MODE and user approves implementation, prompt: "Please toggle to Act mode so I can implement the code and run tests."
@@ -383,76 +383,148 @@ Prompt the user for the name of the Azure DevOps task or its ID.
   - Warn the user the task should be `Active` or `New`
   - Stop processing
 
+### Retrieve Parent Work Item Context
+
+After acquiring and validating the task, retrieve parent work items to understand the full implementation context.
+
+#### Step 1: Get Parent User Story (Required)
+
+Use Azure DevOps MCP tool:
+
+**Parameters:**
+```
+"tool_name": "wit_get_work_item"
+```
+
+**arguments:**
+```
+{
+  "id": [task's parent user story ID from task relations],
+  "project": "Specs",
+  "expand": "relations"
+}
+```
+
+**Extract from user story:**
+- Title and description (implementation approach)
+- Technical scope (layers, components affected)
+- Acceptance criteria
+- Implementation considerations
+- Architectural patterns or constraints specified
+
+#### Step 2: Get Parent Feature (Required)
+
+From user story's relations, find parent feature ID, then:
+
+**Parameters:**
+```
+"tool_name": "wit_get_work_item"
+```
+
+**arguments:**
+```
+{
+  "id": [user story's parent feature ID from relations],
+  "project": "Specs",
+  "expand": "relations"
+}
+```
+
+**Extract from feature:**
+- Business value and objectives
+- Domain concepts and bounded contexts
+- Technical scope (affected layers)
+- Implementation considerations
+- Cross-cutting concerns (auth, logging, etc.)
+- Integration points with other systems
+- Recommended patterns
+
+#### Step 3: Get Parent Epic (Optional but Recommended)
+
+From feature's relations, find parent epic ID (if exists), then:
+
+**Parameters:**
+```
+"tool_name": "wit_get_work_item"
+```
+
+**arguments:**
+```
+{
+  "id": [feature's parent epic ID from relations],
+  "project": "Specs"
+}
+```
+
+**Extract from epic:**
+- High-level business objectives
+- Strategic technical constraints
+- Overall architectural direction
+
+#### Context Usage Guidelines
+
+Use the parent context throughout implementation:
+
+**During Planning (Phase 3):**
+- Validate task plan aligns with user story's implementation approach
+- Ensure file changes respect feature-level architecture
+- Consider epic-level constraints when choosing approaches
+
+**During Implementation (Phase 4):**
+- Follow patterns specified in user story or feature
+- Implement components that align with domain concepts from feature
+- Respect architectural decisions from higher levels
+
+**During Testing (Phase 5):**
+- Test acceptance criteria in context of user story goals
+- Verify integration points mentioned in feature
+- Consider end-to-end scenarios from epic perspective
+
+**During Documentation (Phase 6):**
+- Reference parent work items in implementation review
+- Document alignment with or deviations from parent designs
+- Note how implementation supports feature/epic objectives
+
+#### Error Handling
+
+**If parent user story cannot be retrieved:**
+1. Warn user: "Cannot retrieve parent user story. Implementation context will be limited."
+2. Ask: "Would you like to provide the user story ID manually, or proceed without parent context?"
+3. Document missing context in implementation review
+
+**If parent feature cannot be retrieved:**
+1. Note in warning but continue with user story context
+2. Ask user if feature context is critical for this task
+
+**If parent epic cannot be retrieved:**
+1. This is optional - proceed without warning
+2. Note in implementation review if epic context would have been helpful
+
+**If relations are missing from work items:**
+1. Attempt to search for parent by examining work item structure
+2. Ask user to provide parent IDs manually
+3. Document incomplete hierarchy in implementation review
+
 ### Developer_Task_Plan Location
 - Task plan should be in the task's **Description** field
 - Plan follows the format created by Senior Developer role
 - Contains: overview, pseudo code, implementation steps, files, dependencies, testing requirements, acceptance criteria
 
-### Implementation Review
-_[Location and format for Implementation_review.md]_
+**Parent Work Item Context Integration:**
 
-**Storage Location:**
-- Create in project root directory
-- Name format: `Implementation_review_[TaskID].md`
+The task plan should be informed by parent work items, but the developer must verify:
+- Task plan aligns with user story's implementation approach
+- Task plan follows feature-level architectural decisions
+- Task plan respects epic-level strategic constraints
 
-**Document Format:**
-```markdown
-# Implementation Review: [Task Title]
+If discrepancies are found between task plan and parent context:
+1. Document the discrepancy
+2. Ask user which should take precedence
+3. Do not proceed until clarified
 
-## Task Reference
-- **Task ID**: [ID]
-- **Task Title**: [Title]
-- **Completed**: [Date]
+### Implementation Documentation
 
-## Summary
-[Brief summary]
-
-## Implementation Details
-### Files Created
-[List with descriptions]
-
-### Files Modified
-[List with descriptions]
-
-### Key Implementation Decisions
-[Decisions and rationale]
-
-### Deviations from Plan
-[Any changes from original plan]
-
-## Testing Results
-### Unit Tests
-[Results]
-
-### Integration Tests
-[Results]
-
-### Manual Testing
-[Results]
-
-## Acceptance Criteria Validation
-[Checklist of criteria with status]
-
-## Notes
-[Additional notes]
-```
-
-### Memory Bank Updates
-When implementation introduces new patterns or components:
-
-**Update memory-bank files:**
-- `architecture.md` - If new architectural patterns introduced
-- `core-components.md` - If new reusable components created
-- `test-patterns.md` - If new testing approaches used
-
-**Guidelines:**
-- Only update if something genuinely new was introduced
-- Keep updates concise and focused
-- Reference the task ID that introduced the change
-- Follow existing format in each file
-
-### Task Comment Format
-Add a comment to the Azure DevOps task with implementation summary.
+Add a comprehensive implementation review as a comment to the Azure DevOps task.
 
 **Use Azure DevOps MCP tool:**
 ```
@@ -460,23 +532,91 @@ tool_name: "wit_add_work_item_comment"
 arguments: {
   "project": "Specs",
   "workItemId": [task_id],
-  "comment": "[Summary of implementation and link to Implementation_review.md]"
+  "comment": "[Implementation review content]",
+  "format": "Markdown"
 }
 ```
 
-**Comment Template:**
+**Review Comment Template:**
+```markdown
+# Implementation Review
+
+## Summary
+[Brief summary of what was implemented]
+
+## Implementation Details
+### Files Created
+- [file path] - [description]
+
+### Files Modified  
+- [file path] - [description]
+
+### Key Implementation Decisions
+- [Decision and rationale]
+
+### Deviations from Plan
+[Any changes from original plan, or "None"]
+
+## Testing Results
+### Unit Tests
+- [N] tests passing
+- [Coverage %]
+
+### Integration Tests
+[Results or "N/A"]
+
+### Manual Testing
+[Steps performed and results]
+
+## Acceptance Criteria Validation
+- [x] Criterion 1
+- [x] Criterion 2
+...
+
+## Notes
+[Additional notes or considerations]
 ```
-Implementation Complete
 
-Files Created: [N]
-Files Modified: [N]
-Tests: [N] passing
-All acceptance criteria validated.
+### Required Documentation
 
-Review document: Implementation_review_[TaskID].md
+After documenting implementation, complete these additional tasks:
 
-Memory bank updated: [Yes/No - which files]
-```
+#### Memory Bank Updates
+
+**Understand Current State:**
+- Read `memory-bank/README.md` to understand the current state of the application
+- Identify which memory-bank files are relevant to your changes
+
+**When to Update:**
+- New architectural patterns → `memory-bank/architecture.md`
+- New reusable components → `memory-bank/core-components.md`
+- New testing approaches → `memory-bank/test-patterns.md`
+- New concepts/terminology → `memory-bank/glossary.md`
+- Documentation structure changes → `memory-bank/README.md`
+
+**Change Tracking:**
+- Refer to `memory-bank/changes/README.md` for the change tracking process
+- Update `memory-bank/changes/_current.md` with implementation details
+- Document task ID and what was added/changed
+
+**Guidelines:**
+- Only update if genuinely new was introduced
+- Keep concise and focused
+- Reference task ID that introduced the change
+- Follow existing format in each file
+
+**If no updates needed:**
+- Note in the Azure DevOps comment: "Memory bank: No updates required"
+
+### Documentation Checklist
+
+Before Phase 7 (Task Completion), verify:
+
+- [ ] Implementation review added as Azure DevOps task comment
+- [ ] Memory bank evaluated and updated (or N/A noted in comment)
+- [ ] Change tracking updated in `memory-bank/changes/_current.md` (if applicable)
+
+Do not proceed to Phase 7 until all items verified.
 
 ### Update Task Status
 _[Use Azure DevOps MCP tool to update task status]_
@@ -501,7 +641,7 @@ _[Use Azure DevOps MCP tool to update task status]_
     {
       "op": "add",
       "path": "/fields/System.History",
-      "value": "Implementation complete. See Implementation_review.md for details."
+      "value": "Implementation complete. See task comments for implementation review."
     }
   ]
 }
@@ -522,7 +662,7 @@ _[Use Azure DevOps MCP tool to update task status]_
 - **Working code**: Fully implemented functionality
 - **Unit tests**: Comprehensive test coverage
 - **Integration tests**: If required by task
-- **Implementation_review.md**: Summary document
+- **Implementation review**: Added as Azure DevOps task comment
 - **Updated task**: Azure DevOps task marked as complete
 
 ### Coding Standards

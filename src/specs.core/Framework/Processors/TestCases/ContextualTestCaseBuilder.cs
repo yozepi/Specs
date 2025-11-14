@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace specs.core.Framework.Processors.TestCases
 {
-    internal class ContextualTestCaseBuilder : IContextualTestCaseBuilder
+    /// <summary>
+    /// Builds hierarchical test cases with parent-child context relationships and lifecycle actions.
+    /// Implements the fluent builder pattern for constructing immutable test cases.
+    /// </summary>
+    public class ContextualTestCaseBuilder : IContextualTestCaseBuilder
     {
         private readonly ContextualTestCaseBuilder? parentContext = null;
         private readonly List<ContextualTestCaseBuilder> childBuilders = new List<ContextualTestCaseBuilder>();
@@ -20,154 +24,103 @@ namespace specs.core.Framework.Processors.TestCases
         private readonly List<Action> teardownEachActions = new List<Action>();
         private readonly RunAllBuilder teardownOnceBuilder = new RunAllBuilder();
 
-        internal ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext = null)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContextualTestCaseBuilder"/> class.
+        /// </summary>
+        /// <param name="parentContext">The optional parent context from which this context inherits lifecycle actions.</param>
+        public ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext = null)
         {
             this.parentContext = parentContext;
         }
 
+        /// <inheritdoc/>
         public string? Description { get; private set; }
 
-        /// <summary>
-        /// Adds a setup action that will only be run once for all tests.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupOnce(Action action)
         {
             setupOnceBuilder.AddAction(action);
             return this;
         }
 
-        /// <summary>
-        /// Adds a setup action that will onlly be run once for all tests.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupOnce(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddSetupOnce(newAction);
         }
 
-        /// <summary>
-        /// Adds a setup action that will be run before each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupEach(Action action)
         {
             setupEachActions.Add(action);
             return this;
         }
 
-        /// <summary>
-        /// Adds a setup action that will be run before each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupEach(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddSetupEach(newAction);
         }
 
-        /// <summary>
-        /// Adds a test action.
-        /// </summary>
-        /// <param name="description"></param>
-        /// <param name="test"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Action test)
         {
             testActions.Add((description, test));
             return this;
         }
 
-        /// <summary>
-        /// Adds a test action.
-        /// </summary>
-        /// <param name="description"></param>
-        /// <param name="test"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Func<Task> test)
         {
             var newTest = new Action(() => test().GetAwaiter().GetResult());
             return AddTest(description, newTest);
         }
 
-        /// <summary>
-        /// Adds an action that will be run once before each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddAct(Action action)
         {
             actActions.Add(action);
             return this;
         }
 
-        /// <summary>
-        /// Adds an action that will be run once before each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddAct(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddAct(newAction);
         }
 
-
-        /// <summary>
-        /// Adds a teardown action that will be run once after each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownEach(Action action)
         {
             teardownEachActions.Add(action);
             return this;
         }
 
-        /// <summary>
-        /// Adds a teardown action that will be run once after each test.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownEach(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddTeardownEach(newAction);
         }
 
-        /// <summary>
-        /// Adds a teardown action that will only be run once after all tests.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownOnce(Action action)
         {
             teardownOnceBuilder.AddAction(action);
             return this;
         }
 
-        /// <summary>
-        /// Adds a teardown action that will only be run once after all tests.
-        /// </summary>
-        /// <param name="action"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownOnce(Func<Task> action)
         {
             var newAction = new Action(() => action().GetAwaiter().GetResult());
             return AddTeardownOnce(newAction);
         }
 
-        /// <summary>
-        /// Adds a child (context) test case to the test case.
-        /// </summary>
-        /// <param name="description"></param>
-        /// <param name="configure"></param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
         {
             description.OrThrowIfParameterIsNull(nameof(description));
@@ -185,10 +138,7 @@ namespace specs.core.Framework.Processors.TestCases
             return this;
         }
 
-        /// <summary>
-        /// Build the test case.
-        /// </summary>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public IContextualTestCase Build()
         {
 
