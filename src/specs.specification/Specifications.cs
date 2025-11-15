@@ -66,5 +66,48 @@ namespace specs.specification
         /// </code>
         /// </example>
         public ContextBuilder Context => new ContextBuilder(_builder);
+
+        /// <summary>
+        /// Defines "then" test assertions in behavior-driven design (BDD) style.
+        /// Use It to specify individual test assertions within a context or describe block.
+        /// This property is protected and only accessible from derived test specification classes.
+        /// </summary>
+        /// <returns>
+        /// A builder instance enabling fluent indexer syntax for defining test assertions.
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// Describe["Calculator"] = () =>
+        /// {
+        ///     It["should add two numbers correctly"] = () =>
+        ///     {
+        ///         // Test assertion
+        ///     };
+        /// };
+        /// </code>
+        /// </example>
+        protected AssertBuilder It => new AssertBuilder(_builder);
+
+        /// <summary>
+        /// Defines "then" asynchronous test assertions in behavior-driven design (BDD) style.
+        /// Use ItAsync to specify individual async test assertions within a context or describe block.
+        /// This property is protected and only accessible from derived test specification classes.
+        /// </summary>
+        /// <returns>
+        /// A builder instance enabling fluent indexer syntax for defining async test assertions.
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// Describe["DataRepository"] = () =>
+        /// {
+        ///     ItAsync["should save data asynchronously"] = async () =>
+        ///     {
+        ///         // Async test assertion
+        ///         await repository.SaveAsync(data);
+        ///     };
+        /// };
+        /// </code>
+        /// </example>
+        protected AssertAsyncBuilder ItAsync => new AssertAsyncBuilder(_builder);
     }
 }

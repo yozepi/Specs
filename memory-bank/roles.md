@@ -581,40 +581,11 @@ arguments: {
 
 After documenting implementation, complete these additional tasks:
 
-#### Memory Bank Updates
-
-**Understand Current State:**
-- Read `memory-bank/README.md` to understand the current state of the application
-- Identify which memory-bank files are relevant to your changes
-
-**When to Update:**
-- New architectural patterns → `memory-bank/architecture.md`
-- New reusable components → `memory-bank/core-components.md`
-- New testing approaches → `memory-bank/test-patterns.md`
-- New concepts/terminology → `memory-bank/glossary.md`
-- Documentation structure changes → `memory-bank/README.md`
-
-**Change Tracking:**
-- Refer to `memory-bank/changes/README.md` for the change tracking process
-- Update `memory-bank/changes/_current.md` with implementation details
-- Document task ID and what was added/changed
-
-**Guidelines:**
-- Only update if genuinely new was introduced
-- Keep concise and focused
-- Reference task ID that introduced the change
-- Follow existing format in each file
-
-**If no updates needed:**
-- Note in the Azure DevOps comment: "Memory bank: No updates required"
-
 ### Documentation Checklist
 
 Before Phase 7 (Task Completion), verify:
 
 - [ ] Implementation review added as Azure DevOps task comment
-- [ ] Memory bank evaluated and updated (or N/A noted in comment)
-- [ ] Change tracking updated in `memory-bank/changes/_current.md` (if applicable)
 
 Do not proceed to Phase 7 until all items verified.
 
@@ -667,6 +638,7 @@ _[Use Azure DevOps MCP tool to update task status]_
 
 ### Coding Standards
 Follow these project-specific guidelines during implementation:
+- Refer to `memory-bank/README.md` for project overview
 - Refer to `memory-bank/architecture.md` for architectural patterns
 - Refer to `memory-bank/core-components.md` for reusable components
 - Refer to `memory-bank/test-patterns.md` for testing approaches
@@ -913,12 +885,10 @@ Each task description should include:
 ### Related Resources
 
 #### Memory Bank
+- **Project Overview**: `memory-bank/README.md` - Overview of the project structure and architecture
 - **Architecture**: `memory-bank/architecture.md` - Project architecture patterns
 - **Core Components**: `memory-bank/core-components.md` - Reusable components
 - **Test Patterns**: `memory-bank/test-patterns.md` - Testing approach
 - **Formatting**: `memory-bank/devops-formatting.md` - Document formatting
-
-#### Git Operations
-- **Commit Rules**: `.cline-git-commit-rules.md` - Use when committing documentation
 
 ---

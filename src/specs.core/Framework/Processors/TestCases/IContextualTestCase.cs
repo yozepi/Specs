@@ -12,6 +12,6 @@ namespace specs.core.Framework.Processors.TestCases
         /// Gets the collection of child test contexts.
         /// Child contexts inherit and extend parent lifecycle actions.
         /// </summary>
-        IReadOnlyList<IContextualTestCase> ChildContexts { get; }
+        IReadOnlyList<ITestCaseContext> ChildContexts { get; }
     }
 }
