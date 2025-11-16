@@ -65,9 +65,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when setupOnceAction is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestContextAdapter(
@@ -78,7 +78,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                                 teardownOnceAction,
                                 testAction);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -89,9 +89,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when setupEachAction is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestContextAdapter(
@@ -102,7 +102,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                                 teardownOnceAction,
                                 testAction);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -113,9 +113,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when actAction is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestContextAdapter(
@@ -126,7 +126,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                                 teardownOnceAction,
                                 testAction);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -137,9 +137,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when teardownEachAction is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestContextAdapter(
@@ -150,7 +150,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                                 teardownOnceAction,
                                 testAction);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -161,9 +161,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when teardownOnceAction is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestContextAdapter(
@@ -174,7 +174,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                                 null!,
                                 testAction);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }

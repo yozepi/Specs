@@ -283,7 +283,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 {
                     builder.AddAction(trackAction(1));
                     firstBuild = builder.Build();
-                    firstBuild.Invoke(); // Execute first build
+                    firstBuild!.Invoke(); // Execute first build
 
                     // Add more actions after executing
                     builder.AddAction(trackAction(2));

@@ -12,20 +12,26 @@ namespace specs.core.Framework.Processors.TestCases
         }
         public static ITestCaseContext CreateTestCaseContext(string description, Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts)
         {
-            description.OrThrowIfParameterIsNull(nameof(description));
-
-            return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, tests, childContexts, description);
+            return new ContextualTestCase(
+                setupOnce,
+                setupEach,
+                act,
+                teardownEach,
+                teardownOnce,
+                tests,
+                childContexts,
+                description.OrThrowIfValueIsNullOrWhiteSpace(nameof(description)));
         }
 
         private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, string? description = null)
         {
-            this.SetupOnce = setupOnce.OrThrowIfParameterIsNull(nameof(setupOnce));
-            this.SetupEach = setupEach.OrThrowIfParameterIsNull(nameof(setupEach));
-            this.Act = act.OrThrowIfParameterIsNull(nameof(act));
-            this.TeardownEach = teardownEach.OrThrowIfParameterIsNull(nameof(teardownEach));
-            this.TeardownOnce = teardownOnce.OrThrowIfParameterIsNull(nameof(teardownOnce));
-            this.Tests = tests.OrThrowIfParameterIsNull(nameof(tests));
-            this.ChildContexts = childContexts.OrThrowIfParameterIsNull(nameof(childContexts));
+            this.SetupOnce = setupOnce.OrThrowIfValueIsNull(nameof(setupOnce));
+            this.SetupEach = setupEach.OrThrowIfValueIsNull(nameof(setupEach));
+            this.Act = act.OrThrowIfValueIsNull(nameof(act));
+            this.TeardownEach = teardownEach.OrThrowIfValueIsNull(nameof(teardownEach));
+            this.TeardownOnce = teardownOnce.OrThrowIfValueIsNull(nameof(teardownOnce));
+            this.Tests = tests.OrThrowIfValueIsNull(nameof(tests));
+            this.ChildContexts = childContexts.OrThrowIfValueIsNull(nameof(childContexts));
             this.Description = description;
         }
 

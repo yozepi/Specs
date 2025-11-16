@@ -123,17 +123,17 @@ namespace specs.core.Framework.Processors.TestCases
         /// <inheritdoc/>
         public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
         {
-            description.OrThrowIfParameterIsNull(nameof(description));
-            configure.OrThrowIfParameterIsNull(nameof(configure));
-
+ 
             var childBuilder = new ContextualTestCaseBuilder(this)
             {
-                Description = description
+                Description = description.OrThrowIfValueIsNullOrWhiteSpace(nameof(description))
             };
 
             childBuilders.Add(childBuilder);
 
-            configure.Invoke(childBuilder);
+            configure
+                .OrThrowIfValueIsNull(nameof(configure))
+                .Invoke(childBuilder);
 
             return this;
         }

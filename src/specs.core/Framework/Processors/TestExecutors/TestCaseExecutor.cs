@@ -21,9 +21,9 @@ namespace specs.core.Framework.Processors.TestExecutors
             ITestContextAdapter testContext,
             ITestProviderAdapter tests)
         {
-            this.settings = settings.OrThrowIfParameterIsNull(nameof(settings));
-            this.logger = logger.OrThrowIfParameterIsNull(nameof(logger));
-            this.testContext = testContext.OrThrowIfParameterIsNull($"The {nameof(testContext)} prameter is required.");
+            this.settings = settings.OrThrowIfValueIsNull(nameof(settings));
+            this.logger = logger.OrThrowIfValueIsNull(nameof(logger));
+            this.testContext = testContext.OrThrowIfValueIsNull(nameof(testContext));
             this.testProvider = tests;
         }
 

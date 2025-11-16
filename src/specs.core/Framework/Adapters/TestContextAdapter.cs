@@ -13,11 +13,11 @@ namespace specs.core.Framework.Adapters
 
         public TestContextAdapter(Action setupOnceAction, Action setupEachAction, Action actAction, Action teardownEachAction, Action teardownOnceAction, Action test)
         {
-            this.setupOnceAction = setupOnceAction.OrThrowIfParameterIsNull(nameof(setupOnceAction));
-            this.setupEachAction = setupEachAction.OrThrowIfParameterIsNull(nameof(setupEachAction));
-            this.actAction = actAction.OrThrowIfParameterIsNull(nameof(actAction));
-            this.teardownEachAction = teardownEachAction.OrThrowIfParameterIsNull(nameof(teardownEachAction));
-            this.teardownOnceAction = teardownOnceAction.OrThrowIfParameterIsNull(nameof(teardownOnceAction));
+            this.setupOnceAction = setupOnceAction.OrThrowIfValueIsNull(nameof(setupOnceAction));
+            this.setupEachAction = setupEachAction.OrThrowIfValueIsNull(nameof(setupEachAction));
+            this.actAction = actAction.OrThrowIfValueIsNull(nameof(actAction));
+            this.teardownEachAction = teardownEachAction.OrThrowIfValueIsNull(nameof(teardownEachAction));
+            this.teardownOnceAction = teardownOnceAction.OrThrowIfValueIsNull(nameof(teardownOnceAction));
         }
 
         public void SetupOnce()

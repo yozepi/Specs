@@ -165,10 +165,10 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
             describe["AddAction() with null parameter..."] = () =>
             {
-                it["should throw NullReferenceException"] = () =>
+                it["should throw ArgumentNullException"] = () =>
                 {
                     Check.ThatCode(() => subject.AddAction(null!))
-                        .Throws<NullReferenceException>();
+                        .Throws<ArgumentNullException>();
                 };
             };
 

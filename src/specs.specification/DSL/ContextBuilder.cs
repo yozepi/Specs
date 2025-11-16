@@ -40,20 +40,9 @@ internal ContextBuilder(IContextualTestCaseBuilder builder)
         /// <exception cref="NotSupportedException">Thrown when attempting to get the value.</exception>
         public Action this[string description]
         {
-get => throw new NotSupportedException("ContextBuilder indexer does not support get operations.");
             set
             {
-                if (description == null)
-                {
-                    throw new ArgumentNullException(nameof(description), "Description cannot be null.");
-                }
-
-                if (string.IsNullOrWhiteSpace(description))
-                {
-                    throw new ArgumentException("Description cannot be empty or whitespace.", nameof(description));
-                }
-
-                _builder.ChildTestCase(description, childBuilder =>
+                 _builder.ChildTestCase(description, childBuilder =>
                 {
                     value?.Invoke();
                 });

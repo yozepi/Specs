@@ -83,31 +83,6 @@ namespace specs.specification.UnitTests.DSL
                                 .WithProperty(ex => ex.ParamName, "description");
                         };
                     };
-
-                    context["getter access"] = () =>
-                    {
-                        it["should throw NotSupportedException"] = () =>
-                        {
-                            Check.ThatCode(() =>
-                            {
-                                var _ = spec.Describe["test"];
-                            }).Throws<NotSupportedException>();
-                        };
-
-                        it["should have descriptive error message"] = () =>
-                        {
-                            try
-                            {
-                                var _ = spec.Describe["test"];
-                            }
-                            catch (NotSupportedException ex)
-                            {
-                                Check.That(ex.Message).Contains("ContextBuilder");
-                                Check.That(ex.Message).Contains("indexer");
-                                Check.That(ex.Message).Contains("get");
-                            }
-                        };
-                    };
                 };
 
                 context["usage patterns"] = () =>

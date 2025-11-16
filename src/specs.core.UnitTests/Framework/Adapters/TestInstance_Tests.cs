@@ -51,14 +51,14 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when description is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestInstance(null!, test);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -69,14 +69,14 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when test is null"] = () =>
                 {
-                    it["should throw NullReferenceException"] = () =>
+                    it["should throw ArgumentNullException"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestInstance(description, null!);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
@@ -87,49 +87,19 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                 context["when both parameters are null"] = () =>
                 {
-                    it["should throw NullReferenceException for description first"] = () =>
+                    it["should throw ArgumentNullException for description first"] = () =>
                     {
-                        NullReferenceException exception = null!;
+                        ArgumentNullException exception = null!;
                         try
                         {
                             new TestInstance(null!, null!);
                         }
-                        catch (NullReferenceException ex)
+                        catch (ArgumentNullException ex)
                         {
                             exception = ex;
                         }
                         Check.That(exception).IsNotNull();
                         Check.That(exception.Message).Contains("description");
-                    };
-                };
-
-                context["when description is empty string"] = () =>
-                {
-                    it["should create instance successfully"] = () =>
-                    {
-                        Check.ThatCode(() => new TestInstance("", test))
-                            .DoesNotThrow();
-                    };
-
-                    it["should set Description to empty string"] = () =>
-                    {
-                        subject = new TestInstance("", test);
-                        Check.That(subject.Description).IsEqualTo("");
-                    };
-                };
-
-                context["when description is whitespace"] = () =>
-                {
-                    it["should create instance successfully"] = () =>
-                    {
-                        Check.ThatCode(() => new TestInstance("   ", test))
-                            .DoesNotThrow();
-                    };
-
-                    it["should preserve whitespace in Description"] = () =>
-                    {
-                        subject = new TestInstance("   ", test);
-                        Check.That(subject.Description).IsEqualTo("   ");
                     };
                 };
             };
