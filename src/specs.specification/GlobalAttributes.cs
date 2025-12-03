@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("specs.specification.UnitTests")]
+[assembly: InternalsVisibleTo("specs.BDD.UnitTests")]

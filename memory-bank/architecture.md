@@ -161,7 +161,9 @@ builder.AddSetupOnce(action: async () => { await /* async code */ });
 ## Data Flow
 
 ```
-User Code (Test Specification)
+User Code (Test Specification inheriting from Specifications)
+    ↓
+specs.BDD Layer (Describe/Context/It DSL)
     ↓
 IContextualTestCaseBuilder (Fluent API)
     ↓
@@ -175,6 +177,29 @@ ITestContextAdapter (Framework integration)
     ↓
 Actual Test Framework (NSpec, etc.)
 ```
+
+### specs.BDD Context Switching Pattern
+
+The `Specifications` class uses a callback pattern to manage context switching:
+
+```csharp
+// When entering a child context (Describe/Context):
+private void contextCallBack(IContextualTestCaseBuilder childCoreBuilder, Action action)
+{
+    var previousCoreBuilder = this.coreBuilder;
+    this.coreBuilder = childCoreBuilder;  // Switch to child builder
+    try
+    {
+        action.Invoke();  // Execute user's context definition
+    }
+    finally
+    {
+        this.coreBuilder = previousCoreBuilder;  // Restore parent builder
+    }
+}
+```
+
+This enables nested context definitions where `BeforeAll`, `BeforeEach`, `Act`, `It`, etc. automatically target the correct builder scope.
 
 ## Key Design Decisions
 

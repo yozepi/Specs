@@ -7,13 +7,32 @@ using System.Linq;
 
 namespace yozepi
 {
+    /// <summary>
+    /// Base class for NSpec test harness integration.
+    /// Provides methods to discover, load, and execute NSpec-style tests with NUnit integration.
+    /// </summary>
     public abstract class nSpecTestHarness : nspec
     {
         #region properties
 
+        /// <summary>
+        /// Gets or sets the tags used to filter which tests to run.
+        /// </summary>
         protected internal string Tags { get; set; } = null;
+        
+        /// <summary>
+        /// Gets or sets the formatter used to display test results.
+        /// </summary>
         protected internal IFormatter Formatter { get; set; } = null;
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether to stop execution on the first test failure.
+        /// </summary>
         protected bool FailFast { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the function used to discover specification types.
+        /// </summary>
         internal Func<Type[]> specFinder { get; set; } = null;
 
         #endregion //properties
@@ -21,6 +40,10 @@ namespace yozepi
 
         #region constructor
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="nSpecTestHarness"/> class.
+        /// Sets the default formatter to <see cref="ConsoleFormatter"/>.
+        /// </summary>
         public nSpecTestHarness()
         {
             this.Formatter = new ConsoleFormatter();
@@ -30,11 +53,19 @@ namespace yozepi
 
         #region protected methods
 
+        /// <summary>
+        /// Loads specifications from the provided type finder function.
+        /// </summary>
+        /// <param name="specFinder">A function that returns the specification types to test.</param>
         protected internal void LoadSpecs(Func<Type[]> specFinder)
         {
             this.specFinder = specFinder;
         }
 
+        /// <summary>
+        /// Runs the loaded specifications using the NSpec test runner.
+        /// Asserts that no failures occur and handles pending/focused tests.
+        /// </summary>
         protected internal void RunSpecs()
         {
             var types = FindSpecTypes();
@@ -77,12 +108,19 @@ namespace yozepi
             }
         }
 
+        /// <summary>
+        /// Loads and runs specifications in a single operation.
+        /// </summary>
+        /// <param name="specFinder">A function that returns the specification types to test.</param>
         protected internal void RunSpecs(Func<Type[]> specFinder)
         {
             LoadSpecs(specFinder);
             RunSpecs();
         }
 
+        /// <summary>
+        /// Runs only the specifications defined in the current test class.
+        /// </summary>
         protected internal void RunMySpecs()
         {
             LoadSpecs(() => new Type[] { this.GetType() });

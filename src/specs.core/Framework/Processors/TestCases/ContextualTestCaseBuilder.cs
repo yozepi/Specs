@@ -39,101 +39,112 @@ namespace specs.core.Framework.Processors.TestCases
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupOnce(Action action)
         {
-            setupOnceBuilder.AddAction(action);
+            setupOnceBuilder.AddAction(action.ThrowIfNull(nameof(action)));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupOnce(Func<Task> action)
         {
-            var newAction = new Action(() => action().GetAwaiter().GetResult());
+            var newAction = new Action(() =>
+                action.ThrowIfNull(nameof(action))().GetAwaiter().GetResult());
             return AddSetupOnce(newAction);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupEach(Action action)
         {
-            setupEachActions.Add(action);
+            setupEachActions.Add(action.ThrowIfNull(nameof(action)));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddSetupEach(Func<Task> action)
         {
-            var newAction = new Action(() => action().GetAwaiter().GetResult());
+            var newAction = new Action(() => action.ThrowIfNull(nameof(action))().GetAwaiter().GetResult());
             return AddSetupEach(newAction);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Action test)
         {
-            testActions.Add((description, test));
+            testActions.Add((
+                description.ThrowIfNullOrWhiteSpace(nameof(description)),
+                test.ThrowIfNull(nameof(test))));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Func<Task> test)
         {
-            var newTest = new Action(() => test().GetAwaiter().GetResult());
-            return AddTest(description, newTest);
+            Action funcWrapper = null!;
+
+            if(test != null)
+            {   funcWrapper = new Action(() =>
+                    test
+                        .Invoke()
+                        .GetAwaiter()
+                        .GetResult());
+            }
+
+            return AddTest(description, funcWrapper);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddAct(Action action)
         {
-            actActions.Add(action);
+            actActions.Add(action.ThrowIfNull(nameof(action)));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddAct(Func<Task> action)
         {
-            var newAction = new Action(() => action().GetAwaiter().GetResult());
+            var newAction = new Action(() => action.ThrowIfNull(nameof(action))().GetAwaiter().GetResult());
             return AddAct(newAction);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownEach(Action action)
         {
-            teardownEachActions.Add(action);
+            teardownEachActions.Add(action.ThrowIfNull(nameof(action)));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownEach(Func<Task> action)
         {
-            var newAction = new Action(() => action().GetAwaiter().GetResult());
+            var newAction = new Action(() => action.ThrowIfNull(nameof(action))().GetAwaiter().GetResult());
             return AddTeardownEach(newAction);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownOnce(Action action)
         {
-            teardownOnceBuilder.AddAction(action);
+            teardownOnceBuilder.AddAction(action.ThrowIfNull(nameof(action)));
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTeardownOnce(Func<Task> action)
         {
-            var newAction = new Action(() => action().GetAwaiter().GetResult());
+            var newAction = new Action(() => action.ThrowIfNull(nameof(action))().GetAwaiter().GetResult());
             return AddTeardownOnce(newAction);
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
         {
- 
+            description.ThrowIfNullOrWhiteSpace(nameof(description));
+            configure.ThrowIfNull(nameof(configure));
+
             var childBuilder = new ContextualTestCaseBuilder(this)
             {
-                Description = description.OrThrowIfValueIsNullOrWhiteSpace(nameof(description))
+                Description = description
             };
 
             childBuilders.Add(childBuilder);
-
-            configure
-                .OrThrowIfValueIsNull(nameof(configure))
-                .Invoke(childBuilder);
+            configure.Invoke(childBuilder);
 
             return this;
         }

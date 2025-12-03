@@ -7,8 +7,8 @@ namespace specs.core.Framework.Adapters
     {
         public TestInstance(string description, Action test)
         {
-            Description = description.OrThrowIfValueIsNullOrWhiteSpace(nameof(description));
-            Test = test.OrThrowIfValueIsNull(nameof(test));
+            Description = description.ThrowIfNullOrWhiteSpace(nameof(description));
+            Test = test.ThrowIfNull(nameof(test));
         }
 
         public string Description { get; }

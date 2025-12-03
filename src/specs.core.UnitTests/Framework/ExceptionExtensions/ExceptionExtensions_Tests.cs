@@ -22,14 +22,14 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     it["should throw ArgumentNullException for null Action"] = () =>
                     {
                         Action nullAction = null!;
-                        Check.ThatCode(() => nullAction.OrThrowIfValueIsNull("testParam"))
+                        Check.ThatCode(() => nullAction.ThrowIfNull("testParam"))
                             .Throws<ArgumentNullException>();
                     };
 
                     it["should throw ArgumentNullException for null List"] = () =>
                     {
                         List<int> nullList = null!;
-                        Check.ThatCode(() => nullList.OrThrowIfValueIsNull("listParam"))
+                        Check.ThatCode(() => nullList.ThrowIfNull("listParam"))
                             .Throws<ArgumentNullException>();
                     };
 
@@ -40,7 +40,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
 
                         try
                         {
-                            nullString.OrThrowIfValueIsNull("myParameter");
+                            nullString.ThrowIfNull("myParameter");
                         }
                         catch (ArgumentNullException ex)
                         {
@@ -58,7 +58,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
 
                         try
                         {
-                            nullAction.OrThrowIfValueIsNull("setupOnce");
+                            nullAction.ThrowIfNull("setupOnce");
                         }
                         catch (ArgumentNullException ex)
                         {
@@ -75,21 +75,21 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     it["should return the same instance for Action"] = () =>
                     {
                         Action testAction = () => { };
-                        var result = testAction.OrThrowIfValueIsNull("actionParam");
+                        var result = testAction.ThrowIfNull("actionParam");
                         Check.That(result).IsSameReferenceAs(testAction);
                     };
 
                     it["should return the same instance for string"] = () =>
                     {
                         string testString = "test value";
-                        var result = testString.OrThrowIfValueIsNullOrWhiteSpace("stringParam");
+                        var result = testString.ThrowIfNullOrWhiteSpace("stringParam");
                         Check.That(result).IsSameReferenceAs(testString);
                     };
 
                     it["should return the same instance for List<T>"] = () =>
                     {
                         var testList = new List<int> { 1, 2, 3 };
-                        var result = testList.OrThrowIfValueIsNull("listParam");
+                        var result = testList.ThrowIfNull("listParam");
                         Check.That(result).IsSameReferenceAs(testList);
                     };
                 };
@@ -99,21 +99,21 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     it["should return the value for int"] = () =>
                     {
                         int testInt = 42;
-                        var result = testInt.OrThrowIfValueIsNull("intParam");
+                        var result = testInt.ThrowIfNull("intParam");
                         Check.That(result).IsEqualTo(42);
                     };
 
                     it["should return the value for bool"] = () =>
                     {
                         bool testBool = true;
-                        var result = testBool.OrThrowIfValueIsNull("boolParam");
+                        var result = testBool.ThrowIfNull("boolParam");
                         Check.That(result).IsEqualTo(true);
                     };
 
                     it["should return zero value for int"] = () =>
                     {
                         int zeroInt = 0;
-                        var result = zeroInt.OrThrowIfValueIsNull("intParam");
+                        var result = zeroInt.ThrowIfNull("intParam");
                         Check.That(result).IsEqualTo(0);
                     };
                 };
@@ -123,21 +123,21 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     it["should work with TestInstance"] = () =>
                     {
                         var instance = new TestInstance("desc", () => { });
-                        var result = instance.OrThrowIfValueIsNull("testInstance");
+                        var result = instance.ThrowIfNull("testInstance");
                         Check.That(result).IsSameReferenceAs(instance);
                     };
 
                     it["should throw for null TestInstance"] = () =>
                     {
                         TestInstance nullInstance = null!;
-                        Check.ThatCode(() => nullInstance.OrThrowIfValueIsNull("testInstance"))
+                        Check.ThatCode(() => nullInstance.ThrowIfNull("testInstance"))
                             .Throws<ArgumentNullException>();
                     };
 
                     it["should work with Action parameter"] = () =>
                     {
                         Action action = () => Console.WriteLine("test");
-                        var result = action.OrThrowIfValueIsNull("action");
+                        var result = action.ThrowIfNull("action");
                         Check.That(result).IsSameReferenceAs(action);
                     };
                 };
@@ -151,7 +151,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
 
                         try
                         {
-                            nullString.OrThrowIfValueIsNull("");
+                            nullString.ThrowIfNull("");
                         }
                         catch (ArgumentNullException ex)
                         {
@@ -173,7 +173,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
 
                             try
                             {
-                                nullString.OrThrowIfValueIsNull(paramName);
+                                nullString.ThrowIfNull(paramName);
                             }
                             catch (ArgumentNullException ex)
                             {
@@ -197,11 +197,11 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                         Action teardownOnce = () => { };
 
                         // This mimics the pattern used in TestContextAdapter constructor
-                        var validatedSetupOnce = setupOnce.OrThrowIfValueIsNull(nameof(setupOnce));
-                        var validatedSetupEach = setupEach.OrThrowIfValueIsNull(nameof(setupEach));
-                        var validatedAct = act.OrThrowIfValueIsNull(nameof(act));
-                        var validatedTeardownEach = teardownEach.OrThrowIfValueIsNull(nameof(teardownEach));
-                        var validatedTeardownOnce = teardownOnce.OrThrowIfValueIsNull(nameof(teardownOnce));
+                        var validatedSetupOnce = setupOnce.ThrowIfNull(nameof(setupOnce));
+                        var validatedSetupEach = setupEach.ThrowIfNull(nameof(setupEach));
+                        var validatedAct = act.ThrowIfNull(nameof(act));
+                        var validatedTeardownEach = teardownEach.ThrowIfNull(nameof(teardownEach));
+                        var validatedTeardownOnce = teardownOnce.ThrowIfNull(nameof(teardownOnce));
 
                         Check.That(validatedSetupOnce).IsSameReferenceAs(setupOnce);
                         Check.That(validatedSetupEach).IsSameReferenceAs(setupEach);
@@ -217,7 +217,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
 
                         try
                         {
-                            nullSetupOnce.OrThrowIfValueIsNull(nameof(nullSetupOnce));
+                            nullSetupOnce.ThrowIfNull(nameof(nullSetupOnce));
                         }
                         catch (ArgumentNullException ex)
                         {

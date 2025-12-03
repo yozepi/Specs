@@ -1,9 +1,9 @@
 using NFluent;
-using specs.specification.Attributes;
+using specs.BDD.Attributes;
 using System.Reflection;
 using yozepi;
 
-namespace specs.specification.UnitTests.Attributes
+namespace specs.BDD.UnitTests.Attributes
 {
     public class ContextAttribute_Tests : nSpecTestHarness
     {

@@ -1,30 +1,56 @@
+using specs.core.Framework.ParameterValidation;
 using specs.core.Framework.Processors.TestCases;
-using specs.specification.DSL;
+using System;
+using System.Threading.Tasks;
 
-namespace specs.specification
+namespace specs.BDD
 {
     /// <summary>
-    /// Base class for test specifications providing access to the test case builder.
-    /// Inherit from this class to create test specifications using the fluent API.
+    /// Base class for BDD-style test specifications.
+    /// Provides a fluent API for defining test contexts, setup, actions, and assertions.
     /// </summary>
     public abstract class Specifications
     {
-        private readonly IContextualTestCaseBuilder _builder;
+        private IContextualTestCaseBuilder coreBuilder = new ContextualTestCaseBuilder();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Specifications"/> class.
+        /// Defines a synchronous setup action that runs once before all tests in this context.
         /// </summary>
-        protected Specifications()
-        {
-            _builder = new ContextualTestCaseBuilder();
-        }
+        /// <param name="action">The setup action to execute.</param>
+        public void BeforeAll(Action action) => coreBuilder.AddSetupOnce(action);
 
         /// <summary>
-        /// Gets the builder instance for constructing test cases.
-        /// Use this property to access the fluent API for building test hierarchies.
+        /// Defines an asynchronous setup action that runs once before all tests in this context.
         /// </summary>
-        private protected IContextualTestCaseBuilder Builder => _builder;
+        /// <param name="taskFunction">The async setup action to execute.</param>
+        public void BeforeAll(Func<Task> taskFunction) => coreBuilder.AddSetupOnce(taskFunction);
 
+        /// <summary>
+        /// Defines a synchronous setup action that runs before each test.
+        /// </summary>
+        /// <param name="action">The setup action to execute.</param>
+        public void BeforeEach(Action action) => coreBuilder.AddSetupEach(action);
+
+        /// <summary>
+        /// Defines an asynchronous setup action that runs before each test.
+        /// </summary>
+        /// <param name="taskFunction">The async setup action to execute.</param>
+        public void BeforeEach(Func<Task> taskFunction) => coreBuilder.AddSetupEach(taskFunction);
+
+        /// <summary>
+        /// Defines the synchronous action under test.
+        /// This action executes after setup and before assertions.
+        /// </summary>
+        /// <param name="action">The action to test.</param>
+        public void Act(Action action) => coreBuilder.AddAct(action);
+
+        /// <summary>
+        /// Defines the asynchronous action under test.
+        /// This action executes after setup and before assertions.
+        /// </summary>
+        /// <param name="taskFunction">The async action to test.</param>
+        public void Act(Func<Task> taskFunction) => coreBuilder.AddAct(taskFunction);
+ 
         /// <summary>
         /// Defines "what" is being tested using behavior-driven design (BDD) style.
         /// Use Describe to specify the subject under test, such as a class name, feature, or component.
@@ -44,7 +70,8 @@ namespace specs.specification
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Describe => new ContextBuilder(_builder);
+        public ContextBuilder Describe => new ContextBuilder(coreBuilder, contextCallBack);
+
 
         /// <summary>
         /// Defines "when" or "given" scenarios in behavior-driven design (BDD) style.
@@ -54,7 +81,7 @@ namespace specs.specification
         /// <returns>
         /// A builder instance enabling fluent indexer syntax for defining test contexts.
         /// </returns>
-        /// <example>
+        /// <example>`
         /// <code>
         /// Context["when user is authenticated"] = () =>
         /// {
@@ -65,7 +92,22 @@ namespace specs.specification
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Context => new ContextBuilder(_builder);
+        public ContextBuilder Context => new ContextBuilder(coreBuilder, contextCallBack);
+
+        private void contextCallBack(IContextualTestCaseBuilder childCoreBuilder, Action action)
+        {
+
+            var previousCoreBuilder = this.coreBuilder;
+            this.coreBuilder = childCoreBuilder;
+            try
+            {
+                action.ThrowIfNull(nameof(action)).Invoke();
+            }
+            finally
+            {
+                this.coreBuilder = previousCoreBuilder;
+            }
+        }
 
         /// <summary>
         /// Defines "then" test assertions in behavior-driven design (BDD) style.
@@ -86,28 +128,27 @@ namespace specs.specification
         /// };
         /// </code>
         /// </example>
-        protected AssertBuilder It => new AssertBuilder(_builder);
+        public AssertBuilder It => new AssertBuilder(coreBuilder);
 
         /// <summary>
-        /// Defines "then" asynchronous test assertions in behavior-driven design (BDD) style.
-        /// Use ItAsync to specify individual async test assertions within a context or describe block.
+        /// Defines asyncronous "then" test assertions in behavior-driven design (BDD) style.
+        /// Use It to specify individual test assertions within a context or describe block.
         /// This property is protected and only accessible from derived test specification classes.
         /// </summary>
         /// <returns>
-        /// A builder instance enabling fluent indexer syntax for defining async test assertions.
+        /// A builder instance enabling fluent indexer syntax for defining test assertions.
         /// </returns>
         /// <example>
         /// <code>
-        /// Describe["DataRepository"] = () =>
+        /// Describe["Calculator"] = () =>
         /// {
-        ///     ItAsync["should save data asynchronously"] = async () =>
+        ///     It["should add two numbers correctly"] = () =>
         ///     {
-        ///         // Async test assertion
-        ///         await repository.SaveAsync(data);
+        ///         // Test assertion
         ///     };
         /// };
         /// </code>
         /// </example>
-        protected AssertAsyncBuilder ItAsync => new AssertAsyncBuilder(_builder);
+        public AssertBuilderAsync ItAsync => new AssertBuilderAsync(coreBuilder);
     }
 }

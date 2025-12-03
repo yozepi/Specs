@@ -6,6 +6,89 @@ This document details the key components of the Specs framework, their responsib
 
 ---
 
+## specs.BDD Layer (DSL Components)
+
+The specs.BDD layer provides a user-friendly Domain Specific Language (DSL) for writing behavior-driven tests. This layer wraps the core `IContextualTestCaseBuilder` to provide an intuitive API.
+
+### Specifications (Base Class)
+
+**Location**: `specs.specification/Specifications.cs`
+
+**Purpose**: Abstract base class for all test specifications, providing the BDD-style API.
+
+**Lifecycle Methods**:
+- `BeforeAll(Action action)` / `BeforeAll(Func<Task> taskFunction)` - Setup once before all tests
+- `BeforeEach(Action action)` / `BeforeEach(Func<Task> taskFunction)` - Setup before each test
+- `Act(Action action)` / `Act(Func<Task> taskFunction)` - Action under test
+
+**DSL Properties**:
+- `Describe` - Define what is being tested (returns `ContextBuilder`)
+- `Context` - Define when/given scenarios (returns `ContextBuilder`)
+- `It` - Define test assertions (returns `AssertBuilder`)
+- `ItAsync` - Define async test assertions (returns `AssertBuilderAsync`)
+
+**Context Switching**: Uses a callback pattern to temporarily swap the internal `coreBuilder` when entering child contexts.
+
+### ContextBuilder
+
+**Location**: `specs.specification/ContextBuilder.cs`
+
+**Purpose**: Provides indexer syntax for defining test contexts using Describe/Context pattern.
+
+**Key Features**:
+- Uses a callback delegate (`ContextCallBack`) for context switching
+- Enables nested context definitions with proper scope management
+- Validates input using `ThrowIfNull`
+
+**Usage**:
+```csharp
+Describe["Calculator"] = () =>
+{
+    Context["when adding numbers"] = () =>
+    {
+        It["should return correct sum"] = () => { /* assertion */ };
+    };
+};
+```
+
+### AssertBuilder
+
+**Location**: `specs.specification/AssertBuilder.cs`
+
+**Purpose**: Provides indexer syntax for defining synchronous test assertions.
+
+**Usage**:
+```csharp
+It["should do something"] = () => { /* test assertion */ };
+```
+
+### AssertBuilderAsync
+
+**Location**: `specs.specification/AssertBuilderAsync.cs`
+
+**Purpose**: Provides indexer syntax for defining asynchronous test assertions.
+
+**Usage**:
+```csharp
+ItAsync["should do something async"] = async () => { await /* async test */ };
+```
+
+### IAssertProvider<T>
+
+**Location**: `specs.specification/IAssertProvider.cs`
+
+**Purpose**: Generic interface for assertion builders.
+
+**Definition**:
+```csharp
+public interface IAssertProvider<T> where T : Delegate
+{
+    T this[string description] { set; }
+}
+```
+
+---
+
 ## 1. IContextualTestCaseBuilder
 
 **Location**: `Framework/Processors/TestCases/IContextualTestCaseBuilder.cs`

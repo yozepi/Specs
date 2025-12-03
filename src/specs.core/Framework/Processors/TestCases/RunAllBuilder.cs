@@ -18,7 +18,7 @@ namespace specs.core.Framework.Processors.TestCases
 
         public void AddAction(Action action)
         {
-            actions.Add(action.OrThrowIfValueIsNull(nameof(action)));
+            actions.Add(action.ThrowIfNull(nameof(action)));
             resetFactory = true;
         }
 

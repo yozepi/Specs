@@ -11,9 +11,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestHarness", "TestHarness\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.core", "specs.core\specs.core.csproj", "{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.specification", "specs.specification\specs.specification.csproj", "{0F91CE0B-7030-409C-A4E9-7479EA1255A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD", "specs.specification\specs.BDD.csproj", "{0F91CE0B-7030-409C-A4E9-7479EA1255A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.specification.UnitTests", "specs.specification.UnitTests\specs.specification.UnitTests.csproj", "{75BDA9B7-CF25-973A-9688-385575D656A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.UnitTests", "specs.specification.UnitTests\specs.BDD.UnitTests.csproj", "{75BDA9B7-CF25-973A-9688-385575D656A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,14 +1,69 @@
 # Changes: In Progress
 
-**Last Updated**: 2025-11-05 8:33 PM PST
-**Milestone**: Initial Development Complete
+**Last Updated**: 2025-12-02 12:57 PM PST
+**Milestone**: specs.BDD Layer Refactoring
 
 ## Summary
-- **Commits**: 17
-- **Files Added**: 24
-- **Files Modified**: 4
+- **Commits**: 17+
+- **Files Added**: 24+
+- **Files Modified**: 10+
 - **Files Deleted**: 0
-- **New Components**: 20+ classes, numerous test methods
+- **New Components**: 20+ classes, specs.BDD DSL layer
+
+## Current Refactoring: specs.BDD Layer
+
+### Project Changes
+- **Project Rename**: `specs.specification` → `specs.BDD` (csproj file renamed)
+- **Namespace Change**: `specs.specification` → `specs.BDD`
+- **File Reorganization**: DSL files moved from `DSL/` subfolder to project root
+
+### Exception Extension Renaming
+- `OrThrowIfValueIsNull` → `ThrowIfNull`
+- `OrThrowIfValueIsNullOrWhiteSpace` → `ThrowIfNullOrWhiteSpace`
+
+### New specs.BDD Layer Components
+
+**Specifications (Base Class)**
+- Abstract base class providing DSL entry points
+- Methods: `Describe()`, `Context()`, `BeforeAll()`, `BeforeEach()`, `Act()`, `It()`, `ItAsync()`
+- Uses context switching pattern with `ContextCallBack` delegate
+
+**ContextBuilder**
+- Fluent builder for nested test contexts
+- Creates child `IContextualTestCaseBuilder` instances
+- Manages context switching via callback pattern
+
+**AssertBuilder / AssertBuilderAsync**
+- Fluent assertion builders for sync/async tests
+- Implements `IAssertProvider<T>` for generic assertion support
+- Created via `It()` and `ItAsync()` methods
+
+**IAssertProvider<T>**
+- Generic interface for assertion providers
+- Enables extensible assertion patterns
+- Supports both sync and async assertions
+
+### Context Switching Pattern
+```csharp
+private void contextCallBack(IContextualTestCaseBuilder childCoreBuilder, Action action)
+{
+    var previousCoreBuilder = this.coreBuilder;
+    this.coreBuilder = childCoreBuilder;  // Switch to child builder
+    try
+    {
+        action.Invoke();  // Execute user's context definition
+    }
+    finally
+    {
+        this.coreBuilder = previousCoreBuilder;  // Restore parent builder
+    }
+}
+```
+
+### Memory Bank Updates Completed
+- [x] `core-components.md` - Added specs.BDD layer section
+- [x] `architecture.md` - Added data flow diagram update and context switching pattern
+- [x] `changes/_current.md` - Documenting current refactoring (this file)
 
 ## Git Commits
 

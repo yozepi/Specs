@@ -13,4 +13,8 @@
     <ProjectReference Include="..\specs.core\specs.core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="AssertBuilder.cs" />
+  </ItemGroup>
+
 </Project>

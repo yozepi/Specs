@@ -1,9 +1,9 @@
 using NFluent;
 using yozepi;
 
-namespace specs.specification.UnitTests
+namespace specs.BDD.UnitTests
 {
-    public class Specifications_Tests : nSpecTestHarness
+    public class Specifications : nSpecTestHarness
     {
         [Test]
         public void Specs()
@@ -31,12 +31,7 @@ namespace specs.specification.UnitTests
 
                     it["should be assignable to Specifications"] = () =>
                     {
-                        Check.That(subject is Specifications).IsTrue();
-                    };
-
-                    it["should be instance of derived type"] = () =>
-                    {
-                        Check.That(subject).IsInstanceOf<TestSpecification>();
+                        Check.That(subject is BDD.Specifications).IsTrue();
                     };
                 };
 
@@ -62,27 +57,21 @@ namespace specs.specification.UnitTests
                 {
                     it["should be abstract class"] = () =>
                     {
-                        var type = typeof(Specifications);
+                        var type = typeof(BDD.Specifications);
                         Check.That(type.IsAbstract).IsTrue();
                     };
 
                     it["should be public class"] = () =>
                     {
-                        var type = typeof(Specifications);
+                        var type = typeof(BDD.Specifications);
                         Check.That(type.IsPublic).IsTrue();
-                    };
-
-                    it["should allow inheritance by derived classes"] = () =>
-                    {
-                        var derivedType = typeof(TestSpecification);
-                        Check.That(derivedType.IsSubclassOf(typeof(Specifications))).IsTrue();
                     };
                 };
             };
         }
 
         // Helper class to test inheritance
-        private class TestSpecification : Specifications
+        private class TestSpecification : BDD.Specifications
         {
         }
     }

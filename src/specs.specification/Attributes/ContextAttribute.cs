@@ -1,6 +1,6 @@
 using System;
 
-namespace specs.specification.Attributes
+namespace specs.BDD.Attributes
 {
     /// <summary>
     /// Marks a method as a specification context builder.

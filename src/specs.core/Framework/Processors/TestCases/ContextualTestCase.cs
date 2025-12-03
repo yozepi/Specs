@@ -20,18 +20,18 @@ namespace specs.core.Framework.Processors.TestCases
                 teardownOnce,
                 tests,
                 childContexts,
-                description.OrThrowIfValueIsNullOrWhiteSpace(nameof(description)));
+                description.ThrowIfNullOrWhiteSpace(nameof(description)));
         }
 
         private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, string? description = null)
         {
-            this.SetupOnce = setupOnce.OrThrowIfValueIsNull(nameof(setupOnce));
-            this.SetupEach = setupEach.OrThrowIfValueIsNull(nameof(setupEach));
-            this.Act = act.OrThrowIfValueIsNull(nameof(act));
-            this.TeardownEach = teardownEach.OrThrowIfValueIsNull(nameof(teardownEach));
-            this.TeardownOnce = teardownOnce.OrThrowIfValueIsNull(nameof(teardownOnce));
-            this.Tests = tests.OrThrowIfValueIsNull(nameof(tests));
-            this.ChildContexts = childContexts.OrThrowIfValueIsNull(nameof(childContexts));
+            this.SetupOnce = setupOnce.ThrowIfNull(nameof(setupOnce));
+            this.SetupEach = setupEach.ThrowIfNull(nameof(setupEach));
+            this.Act = act.ThrowIfNull(nameof(act));
+            this.TeardownEach = teardownEach.ThrowIfNull(nameof(teardownEach));
+            this.TeardownOnce = teardownOnce.ThrowIfNull(nameof(teardownOnce));
+            this.Tests = tests.ThrowIfNull(nameof(tests));
+            this.ChildContexts = childContexts.ThrowIfNull(nameof(childContexts));
             this.Description = description;
         }
 
