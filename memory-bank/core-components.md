@@ -10,24 +10,80 @@ This document details the key components of the Specs framework, their responsib
 
 The specs.BDD layer provides a user-friendly Domain Specific Language (DSL) for writing behavior-driven tests. This layer wraps the core `IContextualTestCaseBuilder` to provide an intuitive API.
 
+### Test Hierarchy
+
+The specs.BDD layer implements a **Suite → Feature Set → Specification** hierarchy:
+
+1. **Suite** = A class inheriting from `Specifications` (one per subject under test)
+2. **Feature Set** = A method decorated with `[Context]` (one per feature/aspect of the subject)
+3. **Scenarios** = `Context[...]`/`Describe[...]` indexers (organize specs within a feature set)
+4. **Specifications** = `It[...]` indexer (individual test assertions)
+
+The `[Context]` attribute and `Context[...]` indexer are part of the same paradigm at different hierarchy levels — NOT separate approaches.
+
+**Lifecycle operates at two levels**:
+- **Suite-level**: Lifecycle methods called at the class level apply to ALL feature sets
+- **Feature-level**: Lifecycle methods called inside a `[Context]` method apply only to that feature set's specs
+
+### ContextAttribute
+
+**Location**: `specs.specification/Attributes/ContextAttribute.cs`
+
+**Purpose**: Marks a method as a specification context builder (feature set) within a suite. Each `[Context]` method represents one feature or aspect of the subject under test.
+
+**Properties**:
+- `Description` (string?, read-only) - Optional description for the feature set, used for reporting
+
+**Usage**:
+```csharp
+public class Weather_Controller : Specifications  // SUITE
+{
+    // Suite-level lifecycle (applies to ALL feature sets)
+    BeforeAll(() => { /* once for entire suite */ });
+
+    [Context("Getting forecasts")]  // FEATURE SET
+    public void getting_forecasts()
+    {
+        // Feature-level lifecycle (applies only to THIS feature set)
+        BeforeEach(() => { /* per-spec setup for this feature */ });
+        
+        Context["when requesting today"] = () =>  // SCENARIO
+        {
+            It["should return data"] = () => { /* SPEC */ };
+        };
+    }
+
+    [Context("Updating data")]  // ANOTHER FEATURE SET
+    public void updating_data() { /* ... */ }
+}
+```
+
+**Key Characteristics**:
+- `[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]`
+- Only one `[Context]` attribute per method
+- Inherited by derived classes
+- Description is optional (defaults to null)
+
 ### Specifications (Base Class)
 
 **Location**: `specs.specification/Specifications.cs`
 
-**Purpose**: Abstract base class for all test specifications, providing the BDD-style API.
+**Purpose**: Abstract base class for all test suites, providing the BDD-style API. Each class inheriting from `Specifications` represents a suite for one subject under test.
 
-**Lifecycle Methods**:
-- `BeforeAll(Action action)` / `BeforeAll(Func<Task> taskFunction)` - Setup once before all tests
-- `BeforeEach(Action action)` / `BeforeEach(Func<Task> taskFunction)` - Setup before each test
+**Lifecycle Methods** (available at both suite and feature levels):
+- `BeforeAll(Action action)` / `BeforeAll(Func<Task> taskFunction)` - Setup once before all tests in scope
+- `BeforeEach(Action action)` / `BeforeEach(Func<Task> taskFunction)` - Setup before each test in scope
 - `Act(Action action)` / `Act(Func<Task> taskFunction)` - Action under test
+- `AfterEach(Action action)` / `AfterEach(Func<Task> taskFunction)` - Teardown after each test in scope
+- `AfterAll(Action action)` / `AfterAll(Func<Task> taskFunction)` - Teardown once after all tests in scope
 
-**DSL Properties**:
+**DSL Properties** (for organizing scenarios and specs within feature sets):
 - `Describe` - Define what is being tested (returns `ContextBuilder`)
 - `Context` - Define when/given scenarios (returns `ContextBuilder`)
 - `It` - Define test assertions (returns `AssertBuilder`)
 - `ItAsync` - Define async test assertions (returns `AssertBuilderAsync`)
 
-**Context Switching**: Uses a callback pattern to temporarily swap the internal `coreBuilder` when entering child contexts.
+**Context Switching**: Uses a callback pattern to temporarily swap the internal `coreBuilder` when entering child contexts via `Context[...]`/`Describe[...]`.
 
 ### ContextBuilder
 

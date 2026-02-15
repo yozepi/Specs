@@ -1,5 +1,29 @@
 # Architecture: Specs Framework
 
+## Architectural Overview
+
+The Specs framework organizes tests in a **Suite → Feature Set → Specification** hierarchy:
+
+- **Suite** = A specification class (one per subject under test)
+- **Feature Set** = A `[Context]` decorated method (one per feature/aspect)  
+- **Specification** = An `It[...]` assertion (one per expected behavior)
+
+The `[Context]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Context]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
+
+The framework has TWO API styles that both follow this hierarchy:
+
+1. **Modern Method-Based API** (specs.core + specs.BDD)
+   - `Specifications` base class with method-based lifecycle (`BeforeAll()`, `BeforeEach()`)
+   - Builder-based approach, framework-agnostic through adapters
+   - Immutable test case models
+
+2. **Legacy Property-Based API** (Domain layer + Spec class)
+   - `Spec` base class with property-based lifecycle (`BeforeEach = () => {}`)
+   - Runtime context switching, mutable test state
+   - Direct integration with test runners
+
+Both API styles support the same Suite → Feature Set → Specification hierarchy.
+
 ## Design Patterns
 
 ### 1. Builder Pattern
@@ -160,10 +184,12 @@ builder.AddSetupOnce(action: async () => { await /* async code */ });
 
 ## Data Flow
 
+### Approach 1: Core Framework Architecture (specs.core + specs.BDD)
+
 ```
 User Code (Test Specification inheriting from Specifications)
     ↓
-specs.BDD Layer (Describe/Context/It DSL)
+specs.BDD Layer (Method-based DSL: BeforeAll/BeforeEach/Act/It)
     ↓
 IContextualTestCaseBuilder (Fluent API)
     ↓
@@ -176,6 +202,22 @@ TestCaseExecutor (Executes lifecycle)
 ITestContextAdapter (Framework integration)
     ↓
 Actual Test Framework (NSpec, etc.)
+```
+
+### Approach 2: Legacy Runtime Architecture (Domain + Spec)
+
+```
+User Code (Test Specification inheriting from Spec)
+    ↓
+Spec Class (Property-based DSL: BeforeEach/Act/It)
+    ↓
+IRunContext (Runtime context switching)
+    ↓
+Domain Layer (ActionSpecDefinition/TaskSpecDefinition)
+    ↓
+Runner Implementations (ActionRunner/TaskRunner)
+    ↓
+Test Framework Integration (NSpec context)
 ```
 
 ### specs.BDD Context Switching Pattern
@@ -203,21 +245,63 @@ This enables nested context definitions where `BeforeAll`, `BeforeEach`, `Act`, 
 
 ## Key Design Decisions
 
-### 1. Immutability After Build
+### Core Framework (specs.core + specs.BDD)
+
+#### 1. Immutability After Build
 Once `Build()` is called, the test case becomes immutable. All modifications must be done through the builder.
 
-### 2. Action Aggregation
+#### 2. Action Aggregation
 Actions are collected at build time, not execution time, allowing for optimization and validation.
 
-### 3. Hierarchical Contexts
+#### 3. Hierarchical Contexts
 Child contexts inherit and extend parent behavior, enabling powerful test organization patterns.
 
-### 4. Separation of Concerns
+#### 4. Separation of Concerns
 Clear separation between:
 - Test definition (Builder)
 - Test representation (TestCase)
 - Test execution (Executor)
 - Framework integration (Adapters)
 
-### 5. Framework Agnostic Core
+#### 5. Framework Agnostic Core
 The core is independent of specific test frameworks, with integration provided through adapters.
+
+### Legacy Runtime Architecture (Domain + Spec)
+
+#### 1. Runtime Mutability
+Test context can be modified at runtime, allowing for dynamic test construction.
+
+#### 2. Direct Context Switching
+The `Spec` class directly switches `IRunContext` when entering/exiting contexts.
+
+#### 3. Property-Based Lifecycle
+Lifecycle hooks are set through properties rather than method calls, providing a different API style.
+
+#### 4. Built-in Exception Testing
+`ShouldThrow` methods are built directly into the `Spec` base class for convenient exception assertions.
+
+#### 5. Tight Coupling to Runtime
+The Domain layer is designed for runtime execution, with direct integration to test runner contexts.
+
+## Architectural Comparison
+
+| Aspect | Core Framework | Legacy Runtime |
+|--------|---------------|----------------|
+| **API Style** | Method-based (`BeforeAll()`) | Property-based (`BeforeEach = ...`) |
+| **Context Model** | Builder pattern (immutable) | Runtime switching (mutable) |
+| **Test Case** | Built once, executed many | Constructed during execution |
+| **Framework Coupling** | Adapter pattern (loose) | Direct integration (tight) |
+| **Execution Model** | TestCaseExecutor | IRunContext |
+| **Primary Use** | New development | Legacy support |
+
+## Migration Strategy
+
+Projects using the legacy `Spec` class can migrate to `Specifications` by:
+1. Change base class from `Spec` to `Specifications`
+2. Convert property assignments to method calls:
+   - `BeforeEach = () => {}` → `BeforeEach(() => {})`
+   - `Act = () => {}` → `Act(() => {})`
+3. Update exception testing to use assertion libraries instead of `ShouldThrow`
+4. Test hierarchical context nesting (should work the same)
+
+Both approaches can coexist in the same solution during migration.

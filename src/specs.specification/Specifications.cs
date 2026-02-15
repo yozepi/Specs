@@ -50,6 +50,30 @@ namespace specs.BDD
         /// </summary>
         /// <param name="taskFunction">The async action to test.</param>
         public void Act(Func<Task> taskFunction) => coreBuilder.AddAct(taskFunction);
+
+        /// <summary>
+        /// Defines a synchronous teardown action that runs after each test.
+        /// </summary>
+        /// <param name="action">The teardown action to execute.</param>
+        public void AfterEach(Action action) => coreBuilder.AddTeardownEach(action);
+
+        /// <summary>
+        /// Defines an asynchronous teardown action that runs after each test.
+        /// </summary>
+        /// <param name="taskFunction">The async teardown action to execute.</param>
+        public void AfterEach(Func<Task> taskFunction) => coreBuilder.AddTeardownEach(taskFunction);
+
+        /// <summary>
+        /// Defines a synchronous teardown action that runs once after all tests in this context.
+        /// </summary>
+        /// <param name="action">The teardown action to execute.</param>
+        public void AfterAll(Action action) => coreBuilder.AddTeardownOnce(action);
+
+        /// <summary>
+        /// Defines an asynchronous teardown action that runs once after all tests in this context.
+        /// </summary>
+        /// <param name="taskFunction">The async teardown action to execute.</param>
+        public void AfterAll(Func<Task> taskFunction) => coreBuilder.AddTeardownOnce(taskFunction);
  
         /// <summary>
         /// Defines "what" is being tested using behavior-driven design (BDD) style.

@@ -46,11 +46,20 @@ Action that executes once after all tests in a context. Aggregated from parent c
 
 ## Test Organization
 
-### Context
-A named grouping of related tests and sub-contexts. Contexts can be nested to create hierarchical test structures. Each context has its own lifecycle hooks that are inherited by child contexts.
+### Suite (Specification Class)
+A class inheriting from `Specifications` (or legacy `Spec`) that serves as a test suite for a single subject. Example: `Weather_Controller : Specifications` is a suite for the Weather Controller. Suite-level lifecycle methods (`BeforeAll`, `AfterAll`, `BeforeEach`, `AfterEach`) apply to ALL feature sets within the suite.
+
+### Feature Set (`[Context]` Decorated Method)
+A method within a suite class decorated with the `[Context]` attribute. Each feature set represents one aspect or feature of the subject under test. Feature sets have their own lifecycle control (`BeforeEach`, `AfterEach`) that applies only to specs within that feature set. The `[Context]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the hierarchy.
+
+### Scenario (`Context[...]` / `Describe[...]` Indexer)
+A named grouping of related specs within a feature set, created using the `Context[...]` or `Describe[...]` indexer syntax. Scenarios can be nested to create hierarchical test structures. Each scenario can have its own lifecycle hooks that are inherited by child scenarios.
+
+### Specification (`It[...]` Indexer)
+An individual test assertion defined using the `It[...]` indexer. Each specification tests one specific behavior or outcome.
 
 ### Child Context
-A nested context within a parent context. Inherits all lifecycle hooks from its parent(s) and can add its own. Created using the `ChildTestCase()` method or NSpec's nested `context[]` syntax.
+A nested context within a parent context. Inherits all lifecycle hooks from its parent(s) and can add its own. Created using the `ChildTestCase()` method internally, or via nested `Context[...]`/`Describe[...]` syntax in user code.
 
 ### Contextual Test Case
 A test case that supports hierarchical organization through parent-child context relationships. The core abstraction of the Specs framework.
@@ -183,10 +192,25 @@ NSpec's fluent assertion extensions. Example: `result.should_be(42)` or `value.s
 ## Project-Specific Terms
 
 ### specs.core
-Core library project containing the Specs framework implementation. Targets .NET Standard 2.1.
+Core library project containing the Specs framework implementation. Targets .NET Standard 2.1. Provides the builder pattern-based architecture with `IContextualTestCaseBuilder` and related components.
 
 ### specs.core.UnitTests
 Unit test project that tests the functionality of the specs.core library using NUnit and NSpec.
+
+### specs.BDD (specs.specification)
+High-level BDD specification library built on top of specs.core. Provides the method-based API through the `Specifications` base class with methods like `BeforeAll()`, `BeforeEach()`, `Act()`, and properties like `Describe`, `Context`, `It`.
+
+### specs.BDD.UnitTests
+Unit test project that tests the functionality of the specs.BDD library.
+
+### Specifications (specs.BDD)
+Abstract base class in the specs.BDD library providing a method-based DSL for writing BDD-style tests. Modern approach that uses method calls for lifecycle hooks and builder properties for test organization.
+
+### Spec (Legacy)
+Legacy base class in `src/Spec.cs` providing a property-based DSL for writing BDD-style tests. Uses property assignments for lifecycle hooks (e.g., `BeforeEach = () => {}`). Includes built-in exception testing via `ShouldThrow` methods.
+
+### Domain Layer
+Legacy runtime integration layer in `src/Domain/` containing `IRunContext`, spec definitions (`ActionSpecDefinition`, `TaskSpecDefinition`), and runner implementations (`ActionRunner`, `TaskRunner`). Used by the legacy `Spec` class for runtime context management.
 
 ### TestHarness
 Project containing the `nSpecTestHarness` base class for integrating the Specs framework with NSpec and NUnit.

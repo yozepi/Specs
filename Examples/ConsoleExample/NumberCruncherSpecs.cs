@@ -5,7 +5,6 @@ namespace ConsoleExample
 {
     internal class NumberCruncherSpecs : Spec
     {
-
         public void TryIt()
         {
             NumberCruncher subject = null!;

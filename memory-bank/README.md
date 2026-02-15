@@ -1,70 +1,145 @@
 # Specs Framework - Memory Bank
 
-This memory bank contains comprehensive documentation about the Specs testing framework for .NET.
+This memory bank follows the standard Cline Memory Bank structure, providing comprehensive documentation about the Specs testing framework for .NET.
 
-## Documentation Index
+## Understanding the Memory Bank
 
-### 📋 [Project Overview](project-overview.md)
-High-level introduction to the Specs framework, including:
-- Project purpose and goals
-- Solution structure (3 projects: specs.core, specs.core.UnitTests, TestHarness)
-- Technology stack (.NET Standard 2.1, NSpec, NUnit, NFluent)
-- Target users and use cases
+After each session, Cline's memory resets completely. The Memory Bank is Cline's only link to previous work, making accurate documentation essential for continued effectiveness.
 
-**Start here** if you're new to the project.
+## Memory Bank Structure
 
-### 🏗️ [Architecture](architecture.md)
-Detailed architectural documentation covering:
-- Design patterns (Builder, Composite, Adapter, Strategy)
-- Architectural layers and responsibilities
-- Test lifecycle flow
-- Action collection strategies
-- Async/sync abstraction
+The memory bank consists of **6 core files** that build upon each other in a clear hierarchy, plus **additional context files** for deeper information.
+
+### Core Files (Required Reading)
+
+These files form the foundation and should be read in order when starting work:
+
+#### 1. 📋 [projectbrief.md](projectbrief.md) - Foundation Document
+**Purpose**: Shapes all other files, defines core requirements and goals
+
+**Contains**:
+- Project identity (Specs, .NET Standard 2.1 testing framework)
+- Core purpose (BDD-style testing with lifecycle management)
+- 5 projects structure
+- Two testing approaches (Modern specs.BDD vs Legacy Spec)
+- Technology stack, scope, constraints, success metrics
+
+**Start here** - This is the source of truth for project scope.
+
+#### 2. 🎯 [productContext.md](productContext.md) - Why This Exists
+**Purpose**: Explains why the project exists and what problems it solves
+
+**Contains**:
+- Business/technical context
+- Problems solved (test organization, lifecycle complexity, async testing, readability)
+- How it should work from user perspective
+- User experience goals
+- Comparison with other frameworks
+
+**Read this** to understand the project's value proposition and design philosophy.
+
+#### 3. 🔄 [activeContext.md](activeContext.md) - Current Work Focus
+**Purpose**: Tracks current work, recent changes, and next steps
+
+**Contains**:
+- Current work focus (memory bank restructuring)
+- Recent changes
+- Next steps
+- Active decisions and considerations
+- Important patterns and preferences
+- Learnings and project insights
+
+**Check this** to understand what's happening now and what comes next.
+
+#### 4. 🏗️ [systemPatterns.md](systemPatterns.md) - Architecture & Design
+**Purpose**: Documents system architecture and design patterns
+
+**Contains**:
+- Core architectural pattern (Builder + Hierarchical Contexts)
+- Key design patterns (Builder, Composite, Adapter, Strategy, Template Method)
+- Critical implementation patterns
+- Component relationships
 - Data flow diagrams
-- Key design decisions
+- Key technical decisions
 
 **Reference this** to understand how the framework is structured and why.
 
-### 🔧 [Core Components](core-components.md)
-In-depth documentation of framework components:
-- Builder interfaces and implementations
-- Test case models (ITestCase, IContextualTestCase, ITestCaseContext)
-- Test execution engine (TestCaseExecutor)
-- Adapter interfaces (logging, test provider, test context)
-- Helper classes (RunAllBuilder, TestInstance)
-- Component interaction diagrams
+#### 5. 🔧 [techContext.md](techContext.md) - Technologies & Setup
+**Purpose**: Documents technologies, dependencies, and development setup
 
-**Use this** when working with specific framework classes and interfaces.
+**Contains**:
+- Technology stack (.NET Standard 2.1, C# 8.0)
+- Core dependencies (NSpec, NUnit, NFluent)
+- Project structure
+- Development environment setup
+- Build and test commands
+- Technical constraints
 
-### 📝 [Test Patterns](test-patterns.md)
-Practical examples and best practices:
-- Basic test structure
-- Hierarchical contexts
-- Sharing state across tests
-- Async test support
-- Parameterized tests
-- Exception testing
-- Integration testing patterns
-- Test isolation techniques
-- Arrange-Act-Assert pattern
-- Mocking strategies
-- Builder pattern for test data
-- Focus tags for debugging
+**Use this** for environment setup and technical reference.
 
-**Reference this** when writing tests or learning framework usage patterns.
+#### 6. ✅ [progress.md](progress.md) - Current Status
+**Purpose**: Tracks what works and what's left to build
 
-### 📖 [Glossary](glossary.md)
-Comprehensive terminology reference:
-- Core concepts (Act, Adapter, Assertion, Async/Await)
-- Lifecycle hooks (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
-- Test organization (Context, Child Context, Focus Tags)
-- Framework components
-- Testing patterns (AAA, BDD, Integration Tests, Mocks)
-- NSpec integration terms
-- Technical terms and abbreviations
-- Design principles
+**Contains**:
+- What works (all core features ✅)
+- What's left to build (optional enhancements 📋)
+- Known issues and limitations
+- Evolution timeline
+- Success metrics
+- Current status: **STABLE AND FEATURE-COMPLETE**
 
-**Consult this** when you encounter unfamiliar terms or need clarification.
+**Check this** to understand project health and completion status.
+
+### File Hierarchy Flow
+
+```
+projectbrief.md (Foundation)
+    ↓
+productContext.md (Why)
+    ↓
+activeContext.md (Now)
+    ↓
+systemPatterns.md (How)
+    ↓
+techContext.md (With what)
+    ↓
+progress.md (Status)
+```
+
+## Additional Context Files
+
+These files provide supplementary information and deeper dives into specific topics:
+
+### 📖 [glossary.md](glossary.md) - Terminology Reference
+Comprehensive definitions of terms, concepts, and abbreviations used throughout the project.
+
+**Use when**: You encounter unfamiliar terms or need clarification on framework concepts.
+
+### 🧪 [test-patterns.md](test-patterns.md) - Usage Examples
+Practical examples and best practices for writing tests with the framework.
+
+**Use when**: Writing tests or learning framework usage patterns.
+
+### 🔌 [core-components.md](core-components.md) - Component Details
+In-depth documentation of specific framework components and their interactions.
+
+**Use when**: Working with specific framework classes and interfaces.
+
+### 🏢 [devops-formatting.md](devops-formatting.md) - DevOps Guidelines
+Azure DevOps work item formatting and workflow guidelines.
+
+**Use when**: Creating or managing Azure DevOps work items.
+
+### 👥 [roles.md](roles.md) - Role-Based Workflows
+Specialized workflows for different development roles (Solution Architect, Developer Lead, etc.).
+
+**Use when**: Following role-specific processes.
+
+### 📁 [changes/](changes/)
+Directory tracking project changes over time.
+
+- `_current.md` - Work-in-progress changes
+- `YYYY-MM-DD.md` - Archived milestone changes
 
 ## Quick Reference
 
@@ -79,80 +154,83 @@ Comprehensive terminology reference:
 3. TeardownOnce (Child → Parent)
 ```
 
-### Key Classes
-- `IContextualTestCaseBuilder` - Fluent API for building test cases
-- `ContextualTestCaseBuilder` - Concrete builder implementation
-- `IContextualTestCase` - Built test case with hierarchy support
-- `TestCaseExecutor` - Orchestrates test execution
-- `nSpecTestHarness` - Base class for NSpec integration
+### Key Architectural Patterns
+- **Builder Pattern**: Construct test cases with fluent API
+- **Composite Pattern**: Hierarchical contexts with inheritance
+- **Adapter Pattern**: Framework-agnostic core
+- **Strategy Pattern**: Configurable execution behavior
+- **Template Method**: Fixed lifecycle execution order
 
 ### Project Structure
 ```
 src/
-├── specs.core/              # Core framework library
-│   └── Framework/
-│       ├── Adapters/        # Framework integration abstractions
-│       ├── Processors/      # Test case models and executors
-│       └── Settings/        # Configuration
-├── specs.core.UnitTests/    # Unit tests for the framework
-└── TestHarness/             # NSpec integration helper
+├── specs.core/              # Core framework (builder pattern, adapters) - DELIVERABLE
+├── specs.specification/     # specs.BDD (modern method-based API) - DELIVERABLE
+├── specs.core.UnitTests/    # Framework unit tests
+├── specs.specification.UnitTests/  # specs.BDD tests
+├── TestHarness/             # Internal testing infrastructure (NOT DELIVERABLE)
+│                            # Temporary NSpec integration for testing Specs itself
+├── Spec.cs                  # Legacy property-based API
+└── Domain/                  # Legacy runtime layer
 ```
 
-## Contributing to Documentation
+## Reading Recommendations
 
-When adding new features or making significant changes:
+### First Time with Project
+1. Read [projectbrief.md](projectbrief.md) - Understand what Specs is
+2. Read [productContext.md](productContext.md) - Understand why it exists
+3. Skim [systemPatterns.md](systemPatterns.md) - Understand architectural approach
+4. Check [progress.md](progress.md) - Understand current status
 
-1. Update **project-overview.md** if the change affects high-level goals or structure
-2. Update **architecture.md** if the change involves new patterns or architectural decisions
-3. Update **core-components.md** if new components are added or existing ones change significantly
-4. Add examples to **test-patterns.md** for new usage patterns
-5. Add new terms to **glossary.md** for any new concepts introduced
-6. Update this README.md if the documentation structure changes
+### Before Starting Work
+1. Check [activeContext.md](activeContext.md) - What's happening now?
+2. Check [progress.md](progress.md) - What's the status?
+3. Review relevant sections in core files as needed
+
+### When Writing Code
+1. Reference [systemPatterns.md](systemPatterns.md) - Follow established patterns
+2. Reference [techContext.md](techContext.md) - Use correct dependencies
+3. Reference [test-patterns.md](test-patterns.md) - Write tests correctly
+4. Reference [glossary.md](glossary.md) - Use correct terminology
+
+### When Troubleshooting
+1. Check [progress.md](progress.md) - Known issues and limitations
+2. Check [techContext.md](techContext.md) - Common issues and solutions
+3. Check [test-patterns.md](test-patterns.md) - Test isolation and debugging
+
+## Maintaining Documentation
+
+After significant work, update the relevant core files:
+
+1. **activeContext.md** - Always update with recent changes and next steps
+2. **progress.md** - Update status, mark completed items
+3. **systemPatterns.md** - If architectural patterns change
+4. **techContext.md** - If dependencies or setup changes
+5. **productContext.md** - If problems solved or use cases change
+6. **projectbrief.md** - Rarely, only if fundamental scope changes
 
 ## Version Information
 
 - **.NET Target**: netstandard2.1
+- **Language**: C# 8.0 with nullable reference types
 - **Primary Dependencies**: NSpec, NUnit, NFluent
-- **Language**: C# with nullable reference types enabled
-
-## Change Tracking
-
-This project uses a global Cline workflow for tracking and documenting solution changes:
-
-**Global Workflow**: `~/OneDrive/Documents/Cline/Workflows/track-changes.md`
-
-**Purpose**: Automatically analyze and document:
-- Git commit history since last milestone
-- File additions, modifications, and deletions
-- New components (classes, interfaces)
-- Architectural impacts
-- Memory bank updates needed
-
-**Change Documentation**: `memory-bank/changes/`
-- `_current.md` - Work-in-progress changes
-- `YYYY-MM-DD.md` - Archived milestone changes
-
-**Usage**: From project root, run:
-```powershell
-# Windows
-~\OneDrive\Documents\Cline\Workflows\analyze-changes.ps1
-
-# Linux/Mac
-~/OneDrive/Documents/Cline/Workflows/analyze-changes.sh
-```
-
-**When to Use**: Run at project milestones such as feature completion, releases, or significant architectural changes.
-
-See the global workflow documentation for detailed usage instructions.
+- **Deliverable Projects**: 2 (specs.core, specs.BDD)
+- **Test Projects**: 2 (specs.core.UnitTests, specs.BDD.UnitTests)
+- **Internal Infrastructure**: 1 (TestHarness - temporary testing tool, not deliverable)
+- **API Approaches**: 2 (Modern method-based, Legacy property-based)
+- **Current Status**: Stable and feature-complete
 
 ## Related Resources
 
+- [.NET Standard 2.1 Documentation](https://docs.microsoft.com/en-us/dotnet/standard/net-standard)
 - [NSpec Documentation](http://nspec.org/)
 - [NUnit Documentation](https://nunit.org/)
 - [NFluent Documentation](http://www.n-fluent.net/)
 
 ---
 
-**Last Updated**: 2025-11-03
+**Last Updated**: 2026-02-07
 
-For questions or clarifications about this documentation, please refer to the source code or create an issue in the project repository.
+**Memory Bank Format**: Standard Cline Memory Bank (6 core files)
+
+For questions about this documentation structure, refer to the Cline Memory Bank guidelines.
