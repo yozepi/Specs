@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.TestPlatform" Version="18.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\specs.core\specs.core.csproj" />
   </ItemGroup>
 

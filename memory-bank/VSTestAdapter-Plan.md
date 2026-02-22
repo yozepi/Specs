@@ -348,45 +348,55 @@ public static class TestProperties
 - [x] Reference specs.core and specs.BDD projects
 - [x] Create directory structure (Discovery/, Execution/, Conversion/)
 - [x] Create `specs.BDD.VSTestAdapter.Tests` project
-- [x] Fix target framework compatibility (netstandard2.0 → netstandard2.1)
+- [x] Target framework: netstandard2.1 (matches specs.core and specs.BDD)
+- [x] Add both projects to Specs.sln
 - [x] Build and verify project structure
 
-### Phase 2: Discovery Implementation (IN PROGRESS)
-- [ ] Create `InvalidSpecificationException`
-- [ ] Implement `SpecificationClassScanner`
-- [ ] Implement `ContextMethodScanner`
-- [ ] Create `SpecTest` data model
-- [ ] Implement `TestStructureExtractor`
-  - [ ] Instantiate specification classes
-  - [ ] Access internal builder
-  - [ ] Invoke [Context] methods
-  - [ ] Flatten test hierarchy
-- [ ] Create `TestProperties` for metadata
-- [ ] Implement `TestCaseConverter`
-  - [ ] Generate unique test IDs
-  - [ ] Create display names
-  - [ ] Set metadata properties
-- [ ] Implement `SpecsTestDiscoverer`
-  - [ ] Add required attributes
-  - [ ] Coordinate discovery flow
-  - [ ] Handle exceptions and logging
-- [ ] Re-add AssemblyInfo.cs with proper references
+### Phase 2: Discovery Implementation ✅ COMPLETE
+- [x] Create `InvalidSpecificationException`
+- [x] Implement `SpecificationClassScanner`
+- [x] Implement `ContextMethodScanner` (with ValidateHasContextMethods)
+- [x] Create `SpecTest` data model
+- [x] Implement `TestStructureExtractor`
+  - [x] Instantiate specification classes (one per [Context] method)
+  - [x] Access internal `coreBuilder` field via reflection
+  - [x] Invoke [Context] methods to populate builder
+  - [x] Flatten test hierarchy (handles arbitrary nesting depth)
+- [x] Create `TestProperties` for metadata (ClassName, ContextMethod, ContextPath, TestDescription)
+- [x] Implement `TestCaseConverter`
+  - [x] Generate unique FullyQualifiedName (ClassName::Method::ContextPath::TestDescription)
+  - [x] Create display names (ContextPath → TestDescription)
+  - [x] Set all metadata properties on TestCase
+- [x] Implement `SpecsTestDiscoverer`
+  - [x] [FileExtension(".dll")], [FileExtension(".exe")], [DefaultExecutorUri] attributes
+  - [x] Coordinate full discovery flow
+  - [x] Handle exceptions and log warnings
+- [x] Add `SpecsTestExecutor` stub (Phase 3 placeholder) with [ExtensionUri]
+- [x] Add `AssemblyInfo.cs`
+- [x] Remove stray Microsoft.TestPlatform package from specs.BDD.csproj
 
-### Phase 3: Execution Implementation
-- [ ] Implement `TestInvoker`
-  - [ ] Resolve test from TestCase metadata
-  - [ ] Instantiate specification class
-  - [ ] Invoke [Context] method
-  - [ ] Execute specific test
-  - [ ] Capture test results
-- [ ] Implement `ResultReporter`
-  - [ ] Convert exceptions to VSTest format
-  - [ ] Format error messages
-  - [ ] Include stack traces
-- [ ] Implement `SpecsTestExecutor`
-  - [ ] Add required attributes
-  - [ ] Implement RunTests methods
-  - [ ] Report results to framework
+### Phase 3: Execution Implementation ✅ COMPLETE
+- [x] Implement `TestFinder`
+  - [x] Navigate IContextualTestCase hierarchy by context path segments
+  - [x] Return (ITestCase, Action) tuple or null if not found
+- [x] Implement `TestInvoker`
+  - [x] Resolve test from TestCase metadata (ClassName, ContextMethod, ContextPath, TestDescription)
+  - [x] Load assembly from TestCase.Source, strip AQN suffix to get type name
+  - [x] Instantiate specification class and invoke [Context] method
+  - [x] Call builder.Build() via coreBuilder reflection
+  - [x] Use TestFinder to navigate to correct test
+  - [x] Execute lifecycle: SetupOnce → SetupEach → Act → test → TeardownEach → TeardownOnce
+  - [x] Teardown always runs even when test action throws (ExceptionDispatchInfo rethrow)
+- [x] Implement `ResultReporter`
+  - [x] Success() creates Passed TestResult with timing
+  - [x] Failure() creates Failed TestResult with ErrorMessage + StackTrace
+  - [x] Unwraps nested TargetInvocationException to surface root cause
+- [x] Implement `SpecsTestExecutor` (full, replacing stub)
+  - [x] RunTests(IEnumerable<TestCase>): iterates, calls RecordStart + TestInvoker.Invoke + RecordResult
+  - [x] RunTests(IEnumerable<string>): re-discovers via SpecsTestDiscoverer then delegates
+  - [x] Cancel() sets volatile _cancelled flag; loop checks it
+  - [x] CollectingSink nested class for re-discovery
+- [x] Add [assembly: InternalsVisibleTo("specs.BDD.VSTestAdapter.Tests")] to AssemblyInfo.cs
 
 ### Phase 4: Testing
 - [ ] Create sample specification classes for testing
@@ -514,28 +524,82 @@ The naming `specs.BDD.VSTestAdapter` anticipates future adapters:
 - [x] Component specifications defined
 - [x] Implementation started
 - [x] Phase 1: Project Setup complete
-- [ ] Phase 2: Discovery implementation (next)
-- [ ] Phase 3: Execution implemented
+- [x] Phase 2: Discovery implementation complete
+- [x] Phase 3: Execution implemented
 - [ ] Phase 4: Integration testing complete
 - [ ] Phase 5: Documentation complete
 - [ ] Ready for production
 
 ## Recent Changes
 
-**2026-02-07 - Phase 1 Complete**
-- Created `specs.BDD.VSTestAdapter` project targeting netstandard2.1
-- Created `specs.BDD.VSTestAdapter.Tests` test project targeting net8.0
-- Added Microsoft.TestPlatform.ObjectModel v17.8.0 package
-- Created directory structure (Discovery/, Execution/, Conversion/, Properties/)
-- Fixed target framework compatibility issue (changed from netstandard2.0 to netstandard2.1)
-- Verified project builds successfully with all dependencies
-- Removed AssemblyInfo.cs temporarily (will add after implementing classes)
+**2026-02-21 - Phase 3 Complete**
+
+Full execution pipeline implemented and verified. All 112 tests across the full solution pass (0 errors, 0 warnings).
+
+**Phase 3 — Execution:**
+- `TestFinder` (internal) — navigates an `IContextualTestCase` hierarchy by splitting a context path
+  on " → " and following `ChildContexts` by `Description`; returns `(ITestCase, Action)?` or null
+- `TestInvoker` (internal) — reads metadata from `TestCase`, loads assembly, strips AQN to get type
+  name, resolves method, builds hierarchy via reflection on `coreBuilder`, calls `TestFinder.Find`,
+  executes lifecycle; teardown always runs (ExceptionDispatchInfo preserves stack on rethrow)
+- `ResultReporter` (internal) — creates Passed/Failed `TestResult`; unwraps nested
+  `TargetInvocationException` to surface root cause in `ErrorMessage` and `ErrorStackTrace`
+- `SpecsTestExecutor` (public) — full implementation:
+  - `RunTests(IEnumerable<TestCase>)`: iterates tests, `RecordStart` → `TestInvoker.Invoke` → `RecordResult`
+  - `RunTests(IEnumerable<string>)`: re-discovers via `SpecsTestDiscoverer` using a `CollectingSink`,
+    then delegates to the `TestCase` overload
+  - `Cancel()`: sets `volatile bool _cancelled`; loop checks it before each test
+- `AssemblyInfo.cs` updated with `[assembly: InternalsVisibleTo("specs.BDD.VSTestAdapter.Tests")]`
+- New test fixtures: `SpecWithMixedResults` (gated failure via `TriggerFailure` static flag),
+  `SpecWithLifecycle` (records BeforeAll/BeforeEach/Act/AfterEach/AfterAll to static log)
+- New test files: `TestFinder_Tests` (13 tests), `ResultReporter_Tests` (10 tests),
+  `TestInvoker_Tests` (11 tests) — 34 new tests, all passing
 
 **Key Decisions:**
-- Target framework changed to netstandard2.1 to match specs.core and specs.BDD dependencies
-- AssemblyInfo.cs will be added in Phase 2 after implementing SpecsTestDiscoverer and SpecsTestExecutor
+- `TriggerFailure` static flag on `SpecWithMixedResults`: prevents the intentional failure from
+  surfacing when the adapter auto-discovers and runs it during `dotnet test`; only active when
+  set explicitly by `TestInvoker_Tests`
+- `ExceptionDispatchInfo.Capture().Throw()` preserves original stack trace on test failure rethrow
+- `TargetInvocationException` unwrapping in `ResultReporter` applies only to reflection wrappers;
+  the test action itself is invoked as a plain `Action`, so it never produces TIE
+- `IFrameworkHandle` implements `IMessageLogger` directly — passed to `SpecsTestDiscoverer` for
+  re-discovery logging without any adapter
+
+**2026-02-21 - Phase 1 + Phase 2 Complete**
+
+Phase 1 was re-done (prior session's work was not persisted). Phase 2 fully implemented.
+
+**Phase 1 — Project Setup:**
+- Created `specs.BDD.VSTestAdapter` project targeting netstandard2.1
+- Created `specs.BDD.VSTestAdapter.Tests` test project targeting net8.0 with NUnit + NFluent 3.0.0
+- Added `Microsoft.TestPlatform.ObjectModel` v17.8.0 to adapter project
+- Created full directory structure (Discovery/, Execution/, Conversion/, Properties/)
+- Added both projects to Specs.sln
+- Removed stray `Microsoft.TestPlatform` v18 package from specs.BDD.csproj (wrong project)
+
+**Phase 2 — Discovery:**
+- `InvalidSpecificationException` — thrown when a Specifications class has no [Context] methods
+- `SpecificationClassScanner` — finds all non-abstract `Specifications` subclasses in an assembly
+- `ContextMethodScanner` — finds [Context]-decorated methods, validates at least one exists
+- `SpecTest` — data model carrying SpecificationClass, ContextMethod, ContextPath, TestDescription
+- `TestStructureExtractor` — instantiates spec class, invokes [Context] method, accesses private
+  `coreBuilder` field via reflection, calls `Build()`, recursively flattens hierarchy into SpecTests
+- `TestProperties` — registers VSTest TestProperty slots: ClassName, ContextMethod, ContextPath, TestDescription
+- `TestCaseConverter` — converts SpecTest → VSTest TestCase with FQN, display name, all metadata
+- `SpecsTestDiscoverer` — ITestDiscoverer with [FileExtension(".dll/.exe")], [DefaultExecutorUri] attributes;
+  coordinates full discovery pipeline with exception-safe per-class and per-method error handling
+- `SpecsTestExecutor` — Phase 3 stub with [ExtensionUri("executor://SpecsTestExecutor/v1")]
+- `AssemblyInfo.cs` — documentation comments only (no special assembly attributes needed)
+- Full solution build: **0 errors, 0 warnings**
+
+**Key Decisions:**
+- `coreBuilder` accessed via `FieldInfo` reflection — `IContextualTestCaseBuilder` is a public interface
+  so `Build()` can be called without casting to the internal `ContextualTestCaseBuilder` type
+- `ITestCaseContext` doesn't expose `ChildContexts`; recursion casts to `IContextualTestCase`
+- Executor URI: `executor://SpecsTestExecutor/v1` (used on both discoverer and executor)
+- One fresh `Specifications` instance per `[Context]` method invocation (isolation)
 
 ---
 
-**Last Updated**: 2026-02-07  
-**Next Review**: After Phase 2 completion
+**Last Updated**: 2026-02-21  
+**Next Review**: After Phase 3 completion
