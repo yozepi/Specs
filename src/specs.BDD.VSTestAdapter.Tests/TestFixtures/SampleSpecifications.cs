@@ -175,6 +175,69 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         }
     }
 
+    // ── Grouped-mode fixtures ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A spec whose single [Context] method opts into grouped execution — the whole subtree
+    /// (one direct test + one nested context) runs as a single test result.
+    /// </summary>
+    public class GroupedSpec : Specifications
+    {
+        [Context("grouped feature", Grouped = true)]
+        public void describe_grouped()
+        {
+            It["direct test"] = () => { };
+
+            Context["nested"] = () =>
+            {
+                It["nested test"] = () => { };
+            };
+        }
+    }
+
+    /// <summary>
+    /// A spec that mixes one grouped [Context] method with one regular (per-It) method.
+    /// </summary>
+    public class MixedGroupingSpec : Specifications
+    {
+        [Context("grouped part", Grouped = true)]
+        public void grouped_part()
+        {
+            It["grouped test"] = () => { };
+        }
+
+        [Context("flat part")]
+        public void flat_part()
+        {
+            It["flat test"] = () => { };
+        }
+    }
+
+    /// <summary>
+    /// A grouped spec with a gated failing test (same TriggerFailure pattern as
+    /// <see cref="SpecWithMixedResults"/> so the auto-run of this fixture stays green).
+    /// </summary>
+    public class GroupedSpecWithFailure : Specifications
+    {
+        /// <summary>When <c>true</c>, "a failing spec" throws. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; } = false;
+
+        [Context("grouped with failure", Grouped = true)]
+        public void describe_grouped_failure()
+        {
+            It["a passing spec"] = () => { };
+
+            Context["inner"] = () =>
+            {
+                It["a failing spec"] = () =>
+                {
+                    if (TriggerFailure)
+                        throw new InvalidOperationException("grouped intentional failure");
+                };
+            };
+        }
+    }
+
     // ── Non-specification types ───────────────────────────────────────────────────────────────
 
     /// <summary>Non-abstract class that does NOT inherit from Specifications.</summary>

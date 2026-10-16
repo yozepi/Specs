@@ -42,7 +42,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
 
             // If the action is invocable (does not throw) the correct test was located.
             Check.That(found).IsNotNull();
-            Assert.DoesNotThrow(() => found!.Value.TestAction.Invoke());
+            Check.ThatCode(() => found!.Value.TestAction.Invoke()).DoesNotThrow();
         }
 
         [Test]

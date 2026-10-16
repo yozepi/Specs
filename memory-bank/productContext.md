@@ -121,6 +121,22 @@ The adapter also preserves the shape of the specification in the IDE:
 - "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Context]` method.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
 
+### 📌 Problem 5 — One result per `It[...]` is sometimes too noisy
+
+Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Context]` collapse into a single test result whose output is an NSpec-style tree:
+
+```text
+Specs
+  when adding
+    ✓ returns the sum
+    ✗ handles overflow - FAILED:
+      Expected 1 but got -2147483648
+
+1 passed, 1 failed, 2 total
+```
+
+It is opt-in and layered: `[Context(Grouped = true)]` on a method wins over `[assembly: GroupSpecsByRootContext]`, which wins over `<SpecsBDD><GroupByRootContext>` in `.runsettings`. The default remains one result per `It[...]`.
+
 ## User-Experience Goals
 
 | Goal | How Specs delivers |
@@ -130,6 +146,7 @@ The adapter also preserves the shape of the specification in the IDE:
 | **Choose your style** | Method-based (`Specifications`) or property-based (`Spec`) |
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
+| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request |
 | **Migration path** | Both API styles can live side by side; no forced rewrite |
 
 ## What Makes Specs Different
@@ -160,6 +177,7 @@ The adapter also preserves the shape of the specification in the IDE:
 3. **Legacy migration** — existing `Spec`-based suites keep working while new code uses `Specifications`.
 4. **Async-heavy services** — every hook supports `Func<Task>` natively.
 5. **IDE-driven workflows** — discover, run, and debug individual `It[...]` from Test Explorer.
+6. **NSpec-style reporting** — teams migrating from NSpec can keep a single tree-formatted result per feature set via grouped execution.
 
 ## Success Criteria
 

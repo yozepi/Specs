@@ -83,7 +83,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             if (sources == null || frameworkHandle == null)
                 return;
 
-            var testCases = DiscoverFromSources(sources, frameworkHandle);
+            var testCases = DiscoverFromSources(sources, runContext, frameworkHandle);
             RunTests(testCases, runContext, frameworkHandle);
         }
 
@@ -105,6 +105,7 @@ namespace specs.BDD.VSTestAdapter.Execution
         /// </summary>
         private static IEnumerable<TestCase> DiscoverFromSources(
             IEnumerable<string> sources,
+            IRunContext? runContext,
             IFrameworkHandle frameworkHandle)
         {
             var collected = new List<TestCase>();
@@ -113,7 +114,7 @@ namespace specs.BDD.VSTestAdapter.Execution
 
             discoverer.DiscoverTests(
                 sources,
-                discoveryContext: null!,    // SpecsTestDiscoverer does not use this parameter
+                discoveryContext: runContext!,   // carries .runsettings into re-discovery
                 logger: frameworkHandle,
                 discoverySink: sink);
 

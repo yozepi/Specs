@@ -55,7 +55,7 @@ namespace specs.BDD.VSTestAdapter.Execution
         /// <summary>
         /// Unwraps any layers of <see cref="TargetInvocationException"/> to expose the root cause.
         /// </summary>
-        private static Exception Unwrap(Exception exception)
+        internal static Exception Unwrap(Exception exception)
         {
             while (exception is TargetInvocationException tie && tie.InnerException != null)
                 exception = tie.InnerException;

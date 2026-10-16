@@ -89,7 +89,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         // ── Display name ──────────────────────────────────────────────────────────────────────
 
         [Test]
-        public void DisplayName_IsTestDescriptionOnly()
+        public void DisplayName_IsContextPathAndTestDescription()
         {
             var specTest = BuildSpecTest(
                 contextPath: "my context → sub context",
@@ -97,16 +97,65 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
 
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
 
-            Check.That(testCase.DisplayName).IsEqualTo("should behave correctly");
+            Check.That(testCase.DisplayName).IsEqualTo("my context → sub context → should behave correctly");
         }
 
         [Test]
-        public void DisplayName_IsTestDescriptionOnly_WithFlatContextPath()
+        public void DisplayName_IsContextPathAndTestDescription_WithFlatContextPath()
         {
             var specTest = BuildSpecTest(contextPath: "root context", testDescription: "my test");
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
 
+            Check.That(testCase.DisplayName).IsEqualTo("root context → my test");
+        }
+
+        [Test]
+        public void DisplayName_IsTestDescriptionOnly_WhenContextPathIsEmpty()
+        {
+            var specTest = BuildSpecTest(contextPath: "", testDescription: "my test");
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
+
             Check.That(testCase.DisplayName).IsEqualTo("my test");
+        }
+
+        // ── Grouped mode ──────────────────────────────────────────────────────────────────────
+
+        private SpecTest BuildGroupedSpecTest(
+            string contextPath = "my context",
+            string contextMethodName = "describe_something")
+        {
+            var specTest = BuildSpecTest(contextPath, testDescription: "", contextMethodName: contextMethodName);
+            specTest.IsGrouped = true;
+            return specTest;
+        }
+
+        [Test]
+        public void Grouped_DisplayName_IsContextPathOnly()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildGroupedSpecTest(), FakeSource);
+            Check.That(testCase.DisplayName).IsEqualTo("my context");
+        }
+
+        [Test]
+        public void Grouped_FullyQualifiedName_UsesGroupedMarker()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildGroupedSpecTest(), FakeSource);
+            Check.That(testCase.FullyQualifiedName)
+                .IsEqualTo($"{typeof(FakeSpecClass).FullName}::describe_something::[grouped]");
+        }
+
+        [Test]
+        public void Grouped_IsGroupedProperty_IsTrue()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildGroupedSpecTest(), FakeSource);
+            Check.That(testCase.GetPropertyValue(TestProperties.IsGrouped, false)).IsTrue();
+        }
+
+        [Test]
+        public void NonGrouped_IsGroupedProperty_IsFalse()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            Check.That(testCase.GetPropertyValue(TestProperties.IsGrouped, false)).IsFalse();
         }
 
         // ── Source ────────────────────────────────────────────────────────────────────────────

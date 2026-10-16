@@ -80,7 +80,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
 
             var result = TestInvoker.Invoke(testCase);
 
-            Assert.That(result.Duration.TotalMilliseconds, Is.GreaterThanOrEqualTo(0));
+            Check.That(result.Duration.TotalMilliseconds).IsGreaterOrEqualThan(0);
         }
 
         // ── Failing tests ─────────────────────────────────────────────────────────────────────

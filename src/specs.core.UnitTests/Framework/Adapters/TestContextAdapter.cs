@@ -8,7 +8,8 @@ namespace specs.core.UnitTests.Framework.Adapters
     public class TestContextAdapter : Specifications
     {
 
-        [Context]
+        
+        [Context(Grouped = true)]
         public void Specs()
         {
             core.Framework.Adapters.TestContextAdapter subject = null!;

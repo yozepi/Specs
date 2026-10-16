@@ -43,8 +43,8 @@ flowchart TD
 | Container | Key components |
 |-----------|---------------|
 | `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder`, immutable `ContextualTestCase`, `TestCaseExecutor`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
-| `specs.BDD` | `Specifications` base class, `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute |
-| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `TestStructureExtractor`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
+| `specs.BDD` | `Specifications` base class, `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Grouped`), `[GroupSpecsByRootContext]` assembly attribute |
+| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
 
 ## Core Design Patterns
 
@@ -229,8 +229,9 @@ flowchart TD
     subgraph EXEC["Component boundary: Execution"]
         direction TB
         E1["<b>SpecsTestExecutor</b><br/>[Component: ITestExecutor]<br/>Groups tests by spec class"]:::app
-        E2["<b>TestInvoker</b><br/>[Component: C# static class]<br/>Resolves type, builds suite"]:::app
+        E2["<b>TestInvoker</b><br/>[Component: C# static class]<br/>Routes grouped vs per-test"]:::app
         E3["<b>SelectionTreeWalker</b><br/>[Component: C# class]<br/>DFS over live nodes"]:::app
+        E6["<b>GroupedContextRunner</b><br/>[Component: C# static class]<br/>Whole subtree, one result"]:::app
         E4["<b>VSTestTestProvider</b><br/>[Component: ITestProviderAdapter]<br/>Supplies TestInstance list"]:::app
         E5["<b>VSTestLoggingAdapter</b><br/>[Component: ILoggingAdapter]<br/>Records results + timing"]:::app
     end
@@ -239,8 +240,10 @@ flowchart TD
 
     VST -->|"Calls RunTests [VSTest contract]"| E1
     E1 -->|"InvokeSuite per class [in-process]"| E2
-    E2 -->|"Walks selection tree [in-process]"| E3
+    E2 -->|"Regular tests [in-process]"| E3
+    E2 -->|"IsGrouped tests [in-process]"| E6
     E3 -->|"Delegates per-node tests [in-process]"| EXE
+    E6 -->|"RecordResult + tree output [VSTest contract]"| VST
     EXE -->|"Pulls TestInstance [adapter interface]"| E4
     EXE -->|"Reports outcome [adapter interface]"| E5
     E5 -->|"RecordResult [VSTest contract]"| VST
@@ -261,20 +264,22 @@ flowchart TD
 
 | Layer | Class | Responsibility |
 |-------|-------|---------------|
-| Discovery | `SpecsTestDiscoverer` | Entry point declared by `[FileExtension(".dll" / ".exe")]` and `[DefaultExecutorUri("executor://SpecsTestExecutor/v1")]` |
+| Discovery | `SpecsTestDiscoverer` | Entry point declared by `[FileExtension(".dll" / ".exe")]` and `[DefaultExecutorUri("executor://SpecsTestExecutor/v1")]`; reads the `.runsettings` grouping value from `IDiscoveryContext.RunSettings` 📌 |
 | Discovery | `SpecificationClassScanner` | Reflects assemblies to find non-abstract `Specifications` subclasses |
 | Discovery | `ContextMethodScanner` | Finds `[Context]`-decorated methods; throws `InvalidSpecificationException` if none |
-| Discovery | **`SuiteTreeBuilder`** 📌 | Instantiates the suite once and registers every `[Context]` method as a **named child context** via `instance.Context[name] = () => method.Invoke(...)`, then returns `CoreBuilder.Build()`. Shared by discovery *and* execution |
-| Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`) |
+| Discovery | **`SuiteTreeBuilder`** | Instantiates the suite once and registers every `[Context]` method as a **named child context** via `instance.Context[name] = () => method.Invoke(...)`, then returns `CoreBuilder.Build()`. Shared by discovery *and* execution |
+| Discovery | **`GroupingSettings`** 📌 | Resolves the effective grouped flag per root `[Context]`: `ContextAttribute.GroupedSetting` → `[assembly: GroupSpecsByRootContext]` → `.runsettings` `<SpecsBDD><GroupByRootContext>` → `false` |
+| Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`); emits a single `IsGrouped` record for grouped root contexts 📌 |
 | Discovery | `SourceLocationReader` | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Context]` method) |
-| Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, **`ItAction`** 📌, `ContextPath`, `TestDescription` |
-| Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName`, human-readable `DisplayName`, the **RFC-0033 `TestCase.Hierarchy`** property 📌, and source location |
-| Conversion | `TestProperties` | Custom `TestProperty` registry preserving metadata across VSTest serialization |
-| Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource` |
-| Execution | `TestInvoker` | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, hands off to `SelectionTreeWalker` (suite runs) or `TestFinder` + cascaded lifecycle (single test) |
-| Execution | **`SelectionTreeWalker`** 📌 | Depth-first walk of the suite tree firing `OwnSetupOnce` / `OwnTeardownOnce` **exactly once per live node**; delegates per-test loops to `TestCaseExecutor` |
+| Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌 |
+| Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` that embeds `ContextPath` (VS Code ignores `Hierarchy`) 📌, the RFC-0033 `TestCase.Hierarchy` property, and source location |
+| Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌) preserving metadata across VSTest serialization |
+| Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)` 📌 |
+| Execution | `TestInvoker` | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, splits the selection on `IsGrouped`, and hands grouped cases to `GroupedContextRunner` and the rest to `SelectionTreeWalker` (both share one tree instance) 📌 |
+| Execution | **`SelectionTreeWalker`** | Depth-first walk of the suite tree firing `OwnSetupOnce` / `OwnTeardownOnce` **exactly once per live node**; delegates per-test loops to `TestCaseExecutor` |
+| Execution | **`GroupedContextRunner`** 📌 | Runs an entire root `[Context]` subtree as **one** `TestResult`; mirrors the walker's once-per-node lifecycle but keeps running after per-test failures so the report is complete; emits an NSpec-style tree + failure list to `StandardOutCategory` |
 | Execution | `TestFinder` | Splits `ContextPath` on `" → "` and walks the immutable test tree |
-| Execution | `ResultReporter` | Builds `TestResult` objects for pass/fail/skip outcomes |
+| Execution | `ResultReporter` | Builds `TestResult` objects for pass/fail/skip outcomes; `Unwrap` (now `internal`) strips `TargetInvocationException` layers for both runners |
 | Execution | `VSTestLoggingAdapter` | `ILoggingAdapter` over `IFrameworkHandle`; tracks `ReportedDescriptions` so unreached tests can be failed explicitly |
 | Execution | `VSTestTestProvider` | `ITestProviderAdapter` wrapping `(TestCase, description, Action)` triples as `TestInstance[]` |
 
@@ -351,6 +356,87 @@ Benefits:
 - Clear failure contract: a failing `OwnSetupOnce` at node *N* fails every selected test at or under *N*, skips *N*'s `OwnTeardownOnce`, and lets sibling branches continue.
 - `VSTestLoggingAdapter.ReportedDescriptions` lets the walker fail any test that was never reached due to a lifecycle fault, so Test Explorer never shows a stuck "not run" entry.
 
+## 📌 Grouped Root-Context Execution
+
+By default every `It[...]` is its own VSTest `TestCase`. A root `[Context]` can instead opt into **grouped mode**, where the whole subtree is discovered as one `TestCase` and executed by `GroupedContextRunner` into one `TestResult`.
+
+### Configuration precedence
+
+```mermaid
+---
+title: "Decision flow — GroupingSettings.Resolve"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    A{"[Context(Grouped = ...)]<br/>set on method?"}:::app
+    B{"[assembly: GroupSpecsByRootContext]<br/>present?"}:::app
+    C{".runsettings<br/>SpecsBDD/GroupByRootContext?"}:::app
+    G(["Grouped"]):::data
+    P(["Per-It (default)"]):::data
+
+    A -->|"yes → use its value"| G
+    A -->|"no"| B
+    B -->|"yes → use Enabled"| G
+    B -->|"no"| C
+    C -->|"yes → use value"| G
+    C -->|"no"| P
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Decision"]:::app
+        L2(["Outcome"]):::data
+    end
+
+    P ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+`ContextAttribute.Grouped` is backed by a tri-state `bool?` (`GroupedSetting`) so an explicit `Grouped = false` can *override* an assembly-wide or `.runsettings` opt-in.
+
+### Runtime contract
+
+| Aspect | Per-`It[...]` mode (`SelectionTreeWalker`) | Grouped mode (`GroupedContextRunner`) |
+|--------|--------------------------------------------|---------------------------------------|
+| Discovery output | One `SpecTest` per `It[...]` | One `SpecTest` with `IsGrouped = true`, `ContextPath` = root context name |
+| `FullyQualifiedName` | `Class::Method::ContextPath::Description` | `Class::Method::[grouped]` |
+| `DisplayName` | `ContextPath → Description` | Root context description |
+| Once-actions | `OwnSetupOnce` / `OwnTeardownOnce` once per live node | Same, over the entire subtree |
+| Per-test failure | That test fails; siblings continue | Counted, run continues; result fails if any failed |
+| `BeforeAll` failure | Fails every selected test under the node | Fails every test under the node (`FailSubtree`), run continues elsewhere |
+| `AfterAll` failure | Swallowed (best-effort) | Swallowed (best-effort) |
+| Empty subtree | n/a | `TestOutcome.Skipped` with "No specs found" |
+| Output | Per-result messages | NSpec-style tree + `N passed, M failed, T total` + numbered failure list in `StandardOutCategory`; `ErrorMessage` summarises `✗` paths |
+
+Both runners share the single suite tree built by `SuiteTreeBuilder` for the class, so grouped and per-`It` contexts in the same class never trigger a second instantiation.
+
+### Dynamic view
+
+```mermaid
+---
+title: "Dynamic — Running a grouped root context"
+---
+%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    autonumber
+    participant INV as TestInvoker [Component]
+    participant GR as GroupedContextRunner [Component]
+    participant N as Context node [Data]
+    participant FH as IFrameworkHandle [Software System]
+    Note over INV,FH: Legend — [Component]=in-process class, [Data]=immutable tree node, [Software System]=VSTest host
+    INV->>GR: Run(testCase, suiteRoot, handle, token)
+    GR->>FH: RecordStart(testCase)
+    GR->>N: locate ChildContexts[ContextPath]
+    GR->>N: OwnSetupOnce()
+    loop each test, then each child (DFS)
+        GR->>N: SetupEach / Act / test / TeardownEach
+        GR->>GR: append ✓ or ✗ line, tally
+    end
+    GR->>N: OwnTeardownOnce() (best-effort)
+    GR->>FH: RecordResult(single TestResult + tree output)
+```
+
 ## Test Explorer Hierarchy (RFC-0033)
 
 `TestCaseConverter` sets the VSTest `TestCase.Hierarchy` property — a `string[4]` of `[Container, Namespace, Class, TestGroup]`:
@@ -363,6 +449,8 @@ Benefits:
 | 3 | `SpecTest.ContextPath` | Full `[Context]` + `Describe`/`Context` chain joined by `" → "` |
 
 Source navigation prefers the `It[...]` lambda's PDB sequence point (`SpecTest.ItAction.Method`) so "Go to Source" lands on the assertion line, falling back to the `[Context]` method when the lambda has no sequence points.
+
+📌 **VS Code caveat**: the VS Code test UI ignores `Hierarchy`, so `TestCaseConverter.BuildDisplayName` embeds the context path (`ContextPath → TestDescription`) to keep contexts visible there. Visual Studio still nests via `Hierarchy`.
 
 ### Discovery safety
 
@@ -396,7 +484,7 @@ sequenceDiagram
     X->>X: 5. Match ContextPath + TestDescription to a node
 ```
 
-The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`) are the **address** that lets execution find the node discovery found. This is why `SuiteTreeBuilder` must be the only construction path: if the two phases disagreed on a single context description, the address would no longer resolve.
+The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`) are the **address** that lets execution find the node discovery found. This is why `SuiteTreeBuilder` must be the only construction path: if the two phases disagreed on a single context description, the address would no longer resolve. A fifth property, `IsGrouped`, tells `TestInvoker` which runner the address belongs to.
 
 ## Key Technical Decisions
 
@@ -413,7 +501,10 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 9 | 📌 **`SuiteTreeBuilder` is the single source of truth for tree construction** | Discovery and execution must agree on paths, descriptions, and ordering, or `TestFinder` silently misses tests | `[Context]` methods are registered as named child contexts rather than invoked directly |
 | 10 | 📌 **Cancellation is a `CancellationToken` parameter, not an executor setting** | Matches BCL conventions; the token flows straight from `ITestExecutor.Cancel()` through `SpecsTestExecutor`'s `CancellationTokenSource` | `TestCaseExecutorSettings.IsCancelled` was removed; `ProcessTestCase(CancellationToken)` checks the token before each test |
 | 11 | 📌 **Once-actions exposed separately as `OwnSetupOnce` / `OwnTeardownOnce`** | The walker needs a node's *own* once-actions without the ancestor cascade that `SetupOnce` / `TeardownOnce` provide | Two extra members on `ITestCase`; `TestCaseExecutor` behaviour unchanged |
-| 12 | 📌 **Navigate to the `It[...]` lambda, not the `[Context]` method** | "Go to Source" should land on the assertion the developer clicked | `SpecTest.ItAction` captured at discovery; `SourceLocationReader` accepts any `MethodBase` |
+| 12 | **Navigate to the `It[...]` lambda, not the `[Context]` method** | "Go to Source" should land on the assertion the developer clicked | `SpecTest.ItAction` captured at discovery; `SourceLocationReader` accepts any `MethodBase` |
+| 13 | 📌 **Grouped mode is a discovery-time decision, resolved in the adapter** | The core stays unaware of VSTest granularity; the flag must be fixed before `TestCase`s are serialized so discovery and execution agree | `GroupingSettings` lives in the adapter; `ContextAttribute.Grouped` / `GroupSpecsByRootContextAttribute` live in `specs.BDD` as pure metadata |
+| 14 | 📌 **Grouped runner is separate from `SelectionTreeWalker`, not a mode flag on it** | Grouped mode has a different failure policy (continue after per-test failure, aggregate into one result) and a different output channel | `GroupedContextRunner` duplicates the small once-per-node walk rather than threading a mode through the walker and `TestCaseExecutor` |
+| 15 | 📌 **Explicit `Grouped = false` must beat assembly/runsettings opt-in** | Authors need a per-context escape hatch when an assembly is grouped by default | `ContextAttribute` uses a tri-state `bool?` backing field exposed as `GroupedSetting` |
 
 ## Critical Execution Paths
 
@@ -479,5 +570,6 @@ sequenceDiagram
 | Strategy | `TestCaseExecutorSettings` | Configurable execution behavior |
 | Template Method | `TestCaseExecutor` | Fixed, predictable lifecycle order |
 | Pipeline | VSTest adapter (Discovery → Conversion → Execution) | Cleanly separated responsibilities |
-| Visitor / tree walk | `SelectionTreeWalker` | Once-per-node lifecycle over an arbitrary test selection |
+| Visitor / tree walk | `SelectionTreeWalker`, `GroupedContextRunner` | Once-per-node lifecycle over an arbitrary test selection / an entire root context |
+| Chain of responsibility (config) | `GroupingSettings.Resolve` | Layered opt-in: attribute → assembly → `.runsettings` → default |
 | Callback (scope switch) | `Specifications.contextCallBack` | Nested context definition without thread-local state |

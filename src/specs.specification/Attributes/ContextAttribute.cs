@@ -30,6 +30,9 @@ namespace specs.BDD.Attributes
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class ContextAttribute : Attribute
     {
+        // Tri-state backing: distinguishes "not specified" from an explicit true/false.
+        private bool? _grouped;
+
         /// <summary>
         /// Gets the optional description for this context.
         /// </summary>
@@ -39,6 +42,24 @@ namespace specs.BDD.Attributes
         /// A null value indicates no specific description was provided.
         /// </remarks>
         public string? Description { get; }
+
+        /// <summary>
+        /// When <c>true</c>, all tests under this context run together as a single test result
+        /// with the full contextual output published to the result's output.
+        /// When set (either way), overrides the assembly-level
+        /// <see cref="GroupSpecsByRootContextAttribute"/> and any .runsettings value.
+        /// </summary>
+        public bool Grouped
+        {
+            get => _grouped ?? false;
+            set => _grouped = value;
+        }
+
+        /// <summary>
+        /// The explicit <see cref="Grouped"/> setting, or <c>null</c> when not specified
+        /// on the attribute (meaning lower-priority configuration applies).
+        /// </summary>
+        public bool? GroupedSetting => _grouped;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ContextAttribute"/> class

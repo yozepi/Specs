@@ -40,10 +40,10 @@ The solution contains **9 projects** plus a separate example.
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 315 core framework tests — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq) |
+| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 289 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
 | **specs.BDD.UnitTests** | `src/specs.specification.UnitTests/` | BDD API unit tests (NUnit) |
-| **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 113 adapter component unit tests (NUnit) |
-| **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 25 end-to-end VSTest pipeline tests |
+| **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 149 adapter component unit tests (NUnit) |
+| **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 28 end-to-end VSTest pipeline tests (NFluent) |
 
 ### Legacy / Internal (2)
 
@@ -125,6 +125,7 @@ public class CalculatorSpecs : Spec
 - Two coexisting BDD API styles.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
+- 📌 Opt-in **grouped execution** — a root `[Context]` runs as one test result with an NSpec-style tree report in its output (`[Context(Grouped = true)]`, `[assembly: GroupSpecsByRootContext]`, or `.runsettings`).
 - Adapter pattern for swappable test-framework integration.
 
 **Out of scope**:
@@ -150,4 +151,5 @@ public class CalculatorSpecs : Spec
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Both API styles produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter).
-- ✅ **The framework tests its own core with itself** — 315 self-hosted tests, plus 113 adapter and 25 integration tests.
+- ✅ **The framework tests its own core with itself** — 289 self-hosted test results, plus 149 adapter and 28 integration tests.
+- ✅ A root `[Context]` can opt into grouped execution and still honour the full once-per-node lifecycle.

@@ -86,7 +86,27 @@ namespace specs.BDD.VSTestAdapter.Execution
                 return;
             }
 
-            var walker = new SelectionTreeWalker(root, rootPath, testList, frameworkHandle, cancellationToken);
+            // Grouped test cases run their whole context subtree as one result; the rest go
+            // through the per-test selection walker. Both share the same suite tree instance.
+            var groupedTests = new List<TestCase>();
+            var regularTests = new List<TestCase>();
+            foreach (var tc in testList)
+            {
+                if (tc.GetPropertyValue(TestProperties.IsGrouped, false))
+                    groupedTests.Add(tc);
+                else
+                    regularTests.Add(tc);
+            }
+
+            foreach (var groupedTest in groupedTests)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+                GroupedContextRunner.Run(groupedTest, root, frameworkHandle, cancellationToken);
+            }
+
+            if (regularTests.Count == 0) return;
+
+            var walker = new SelectionTreeWalker(root, rootPath, regularTests, frameworkHandle, cancellationToken);
             walker.Walk();
         }
 

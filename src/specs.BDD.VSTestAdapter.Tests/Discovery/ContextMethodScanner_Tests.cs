@@ -53,15 +53,17 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void ValidateHasContextMethods_DoesNotThrowWhenContextMethodsExist()
         {
-            Assert.DoesNotThrow(() =>
-                ContextMethodScanner.ValidateHasContextMethods(typeof(SimpleSpec)));
+            Check.ThatCode(() =>
+                ContextMethodScanner.ValidateHasContextMethods(typeof(SimpleSpec)))
+                .DoesNotThrow();
         }
 
         [Test]
         public void ValidateHasContextMethods_ThrowsInvalidSpecificationExceptionWhenNoContextMethods()
         {
-            Assert.Throws<InvalidSpecificationException>(() =>
-                ContextMethodScanner.ValidateHasContextMethods(typeof(SpecWithNoContextMethods)));
+            Check.ThatCode(() =>
+                ContextMethodScanner.ValidateHasContextMethods(typeof(SpecWithNoContextMethods)))
+                .Throws<InvalidSpecificationException>();
         }
 
         [Test]

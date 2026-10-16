@@ -40,5 +40,13 @@ namespace specs.BDD.VSTestAdapter.Conversion
         /// The description of the specific It[...] test assertion (e.g., "should return correct sum").
         /// </summary>
         public string TestDescription { get; set; } = string.Empty;
+
+        /// <summary>
+        /// When <c>true</c>, this entry represents an entire root [Context] subtree that runs
+        /// as a single test result (grouped mode) rather than an individual It[...] assertion.
+        /// <see cref="ContextPath"/> holds the root context description;
+        /// <see cref="TestDescription"/> and <see cref="ItAction"/> are unused.
+        /// </summary>
+        public bool IsGrouped { get; set; }
     }
 }

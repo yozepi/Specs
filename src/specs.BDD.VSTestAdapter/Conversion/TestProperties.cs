@@ -53,5 +53,17 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 label: "Test Description",
                 valueType: typeof(string),
                 owner: typeof(TestProperties));
+
+        /// <summary>
+        /// Whether this test case represents an entire root [Context] subtree executed as a
+        /// single grouped result. Stored as a bool. Used during execution to route the test
+        /// case to the grouped-context runner instead of the per-test selection walker.
+        /// </summary>
+        public static readonly TestProperty IsGrouped =
+            TestProperty.Register(
+                id: "SpecsBDD.IsGrouped",
+                label: "Is Grouped",
+                valueType: typeof(bool),
+                owner: typeof(TestProperties));
     }
 }

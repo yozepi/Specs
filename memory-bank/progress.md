@@ -26,15 +26,18 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ `Describe[...]`, `Context[...]`, `It[...]`, `ItAsync[...]` indexers.
 - ✅ Callback-driven nested-context scope switching.
 - ✅ `[Context]` attribute marking feature-set methods.
+- ✅ 📌 `ContextAttribute.Grouped` (tri-state) and `[assembly: GroupSpecsByRootContext]` opt-in metadata for grouped execution.
 - ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
 
 ### specs.BDD.VSTestAdapter
 
-- ✅ **Discovery**: `SpecsTestDiscoverer`, `SpecificationClassScanner`, `ContextMethodScanner`, `SuiteTreeBuilder`, `TestStructureExtractor`, `SourceLocationReader`.
-- ✅ **Conversion**: `SpecTest` POCO, `TestCaseConverter`, `TestProperties` (custom `TestProperty` registry).
-- ✅ **Execution**: `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `TestFinder`, `ResultReporter`, `VSTestLoggingAdapter`, `VSTestTestProvider`.
+- ✅ **Discovery**: `SpecsTestDiscoverer`, `SpecificationClassScanner`, `ContextMethodScanner`, `SuiteTreeBuilder`, `GroupingSettings` 📌, `TestStructureExtractor`, `SourceLocationReader`.
+- ✅ **Conversion**: `SpecTest` POCO (with `IsGrouped` 📌), `TestCaseConverter`, `TestProperties` (custom `TestProperty` registry incl. `IsGrouped` 📌).
+- ✅ **Execution**: `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner` 📌, `TestFinder`, `ResultReporter`, `VSTestLoggingAdapter`, `VSTestTestProvider`.
 - ✅ Once-per-node `BeforeAll` / `AfterAll` for arbitrary test selections.
-- ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property.
+- ✅ 📌 Grouped root-context execution: one `TestCase` / `TestResult` per opted-in `[Context]`, NSpec-style tree + failure list in the result output, precedence attribute → assembly → `.runsettings` → default.
+- ✅ 📌 `.runsettings` support (`<SpecsBDD><GroupByRootContext>`) honoured in discovery and in `RunTests(sources)` re-discovery.
+- ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property; display names embed `ContextPath` for VS Code 📌.
 - ✅ Source navigation to the `It[...]` line via portable PDB, falling back to the `[Context]` method.
 - ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
 - ✅ Cancellation flowing from `ITestExecutor.Cancel()` into `TestCaseExecutor`.
@@ -51,11 +54,11 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 
 ### Testing
 
-- ✅ `specs.core.UnitTests` — **315 tests**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`.
+- ✅ `specs.core.UnitTests` — **289 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result).
 - ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface.
-- ✅ `specs.BDD.VSTestAdapter.Tests` — 113 NUnit tests across Discovery / Conversion / Execution.
-- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 25 end-to-end tests (`CalculatorSpecs`, `StringSpecs`, `AsyncAndExceptionSpecs`) through the real VSTest pipeline.
-- ✅ All 458 tests passing across the solution; build is clean with 0 warnings.
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 149 NUnit tests across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`).
+- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 28 end-to-end tests (`CalculatorSpecs`, `GroupedCalculatorSpecs`, `StringSpecs`, `AsyncAndExceptionSpecs`) through the real VSTest pipeline, asserting with NFluent.
+- ✅ All 471 results passing across the solution; build is clean with 0 warnings.
 
 ## Evolution Timeline
 
@@ -70,9 +73,10 @@ flowchart TD
     P6["Phase 6<br/>Memory bank rebuild"]:::app
     P7["Phase 7<br/>Suite tree + selection walk"]:::app
     P8["Phase 8<br/>Self-hosting core tests"]:::app
+    P9["Phase 9<br/>Grouped root-context execution"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -108,9 +112,15 @@ Six core memory-bank files regenerated to reflect the third deliverable, current
 
 > **📌 See**: `systemPatterns.md` section "Once-Per-Node Lifecycle (selection-tree walk)" for BEFORE/AFTER diagrams.
 
-### Phase 8 — Self-hosting core tests (Oct 2026, current)
+### Phase 8 — Self-hosting core tests (Oct 2026)
 
-`specs.core.UnitTests` migrated off NUnit fixtures onto `Specifications` + `[Context]`. `NUnit3TestAdapter` and `NUnit.Analyzers` removed; the project now references `specs.BDD.VSTestAdapter` and its 315 tests are discovered and run by Specs itself.
+`specs.core.UnitTests` migrated off NUnit fixtures onto `Specifications` + `[Context]`. `NUnit3TestAdapter` and `NUnit.Analyzers` removed; the project now references `specs.BDD.VSTestAdapter` and its tests are discovered and run by Specs itself.
+
+### Phase 9 — Grouped root-context execution (Oct 2026, current)
+
+Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::[grouped]`) executed by `GroupedContextRunner` into one `TestResult` carrying an NSpec-style tree report. Configuration is layered via `ContextAttribute.Grouped` (tri-state), `[assembly: GroupSpecsByRootContext]`, and `<SpecsBDD><GroupByRootContext>` in `.runsettings`, resolved by `GroupingSettings` at discovery. `TestInvoker` routes grouped and per-`It` cases over a single shared suite tree. Display names now embed the context path for VS Code. Integration tests moved to NFluent and gained `GroupedCalculatorSpecs`.
+
+> **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution".
 
 ## Known Limitations
 
@@ -121,7 +131,9 @@ Six core memory-bank files regenerated to reflect the third deliverable, current
 | No built-in data-driven tests | Must hand-roll loops or generate `It[...]` programmatically | Possible future enhancement |
 | Discovery materializes the full test tree | Slightly heavier than attribute-only discovery, but enables full `It[...]` granularity | Acceptable; the tree is built once per class per run |
 | `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; `TestStructureExtractor.PathSeparator` is settable if a project must change it |
-| `AfterAll` failures are swallowed by the selection walker | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
+| `AfterAll` failures are swallowed by the selection walker and the grouped runner | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
+| 📌 Grouped mode is root-`[Context]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
+| 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
 | Legacy `Spec` API retained | Two API styles to document and maintain | Both supported indefinitely; modern API recommended for new suites |
 
 ## Future Enhancements (Not Committed)
@@ -138,10 +150,10 @@ Six core memory-bank files regenerated to reflect the third deliverable, current
 | Metric | Status |
 |--------|--------|
 | Build cleanliness across all 9 projects | ✅ Clean — 0 warnings, 0 errors |
-| Test pass rate | ✅ 100% (458 / 458) |
-| Self-hosted core tests | ✅ 315 passing via the Specs adapter |
-| Adapter unit tests | ✅ 113 passing |
-| Adapter integration tests | ✅ 25 passing |
+| Test pass rate | ✅ 100% (471 / 471) |
+| Self-hosted core tests | ✅ 289 results passing via the Specs adapter |
+| Adapter unit tests | ✅ 149 passing |
+| Adapter integration tests | ✅ 28 passing |
 | `specs.core` external dependencies | ✅ Zero |
 | Known open bugs | ✅ None |
 | Documentation accuracy | ✅ Refreshed (October 2026) |
@@ -158,4 +170,4 @@ Six core memory-bank files regenerated to reflect the third deliverable, current
 | Examples | ✅ `ConsoleExample` demonstrates the legacy API |
 | Memory bank | ✅ Refreshed October 2026 |
 
-Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs, and a framework-agnostic core that tests itself.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs, opt-in grouped reporting per root `[Context]`, and a framework-agnostic core that tests itself.

@@ -1,3 +1,4 @@
+using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 
@@ -25,8 +26,7 @@ public class CalculatorSpecs : Specifications
 
             It["returns the correct sum"] = () =>
             {
-                if (result != 5)
-                    throw new Exception($"Expected 5 but got {result}");
+                Check.That(result).IsEqualTo(5);
             };
         };
 
@@ -36,8 +36,7 @@ public class CalculatorSpecs : Specifications
 
             It["returns the net value"] = () =>
             {
-                if (result != 7)
-                    throw new Exception($"Expected 7 but got {result}");
+                Check.That(result).IsEqualTo(7);
             };
         };
 
@@ -47,8 +46,7 @@ public class CalculatorSpecs : Specifications
 
             It["returns the original number"] = () =>
             {
-                if (result != 42)
-                    throw new Exception($"Expected 42 but got {result}");
+                Check.That(result).IsEqualTo(42);
             };
         };
     }
@@ -70,8 +68,7 @@ public class CalculatorSpecs : Specifications
 
             It["returns the correct quotient"] = () =>
             {
-                if (result != 5)
-                    throw new Exception($"Expected 5 but got {result}");
+                Check.That(result).IsEqualTo(5);
             };
         };
 
@@ -87,14 +84,12 @@ public class CalculatorSpecs : Specifications
 
             It["throws DivideByZeroException"] = () =>
             {
-                if (caught == null)
-                    throw new Exception("Expected DivideByZeroException but none was thrown");
+                Check.That(caught).IsInstanceOf<DivideByZeroException>();
             };
 
             It["exception message mentions zero"] = () =>
             {
-                if (caught?.Message.Contains("zero", StringComparison.OrdinalIgnoreCase) != true)
-                    throw new Exception($"Expected message to mention 'zero' but was: '{caught?.Message}'");
+                Check.That(caught!.Message.ToLowerInvariant()).Contains("zero");
             };
         };
     }
@@ -117,8 +112,7 @@ public class CalculatorSpecs : Specifications
 
                 It["returns the correct product"] = () =>
                 {
-                    if (result != 12)
-                        throw new Exception($"Expected 12 but got {result}");
+                    Check.That(result).IsEqualTo(12);
                 };
             };
 
@@ -128,8 +122,7 @@ public class CalculatorSpecs : Specifications
 
                 It["returns the correct product"] = () =>
                 {
-                    if (result != 20000)
-                        throw new Exception($"Expected 20000 but got {result}");
+                    Check.That(result).IsEqualTo(20000);
                 };
             };
         };
@@ -140,8 +133,7 @@ public class CalculatorSpecs : Specifications
 
             It["always returns zero"] = () =>
             {
-                if (result != 0)
-                    throw new Exception($"Expected 0 but got {result}");
+                Check.That(result).IsEqualTo(0);
             };
         };
     }

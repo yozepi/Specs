@@ -30,8 +30,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         public void IsAnException()
         {
             var ex = new InvalidSpecificationException("msg");
-            // NFluent 3 IsInstanceOf<T> is exact-type only; use NUnit for inheritance check.
-            Assert.IsInstanceOf<Exception>(ex);
+            Check.That(ex).InheritsFrom<Exception>();
         }
         [Test]
         public void CanBeCaughtAsException()

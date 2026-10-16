@@ -18,13 +18,18 @@ namespace specs.BDD.VSTestAdapter.Discovery
         /// <summary>
         /// Builds the complete suite tree for <paramref name="specClass"/> and flattens all
         /// <see cref="SpecTest"/> items from the resulting hierarchy.
+        /// Root contexts configured for grouped execution yield a single <see cref="SpecTest"/>
+        /// (with <see cref="SpecTest.IsGrouped"/> set) instead of one item per It[...].
         /// </summary>
         /// <param name="specClass">The specification class to extract tests from.</param>
+        /// <param name="runSettingsGrouping">
+        /// The .runsettings <c>GroupByRootContext</c> value, or <c>null</c> when not configured.
+        /// </param>
         /// <returns>A flat enumerable of all discovered tests.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the specification class cannot be instantiated.
         /// </exception>
-        public static IEnumerable<SpecTest> ExtractTests(Type specClass)
+        public static IEnumerable<SpecTest> ExtractTests(Type specClass, bool? runSettingsGrouping = null)
         {
             // Build name → MethodInfo lookup so each SpecTest knows which [Context] method
             // it belongs to (used for source-location navigation in Test Explorer).
@@ -45,6 +50,20 @@ namespace specs.BDD.VSTestAdapter.Discovery
             foreach (var child in root.ChildContexts)
             {
                 methodByContextName.TryGetValue(child.Description, out var ctxMethod);
+
+                if (ctxMethod != null && GroupingSettings.Resolve(ctxMethod, runSettingsGrouping))
+                {
+                    yield return new SpecTest
+                    {
+                        SpecificationClass = specClass,
+                        ContextMethod = ctxMethod,
+                        ContextPath = child.Description,
+                        TestDescription = string.Empty,
+                        IsGrouped = true
+                    };
+                    continue;
+                }
+
                 foreach (var test in FlattenChildContext(child, specClass, child.Description, ctxMethod))
                     yield return test;
             }

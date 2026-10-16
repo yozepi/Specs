@@ -27,16 +27,19 @@ namespace specs.BDD.VSTestAdapter.Discovery
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink)
         {
-#if DEBUG
-            if (!Debugger.IsAttached)
-                Debugger.Launch();
-#endif
+//#if DEBUG
+//            if (!Debugger.IsAttached)
+//                Debugger.Launch();
+//#endif
+
+            var runSettingsGrouping = GroupingSettings.ReadRunSettings(
+                discoveryContext?.RunSettings?.SettingsXml);
 
             foreach (var source in sources)
             {
                 try
                 {
-                    DiscoverTestsInSource(source, logger, discoverySink);
+                    DiscoverTestsInSource(source, logger, discoverySink, runSettingsGrouping);
                 }
                 catch (Exception ex)
                 {
@@ -52,7 +55,8 @@ namespace specs.BDD.VSTestAdapter.Discovery
         private static void DiscoverTestsInSource(
             string source,
             IMessageLogger logger,
-            ITestCaseDiscoverySink discoverySink)
+            ITestCaseDiscoverySink discoverySink,
+            bool? runSettingsGrouping)
         {
             Assembly assembly;
             try
@@ -73,7 +77,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             {
                 try
                 {
-                    DiscoverTestsInClass(specClass, source, logger, discoverySink);
+                    DiscoverTestsInClass(specClass, source, logger, discoverySink, runSettingsGrouping);
                 }
                 catch (InvalidSpecificationException ex)
                 {
@@ -93,7 +97,8 @@ namespace specs.BDD.VSTestAdapter.Discovery
             Type specClass,
             string source,
             IMessageLogger logger,
-            ITestCaseDiscoverySink discoverySink)
+            ITestCaseDiscoverySink discoverySink,
+            bool? runSettingsGrouping)
         {
             // Validate: every Specification class must have at least one [Context] method.
             ContextMethodScanner.ValidateHasContextMethods(specClass);
@@ -101,7 +106,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             IEnumerable<SpecTest> specTests;
             try
             {
-                specTests = TestStructureExtractor.ExtractTests(specClass);
+                specTests = TestStructureExtractor.ExtractTests(specClass, runSettingsGrouping);
             }
             catch (Exception ex)
             {

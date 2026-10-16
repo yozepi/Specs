@@ -156,5 +156,58 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
             Check.That(tests).HasSize(2);
             Check.That(tests[0].ItAction!.Method).IsNotEqualTo(tests[1].ItAction!.Method);
         }
+
+        // ── Grouped mode ──────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void GroupedContext_YieldsSingleGroupedSpecTest()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+
+            Check.That(tests).HasSize(1);
+            Check.That(tests[0].IsGrouped).IsTrue();
+        }
+
+        [Test]
+        public void GroupedSpecTest_ContextPathIsRootContextDescription()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+
+            Check.That(tests[0].ContextPath).IsEqualTo("grouped feature");
+            Check.That(tests[0].TestDescription).IsEmpty();
+            Check.That(tests[0].ItAction).IsNull();
+        }
+
+        [Test]
+        public void GroupedSpecTest_CarriesContextMethodForNavigation()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+
+            Check.That(tests[0].ContextMethod).IsEqualTo(GetContextMethod<GroupedSpec>("describe_grouped"));
+        }
+
+        [Test]
+        public void MixedGrouping_GroupedAndFlatMethodsCoexist()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(MixedGroupingSpec)).ToList();
+
+            var grouped = tests.Where(t => t.IsGrouped).ToList();
+            var flat = tests.Where(t => !t.IsGrouped).ToList();
+
+            Check.That(grouped).HasSize(1);
+            Check.That(grouped[0].ContextPath).IsEqualTo("grouped part");
+            Check.That(flat).HasSize(1);
+            Check.That(flat[0].TestDescription).IsEqualTo("flat test");
+        }
+
+        [Test]
+        public void RunSettingsGrouping_AppliesToContextsWithoutExplicitSetting()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec), runSettingsGrouping: true).ToList();
+
+            Check.That(tests).HasSize(1);
+            Check.That(tests[0].IsGrouped).IsTrue();
+            Check.That(tests[0].ContextPath).IsEqualTo("simple context");
+        }
     }
 }

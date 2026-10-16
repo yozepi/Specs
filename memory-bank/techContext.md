@@ -121,11 +121,31 @@ flowchart LR
 | `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Context]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | NUnit 3.14 / NUnit3TestAdapter 5.0 | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | — | Microsoft.NET.Test.Sdk 17.8 |
-| `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | direct | — | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
 > 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Context]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
 >
 > **📌 See**: `activeContext.md` section "Self-hosting migration".
+
+## 📌 Adapter Configuration (`.runsettings`)
+
+The adapter reads one optional setting from the VSTest run settings, under a `SpecsBDD` element directly beneath `RunSettings`:
+
+```xml
+<RunSettings>
+  <SpecsBDD>
+    <GroupByRootContext>true</GroupByRootContext>
+  </SpecsBDD>
+</RunSettings>
+```
+
+| Key | Type | Default | Effect |
+|-----|------|---------|--------|
+| `SpecsBDD/GroupByRootContext` | `bool` | unset (→ `false`) | Runs every root `[Context]` in the run as a single grouped result unless overridden by `[assembly: GroupSpecsByRootContext(...)]` or `[Context(Grouped = ...)]` |
+
+`GroupingSettings.ReadRunSettings` parses the XML defensively — missing, malformed, or non-boolean values yield `null` and fall through to the next layer. The setting is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded).
+
+> **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution" for the full precedence chain.
 
 ### Internal bridge
 
@@ -176,14 +196,14 @@ Specs/
 │   │   ├── AssertBuilder.cs
 │   │   ├── AssertBuilderAsync.cs
 │   │   ├── IAssertProvider.cs
-│   │   └── Attributes/ContextAttribute.cs
+│   │   └── Attributes/ContextAttribute.cs, GroupSpecsByRootContextAttribute.cs
 │   │
 │   ├── specs.BDD.VSTestAdapter/            # DELIVERABLE
 │   │   ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
-│   │   │                                   #   TestStructureExtractor, SourceLocationReader
+│   │   │                                   #   GroupingSettings, TestStructureExtractor, SourceLocationReader
 │   │   ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties
 │   │   ├── Execution/                      # SpecsTestExecutor, TestInvoker, SelectionTreeWalker,
-│   │   │                                   #   TestFinder, ResultReporter,
+│   │   │                                   #   GroupedContextRunner, TestFinder, ResultReporter,
 │   │   │                                   #   VSTestLoggingAdapter, VSTestTestProvider
 │   │   └── Properties/AssemblyInfo.cs
 │   │
@@ -196,6 +216,7 @@ Specs/
 ├── Examples/ConsoleExample/                # net6.0 sample (legacy Spec API)
 ├── memory-bank/                            # documentation (this folder)
 ├── scripts/
+├── .vscode/settings.json                   # dotnet.defaultSolution = src/Specs.sln
 └── README.md
 ```
 

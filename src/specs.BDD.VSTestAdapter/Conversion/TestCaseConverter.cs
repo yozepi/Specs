@@ -58,6 +58,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 specTest.ContextPath);
             testCase.SetPropertyValue(TestProperties.TestDescription,
                 specTest.TestDescription);
+            testCase.SetPropertyValue(TestProperties.IsGrouped,
+                specTest.IsGrouped);
 
             // Set the VSTest RFC-0033 Hierarchy property so Test Explorer renders the
             // [Context] method name and Describe[...] blocks as tree nodes above the It[...] leaf.
@@ -88,9 +90,18 @@ namespace specs.BDD.VSTestAdapter.Conversion
         /// Builds a unique fully-qualified name from the spec test's class, method, context path,
         /// and test description. This is the stable identifier VSTest uses to track results.
         /// Format: {ClassName}::{MethodName}::{ContextPath}::{TestDescription}
+        /// Grouped format: {ClassName}::{MethodName}::[grouped]
         /// </summary>
         private static string BuildFullyQualifiedName(SpecTest specTest)
         {
+            if (specTest.IsGrouped)
+            {
+                return string.Join("::",
+                    specTest.SpecificationClass.FullName,
+                    specTest.ContextMethod?.Name ?? specTest.ContextPath,
+                    "[grouped]");
+            }
+
             return string.Join("::",
                 specTest.SpecificationClass.FullName,
                 specTest.ContextMethod?.Name ?? "",
@@ -100,11 +111,19 @@ namespace specs.BDD.VSTestAdapter.Conversion
 
         /// <summary>
         /// Builds the human-readable display name shown in Test Explorer.
-        /// Format: {TestDescription}
+        /// VS Code ignores the RFC-0033 Hierarchy property, so the context path must be
+        /// embedded in the display name for the context to be visible.
+        /// Format: {ContextPath} → {TestDescription}
+        /// Grouped format: {ContextPath} (root context name only)
         /// </summary>
         private static string BuildDisplayName(SpecTest specTest)
         {
-            return specTest.TestDescription;
+            if (specTest.IsGrouped)
+                return specTest.ContextPath;
+
+            return string.IsNullOrEmpty(specTest.ContextPath)
+                ? specTest.TestDescription
+                : $"{specTest.ContextPath} → {specTest.TestDescription}";
         }
 
         /// <summary>
