@@ -1,12 +1,13 @@
 using NFluent;
+using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
 
 namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
-    class AllMethodsInteraction : nSpecTestHarness
+    partial class ContextualTestCaseBuilder_Tests
     {
-        private void AllMethodsInteraction_Specs()
+        [Context("AllMethodsInteraction Specs")]
+        public void AllMethodsInteraction_Specs()
         {
             ContextualTestCaseBuilder subject = null!;
             IContextualTestCase subjectTestCase = null!;
@@ -14,14 +15,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
             List<string> executionOrder = null!;
             Action labeledAction(string label) => () => executionOrder.Add(label);
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 subject = new ContextualTestCaseBuilder();
                 subjectTestCase = null!;
                 executionOrder = [];
-            };
+            });
 
-            act = () =>
+            Act(() =>
             {
                 subjectTestCase = subject.Build();
                 subjectTestCase.SetupOnce?.Invoke();
@@ -29,11 +30,11 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 subjectTestCase.Act?.Invoke();
                 subjectTestCase.TeardownEach?.Invoke();
                 subjectTestCase.TeardownOnce?.Invoke();
-            };
+            });
 
-            describe["when all methods (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce) are defined..."] = () =>
+            Describe["when all methods (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce) are defined..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("once-1"));
                     subject.AddSetupOnce(labeledAction("once-2"));
@@ -45,27 +46,27 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     subject.AddTeardownEach(labeledAction("teardownEach-2"));
                     subject.AddTeardownOnce(labeledAction("teardownOnce-1"));
                     subject.AddTeardownOnce(labeledAction("teardownOnce-2"));
-                };
+                });
 
-                it["should execute in order: SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce"] = () =>
+                It["should execute in order: SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce"] = () =>
                 {
                     string[] expected = { "once-1", "once-2", "each-1", "each-2", "act-1", "act-2", "teardownEach-1", "teardownEach-2", "teardownOnce-1", "teardownOnce-2" };
                     Check.That(executionOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["invoking all methods multiple times..."] = () =>
+            Describe["invoking all methods multiple times..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("once"));
                     subject.AddSetupEach(labeledAction("each"));
                     subject.AddAct(labeledAction("act"));
                     subject.AddTeardownEach(labeledAction("teardownEach"));
                     subject.AddTeardownOnce(labeledAction("teardownOnce"));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     // Parent act already invoked once
                     // Invoke 2 more times
@@ -79,9 +80,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     subjectTestCase.Act?.Invoke();
                     subjectTestCase.TeardownEach?.Invoke();
                     subjectTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should run SetupOnce/TeardownOnce only once, but SetupEach/Act/TeardownEach every time"] = () =>
+                It["should run SetupOnce/TeardownOnce only once, but SetupEach/Act/TeardownEach every time"] = () =>
                 {
                     // Parent act: once, each, act, teardownEach, teardownOnce
                     // This act: 2x (each, act, teardownEach) - once and teardownOnce don't run again
@@ -90,9 +91,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["simulating realistic test execution flow..."] = () =>
+            Describe["simulating realistic test execution flow..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("once"));
                     subject.AddSetupEach(labeledAction("each"));
@@ -102,9 +103,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     subject.AddTest("test1", () => executionOrder.Add("test1"));
                     subject.AddTest("test2", () => executionOrder.Add("test2"));
                     subject.AddTest("test3", () => executionOrder.Add("test3"));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     // Parent act already ran SetupOnce and TeardownOnce once
                     // Simulate realistic test execution
@@ -117,9 +118,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     }
                     // TeardownOnce runs after all tests complete
                     subjectTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should run SetupOnce once at start, TeardownOnce once at end, and SetupEach+Act+Test+TeardownEach for each test"] = () =>
+                It["should run SetupOnce once at start, TeardownOnce once at end, and SetupEach+Act+Test+TeardownEach for each test"] = () =>
                 {
                     // Parent act: once, each, act, teardownEach, teardownOnce
                     // This act: 3x (each, act, test, teardownEach), then nothing (teardownOnce already ran)
@@ -128,12 +129,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["parent-child inheritance with all methods..."] = () =>
+            Describe["parent-child inheritance with all methods..."] = () =>
             {
                 IContextualTestCaseBuilder childBuilder = null!;
                 IContextualTestCase childTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("setupOnce-parent"));
                     subject.AddSetupEach(labeledAction("setupEach-parent"));
@@ -150,20 +151,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(labeledAction("teardownOnce-child"));
                         childBuilder = child;
                     });
-                };
+                });
 
-                context["parent context..."] = () =>
+                Context["parent context..."] = () =>
                 {
-                    it["should only execute parent methods, not child"] = () =>
+                    It["should only execute parent methods, not child"] = () =>
                     {
                         string[] expected = { "setupOnce-parent", "setupEach-parent", "act-parent", "teardownEach-parent", "teardownOnce-parent" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["child context..."] = () =>
+                Context["child context..."] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         executionOrder.Clear();
                         childTestCase = childBuilder.Build();
@@ -172,9 +173,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         childTestCase.Act?.Invoke();
                         childTestCase.TeardownEach?.Invoke();
                         childTestCase.TeardownOnce?.Invoke();
-                    };
+                    });
 
-                    it["should show different inheritance patterns: SetupOnce isolated, Each/Act/TeardownEach/TeardownOnce inherited (but idempotent), Teardowns in REVERSE"] = () =>
+                    It["should show different inheritance patterns: SetupOnce isolated, Each/Act/TeardownEach/TeardownOnce inherited (but idempotent), Teardowns in REVERSE"] = () =>
                     {
                         // SetupOnce: only child (isolated)
                         // SetupEach: parent then child (inherited)
@@ -187,12 +188,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["multiple nesting levels with all methods..."] = () =>
+            Describe["multiple nesting levels with all methods..."] = () =>
             {
                 IContextualTestCaseBuilder grandchildBuilder = null!;
                 IContextualTestCase grandchildTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("setupOnce-grand"));
                     subject.AddSetupEach(labeledAction("setupEach-grand"));
@@ -218,9 +219,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                             grandchildBuilder = grandchild;
                         });
                     });
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     executionOrder.Clear();
                     grandchildTestCase = grandchildBuilder.Build();
@@ -229,9 +230,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     grandchildTestCase.Act?.Invoke();
                     grandchildTestCase.TeardownEach?.Invoke();
                     grandchildTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should show inheritance across 3 levels: SetupOnce isolated, Each/Act/TeardownEach/TeardownOnce inherited, Teardowns in REVERSE"] = () =>
+                It["should show inheritance across 3 levels: SetupOnce isolated, Each/Act/TeardownEach/TeardownOnce inherited, Teardowns in REVERSE"] = () =>
                 {
                     // SetupOnce: grandparent already ran in parent act, parent and child run now (isolated per level)
                     // SetupEach: grand → parent → child (all inherited)
@@ -243,214 +244,214 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["various combinations of methods..."] = () =>
+            Describe["various combinations of methods..."] = () =>
             {
-                context["only SetupOnce defined..."] = () =>
+                Context["only SetupOnce defined..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupOnce(labeledAction("once"));
-                    };
+                    });
 
-                    it["should execute SetupOnce only"] = () =>
+                    It["should execute SetupOnce only"] = () =>
                     {
                         string[] expected = { "once" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["only SetupEach defined..."] = () =>
+                Context["only SetupEach defined..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupEach(labeledAction("each"));
-                    };
+                    });
 
-                    it["should execute SetupEach only"] = () =>
+                    It["should execute SetupEach only"] = () =>
                     {
                         string[] expected = { "each" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["only Act defined..."] = () =>
+                Context["only Act defined..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddAct(labeledAction("act"));
-                    };
+                    });
 
-                    it["should execute Act only"] = () =>
+                    It["should execute Act only"] = () =>
                     {
                         string[] expected = { "act" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["SetupOnce and SetupEach only..."] = () =>
+                Context["SetupOnce and SetupEach only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupOnce(labeledAction("once"));
                         subject.AddSetupEach(labeledAction("each"));
-                    };
+                    });
 
-                    it["should execute in order: SetupOnce, SetupEach"] = () =>
+                    It["should execute in order: SetupOnce, SetupEach"] = () =>
                     {
                         string[] expected = { "once", "each" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["SetupOnce and Act only..."] = () =>
+                Context["SetupOnce and Act only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupOnce(labeledAction("once"));
                         subject.AddAct(labeledAction("act"));
-                    };
+                    });
 
-                    it["should execute in order: SetupOnce, Act"] = () =>
+                    It["should execute in order: SetupOnce, Act"] = () =>
                     {
                         string[] expected = { "once", "act" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["SetupEach and Act only..."] = () =>
+                Context["SetupEach and Act only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupEach(labeledAction("each"));
                         subject.AddAct(labeledAction("act"));
-                    };
+                    });
 
-                    it["should execute in order: SetupEach, Act"] = () =>
+                    It["should execute in order: SetupEach, Act"] = () =>
                     {
                         string[] expected = { "each", "act" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["only TeardownEach defined..."] = () =>
+                Context["only TeardownEach defined..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddTeardownEach(labeledAction("teardown"));
-                    };
+                    });
 
-                    it["should execute TeardownEach only"] = () =>
+                    It["should execute TeardownEach only"] = () =>
                     {
                         string[] expected = { "teardown" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["SetupEach and TeardownEach only..."] = () =>
+                Context["SetupEach and TeardownEach only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupEach(labeledAction("each"));
                         subject.AddTeardownEach(labeledAction("teardown"));
-                    };
+                    });
 
-                    it["should execute in order: SetupEach, TeardownEach"] = () =>
+                    It["should execute in order: SetupEach, TeardownEach"] = () =>
                     {
                         string[] expected = { "each", "teardown" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["Act and TeardownEach only..."] = () =>
+                Context["Act and TeardownEach only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddAct(labeledAction("act"));
                         subject.AddTeardownEach(labeledAction("teardownEach"));
-                    };
+                    });
 
-                    it["should execute in order: Act, TeardownEach"] = () =>
+                    It["should execute in order: Act, TeardownEach"] = () =>
                     {
                         string[] expected = { "act", "teardownEach" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["only TeardownOnce defined..."] = () =>
+                Context["only TeardownOnce defined..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddTeardownOnce(labeledAction("teardownOnce"));
-                    };
+                    });
 
-                    it["should execute TeardownOnce only"] = () =>
+                    It["should execute TeardownOnce only"] = () =>
                     {
                         string[] expected = { "teardownOnce" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["SetupOnce and TeardownOnce only..."] = () =>
+                Context["SetupOnce and TeardownOnce only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddSetupOnce(labeledAction("once"));
                         subject.AddTeardownOnce(labeledAction("teardownOnce"));
-                    };
+                    });
 
-                    it["should execute in order: SetupOnce, TeardownOnce"] = () =>
+                    It["should execute in order: SetupOnce, TeardownOnce"] = () =>
                     {
                         string[] expected = { "once", "teardownOnce" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["Act and TeardownOnce only..."] = () =>
+                Context["Act and TeardownOnce only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddAct(labeledAction("act"));
                         subject.AddTeardownOnce(labeledAction("teardownOnce"));
-                    };
+                    });
 
-                    it["should execute in order: Act, TeardownOnce"] = () =>
+                    It["should execute in order: Act, TeardownOnce"] = () =>
                     {
                         string[] expected = { "act", "teardownOnce" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["TeardownEach and TeardownOnce only..."] = () =>
+                Context["TeardownEach and TeardownOnce only..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject.AddTeardownEach(labeledAction("teardownEach"));
                         subject.AddTeardownOnce(labeledAction("teardownOnce"));
-                    };
+                    });
 
-                    it["should execute in order: TeardownEach, TeardownOnce"] = () =>
+                    It["should execute in order: TeardownEach, TeardownOnce"] = () =>
                     {
                         string[] expected = { "teardownEach", "teardownOnce" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["none defined..."] = () =>
+                Context["none defined..."] = () =>
                 {
-                    it["should execute nothing"] = () =>
+                    It["should execute nothing"] = () =>
                     {
                         Check.That(executionOrder).IsEmpty();
                     };
                 };
             };
 
-            describe["exception handling across methods..."] = () =>
+            Describe["exception handling across methods..."] = () =>
             {
                 IContextualTestCase exceptionTestCase = null!;
 
-                context["when SetupOnce throws..."] = () =>
+                Context["when SetupOnce throws..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         var exceptionSubject = new ContextualTestCaseBuilder();
                         exceptionSubject.AddSetupOnce(labeledAction("once-1"));
@@ -458,9 +459,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         exceptionSubject.AddSetupEach(labeledAction("each-1"));
                         exceptionSubject.AddAct(labeledAction("act-1"));
                         exceptionTestCase = exceptionSubject.Build();
-                    };
+                    });
 
-                    it["should throw and not execute SetupEach or Act"] = () =>
+                    It["should throw and not execute SetupEach or Act"] = () =>
                     {
                         executionOrder.Clear();
                         Check.ThatCode(() => exceptionTestCase.SetupOnce?.Invoke())
@@ -472,9 +473,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     };
                 };
 
-                context["when SetupEach throws..."] = () =>
+                Context["when SetupEach throws..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         var exceptionSubject = new ContextualTestCaseBuilder();
                         exceptionSubject.AddSetupOnce(labeledAction("once-1"));
@@ -482,9 +483,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         exceptionSubject.AddSetupEach(() => throw new InvalidOperationException("SetupEach failed"));
                         exceptionSubject.AddAct(labeledAction("act-1"));
                         exceptionTestCase = exceptionSubject.Build();
-                    };
+                    });
 
-                    it["should execute SetupOnce, throw in SetupEach, not execute Act"] = () =>
+                    It["should execute SetupOnce, throw in SetupEach, not execute Act"] = () =>
                     {
                         executionOrder.Clear();
                         exceptionTestCase.SetupOnce?.Invoke();
@@ -497,9 +498,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     };
                 };
 
-                context["when Act throws..."] = () =>
+                Context["when Act throws..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         var exceptionSubject = new ContextualTestCaseBuilder();
                         exceptionSubject.AddSetupOnce(labeledAction("once-1"));
@@ -508,9 +509,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         exceptionSubject.AddAct(() => throw new InvalidOperationException("Act failed"));
                         exceptionSubject.AddTeardownEach(labeledAction("teardown-1"));
                         exceptionTestCase = exceptionSubject.Build();
-                    };
+                    });
 
-                    it["should execute SetupOnce and SetupEach, throw in Act, not execute TeardownEach"] = () =>
+                    It["should execute SetupOnce and SetupEach, throw in Act, not execute TeardownEach"] = () =>
                     {
                         executionOrder.Clear();
                         exceptionTestCase.SetupOnce?.Invoke();
@@ -524,9 +525,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     };
                 };
 
-                context["when TeardownEach throws..."] = () =>
+                Context["when TeardownEach throws..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         var exceptionSubject = new ContextualTestCaseBuilder();
                         exceptionSubject.AddSetupOnce(labeledAction("once-1"));
@@ -536,9 +537,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         exceptionSubject.AddTeardownEach(() => throw new InvalidOperationException("TeardownEach failed"));
                         exceptionSubject.AddTeardownOnce(labeledAction("teardownOnce-1"));
                         exceptionTestCase = exceptionSubject.Build();
-                    };
+                    });
 
-                    it["should execute SetupOnce, SetupEach, Act, and partial TeardownEach, then throw (TeardownOnce not reached)"] = () =>
+                    It["should execute SetupOnce, SetupEach, Act, and partial TeardownEach, then throw (TeardownOnce not reached)"] = () =>
                     {
                         executionOrder.Clear();
                         exceptionTestCase.SetupOnce?.Invoke();
@@ -553,9 +554,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     };
                 };
 
-                context["when TeardownOnce throws..."] = () =>
+                Context["when TeardownOnce throws..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         var exceptionSubject = new ContextualTestCaseBuilder();
                         exceptionSubject.AddSetupOnce(labeledAction("once-1"));
@@ -565,9 +566,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         exceptionSubject.AddTeardownOnce(labeledAction("teardownOnce-1"));
                         exceptionSubject.AddTeardownOnce(() => throw new InvalidOperationException("TeardownOnce failed"));
                         exceptionTestCase = exceptionSubject.Build();
-                    };
+                    });
 
-                    it["should execute all methods, then throw in TeardownOnce and allow retry"] = () =>
+                    It["should execute all methods, then throw in TeardownOnce and allow retry"] = () =>
                     {
                         executionOrder.Clear();
                         exceptionTestCase.SetupOnce?.Invoke();
@@ -591,14 +592,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["sibling contexts with all methods..."] = () =>
+            Describe["sibling contexts with all methods..."] = () =>
             {
                 IContextualTestCaseBuilder child1Builder = null!;
                 IContextualTestCaseBuilder child2Builder = null!;
                 IContextualTestCase child1TestCase = null!;
                 IContextualTestCase child2TestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddSetupOnce(labeledAction("setupOnce-parent"));
                     subject.AddSetupEach(labeledAction("setupEach-parent"));
@@ -625,11 +626,11 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(labeledAction("teardownOnce-child2"));
                         child2Builder = child;
                     });
-                };
+                });
 
-                context["first child..."] = () =>
+                Context["first child..."] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         executionOrder.Clear();
                         child1TestCase = child1Builder.Build();
@@ -638,18 +639,18 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child1TestCase.Act?.Invoke();
                         child1TestCase.TeardownEach?.Invoke();
                         child1TestCase.TeardownOnce?.Invoke();
-                    };
+                    });
 
-                    it["should execute child1 methods: Once methods isolated, Each/Act inherited, TeardownEach in REVERSE, not child2"] = () =>
+                    It["should execute child1 methods: Once methods isolated, Each/Act inherited, TeardownEach in REVERSE, not child2"] = () =>
                     {
                         string[] expected = { "setupOnce-child1", "setupEach-parent", "setupEach-child1", "act-parent", "act-child1", "teardownEach-child1", "teardownEach-parent", "teardownOnce-child1" };
                         Check.That(executionOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["second child..."] = () =>
+                Context["second child..."] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         executionOrder.Clear();
                         child2TestCase = child2Builder.Build();
@@ -658,9 +659,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child2TestCase.Act?.Invoke();
                         child2TestCase.TeardownEach?.Invoke();
                         child2TestCase.TeardownOnce?.Invoke();
-                    };
+                    });
 
-                    it["should execute child2 methods: Once methods isolated, Each/Act inherited, TeardownEach in REVERSE, not child1"] = () =>
+                    It["should execute child2 methods: Once methods isolated, Each/Act inherited, TeardownEach in REVERSE, not child1"] = () =>
                     {
                         string[] expected = { "setupOnce-child2", "setupEach-parent", "setupEach-child2", "act-parent", "act-child2", "teardownEach-child2", "teardownEach-parent", "teardownOnce-child2" };
                         Check.That(executionOrder).ContainsExactly(expected);

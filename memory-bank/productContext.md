@@ -2,228 +2,172 @@
 
 ## Why This Project Exists
 
-The Specs framework was created to address fundamental challenges in .NET testing:
+Standard .NET test frameworks (xUnit, NUnit, MSTest) treat tests as flat methods with thin `[SetUp]`/`[TearDown]` hooks. That model breaks down when:
 
-1. **Hierarchical Test Organization**: Standard testing frameworks lack native support for nested test contexts with inherited setup/teardown behavior
-2. **BDD-Style Expressiveness**: Developers needed a more readable, behavior-focused syntax beyond traditional test methods
-3. **Complex Lifecycle Management**: Modern applications require sophisticated setup/teardown orchestration that standard frameworks don't provide elegantly
-4. **Async/Await Testing**: Full first-class support for asynchronous testing patterns throughout the entire test lifecycle
+1. Tests share elaborate setup but differ in narrow scenarios.
+2. Test code is meant to read like a behavior specification.
+3. Lifecycle needs more than two phases (e.g., once-per-suite resources, once-per-test seeding, an explicit "act under test").
+4. The codebase under test is async throughout.
+
+Specs solves these problems with a hierarchical BDD model, a sophisticated lifecycle, transparent async support, and a VSTest adapter that lets developers stay inside their IDE.
+
+## Consumer / Integration Topology
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+flowchart LR
+    Dev(["Developer"]):::external
+    IDE["Visual Studio / VS Code / Rider"]:::external
+    CLI(["dotnet test"]):::external
+    VST["VSTest Platform"]:::external
+
+    subgraph Specs["Specs Framework"]
+        ADP["specs.BDD.VSTestAdapter"]:::app
+        BDD["specs.BDD<br/>(Specifications)"]:::app
+        CORE["specs.core<br/>(builder + executor)"]:::app
+    end
+
+    UTest["User Test Assembly"]:::data
+
+    Dev --> IDE
+    Dev --> CLI
+    IDE --> VST
+    CLI --> VST
+    VST -->|"ITestDiscoverer<br/>ITestExecutor"| ADP
+    ADP --> BDD
+    ADP --> CORE
+    UTest -->|"references"| BDD
+    UTest -->|"discovered by"| ADP
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
 
 ## Problems It Solves
 
-### Problem 1: Test Organization and Context Inheritance
-**Challenge**: Tests often share common setup but differ in specific scenarios. Traditional approaches lead to:
-- Duplicated setup code across test classes
-- Difficult-to-maintain test hierarchies
-- No clear way to express nested scenarios
+### Problem 1 — Hierarchical organization with inherited setup
 
-**Solution**: Specs provides a **Suite → Feature Set → Specification** hierarchy with lifecycle inheritance:
+Traditional tests duplicate setup across classes. Specs models nesting natively:
+
 ```csharp
-public class Auth_Controller : Specifications  // SUITE: one subject
+public class Auth_Controller : Specifications        // Suite
 {
-    // Suite-level: shared across ALL feature sets
-    BeforeAll(() => { /* expensive shared setup */ });
+    BeforeAll(() => _db = SeedDatabase());           // Runs once for the whole suite
 
-    [Context("User authentication")]  // FEATURE SET
+    [Context("User authentication")]                 // Feature set
     public void user_authentication()
     {
-        BeforeEach(() => { /* setup for each auth spec */ });
-        
-        Context["when user has valid credentials"] = () => {
-            It["should authenticate successfully"] = () => { /* spec */ };
+        BeforeEach(() => _user = NewUser());
+        Context["valid credentials"] = () => {
+            It["authenticates"] = () => Check.That(_result).IsTrue();
         };
-        
-        Context["when user has expired credentials"] = () => {
-            It["should reject authentication"] = () => { /* spec */ };
+        Context["expired credentials"] = () => {
+            BeforeEach(() => _user.ExpireToken());
+            It["rejects"] = () => Check.That(_result).IsFalse();
         };
     }
 
-    [Context("Token management")]  // ANOTHER FEATURE SET
-    public void token_management()
-    {
-        BeforeEach(() => { /* different setup for token specs */ });
-        // ... token-related specs
-    }
+    [Context("Token management")]                    // Different feature set
+    public void token_management() { /* its own BeforeEach + specs */ }
 }
 ```
 
-### Problem 2: Test Lifecycle Complexity
-**Challenge**: Complex integration tests need:
-- One-time expensive setup (database initialization)
-- Per-test setup (data seeding)
-- Action under test
-- Per-test cleanup (transaction rollback)
-- One-time teardown (database cleanup)
+Parent-level lifecycle (class scope) applies to every feature set. Feature-level lifecycle (inside a `[Context]` method) applies only to that feature's scenarios.
 
-**Solution**: Specs provides explicit lifecycle phases:
-- `BeforeAll` / `SetupOnce` - Runs once before all tests
-- `BeforeEach` / `SetupEach` - Runs before each test
-- `Act` - The action being tested
-- `AfterEach` / `TeardownEach` - Runs after each test
-- `AfterAll` / `TeardownOnce` - Runs once after all tests
+### Problem 2 — Five-phase lifecycle
 
-### Problem 3: Async Testing Throughout
-**Challenge**: Modern .NET applications are heavily async, but test frameworks often have limited async support or require different methods for sync vs async operations.
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    SO["SetupOnce / BeforeAll"]:::app
+    SE["SetupEach / BeforeEach"]:::app
+    AC["Act"]:::app
+    TST["Test (It[...])"]:::data
+    TE["TeardownEach / AfterEach"]:::app
+    TO["TeardownOnce / AfterAll"]:::app
 
-**Solution**: Specs supports async/await transparently in ALL lifecycle hooks:
+    SO --> SE
+    SE --> AC
+    AC --> TST
+    TST --> TE
+    TE -.->|"next test"| SE
+    TE --> TO
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Setup actions flow **parent → child** (base first). Teardown actions flow **child → parent** (reverse cleanup).
+
+### Problem 3 — Async throughout
+
+Every hook has a `Func<Task>` overload. The framework converts to a synchronous `Action` internally so the public surface stays uniform.
+
 ```csharp
-BeforeAll(async () => {
-    await database.InitializeAsync();
-});
-
-Act(async () => {
-    result = await service.ProcessAsync(request);
-});
-
-It["should return expected result"] = () => {
-    // Assertion runs after async Act completes
-    result.Should().Be(expected);
-};
+BeforeAll(async () => await db.InitializeAsync());
+Act      (async () => _result = await service.ProcessAsync(req));
+ItAsync["returns the expected result"] = async () =>
+    Check.That(_result).IsEqualTo(expected);
 ```
 
-### Problem 4: Readable, Expressive Test Code
-**Challenge**: Traditional test methods obscure the behavior being tested behind technical names and attributes.
+### Problem 4 — Discoverability in the IDE
 
-**Solution**: BDD-style syntax makes tests read like specifications:
-```csharp
-Describe["Calculator"] = () => {
-    Context["when adding positive numbers"] = () => {
-        It["should return the sum"] = () => { /* test */ };
-        It["should handle large numbers"] = () => { /* test */ };
-    };
-};
-```
+Without an adapter, Specs tests were invisible to Test Explorer and `dotnet test`. The **`specs.BDD.VSTestAdapter`** project closes that gap by implementing the VSTest contracts and surfacing each `It[...]` as a discoverable, navigable, individually-runnable test case.
 
-## How It Should Work
+The adapter also preserves the shape of the specification in the IDE:
 
-### User Experience Goal: Natural Test Flow
+- Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
+- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Context]` method.
+- Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
 
-Developers should be able to express tests in a natural, readable way that mirrors how they think about behavior:
+## User-Experience Goals
 
-1. **Describe WHAT** you're testing (component/feature)
-2. **Provide CONTEXT** for when/given scenarios
-3. **Define SETUP** that runs at appropriate times
-4. **Specify the ACTION** being tested
-5. **Assert EXPECTATIONS** with clear "It should..." statements
-6. **Clean up** resources automatically at the right time
+| Goal | How Specs delivers |
+|------|-------------------|
+| **Tests read like specs** | `Describe["..."]`, `Context["..."]`, `It["..."]` indexers |
+| **DRY setup** | Lifecycle inherits from parent contexts automatically |
+| **Choose your style** | Method-based (`Specifications`) or property-based (`Spec`) |
+| **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
+| **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
+| **Migration path** | Both API styles can live side by side; no forced rewrite |
 
-### User Experience Goal: Hierarchical Thinking
+## What Makes Specs Different
 
-Tests should reflect natural hierarchies:
-```
-Calculator
-├── when adding numbers
-│   ├── should return sum of positive numbers
-│   └── should handle negative numbers
-└── when dividing numbers
-    ├── should return quotient
-    └── should throw on division by zero
-```
+### vs. xUnit / NUnit / MSTest
 
-### User Experience Goal: Flexible API Choices
+- Native nested contexts vs. flat test methods.
+- Five-phase lifecycle vs. two-phase setup/teardown.
+- BDD-shaped grammar vs. attribute-decorated methods.
+- Inherited setup flowing through a context tree.
 
-The framework provides TWO API styles to match team preferences:
+### vs. SpecFlow / Gherkin-based BDD
 
-**Modern Method-Based API** (`Specifications` class):
-```csharp
-public class CalculatorSpecs : Specifications
-{
-    BeforeEach(() => {
-        calculator = new Calculator();
-    });
-    
-    Act(() => {
-        result = calculator.Add(2, 3);
-    });
-    
-    It["should return 5"] = () => {
-        result.Should().Be(5);
-    };
-}
-```
+- Pure C# — no external `.feature` files, no parser, no glue layer.
+- Full programmatic control over context, data, and assertions.
+- IDE refactors apply to your tests; no DSL parser lock-in.
 
-**Legacy Property-Based API** (`Spec` class):
-```csharp
-public class CalculatorSpecs : Spec
-{
-    BeforeEach = () => {
-        calculator = new Calculator();
-    };
-    
-    Act = () => {
-        result = calculator.Add(2, 3);
-    };
-    
-    It["should return 5"] = () => {
-        result.Should().Be(5);
-    };
-}
-```
+### vs. NSpec (direct)
 
-### User Experience Goal: Framework Independence
+- Modern builder + immutable test-case model instead of mutable runtime state.
+- Adapter pattern → can integrate with VSTest (or others) without changing the core.
+- Two API styles coexist; gradual migration is supported.
 
-While built to work with NSpec, the core framework remains independent through adapters, allowing integration with other test runners.
+## Target Scenarios
 
-## What Makes This Different
-
-### vs. Traditional XUnit/NUnit/MSTest
-- **Hierarchy**: Native support for nested contexts vs flat test classes
-- **Expressiveness**: BDD syntax vs method-based tests
-- **Lifecycle**: Sophisticated multi-phase lifecycle vs simple setup/teardown
-- **Inheritance**: Child contexts inherit parent behavior naturally
-
-### vs. BDD Frameworks (SpecFlow, etc.)
-- **Code-First**: Write tests in C# vs external Gherkin files
-- **Integration**: Tests are code, not parsed text
-- **Flexibility**: Full programmatic control vs DSL constraints
-
-### vs. NSpec (Direct)
-- **Architecture**: Modern builder pattern vs runtime switching
-- **Immutability**: Built test cases vs mutable runtime state
-- **Extensibility**: Adapter-based integration vs tight coupling
-- **Choice**: Two API styles vs single approach
-
-## Target User Scenarios
-
-### Scenario 1: Complex Integration Tests
-A developer testing a multi-layered application needs:
-- Database setup once per test suite
-- Transaction setup/rollback per test
-- Service initialization with mocked dependencies
-- Complex async workflows
-
-**Specs Solution**: Hierarchical contexts with explicit lifecycle phases handle this elegantly.
-
-### Scenario 2: Readable Living Documentation
-A team wants tests that serve as living documentation for stakeholders.
-
-**Specs Solution**: BDD-style syntax produces tests that read like specifications.
-
-### Scenario 3: Legacy Migration
-A team has existing tests in an older style but wants modern patterns.
-
-**Specs Solution**: Two API styles allow gradual migration without rewriting everything.
-
-### Scenario 4: Async-Heavy Applications
-A microservices application has async operations throughout.
-
-**Specs Solution**: Full async support in all lifecycle phases, transparent to test authors.
+1. **Complex integration tests** — once-per-suite DB setup, per-test transaction, mocked dependencies, async workflows.
+2. **Living documentation** — `Describe`/`Context`/`It` produces output that non-developers can read.
+3. **Legacy migration** — existing `Spec`-based suites keep working while new code uses `Specifications`.
+4. **Async-heavy services** — every hook supports `Func<Task>` natively.
+5. **IDE-driven workflows** — discover, run, and debug individual `It[...]` from Test Explorer.
 
 ## Success Criteria
 
 The framework succeeds when:
 
-1. **Tests are readable**: Non-developers can understand what's being tested
-2. **Setup is DRY**: Common setup is written once and inherited appropriately
-3. **Lifecycle is clear**: It's obvious when each action runs
-4. **Async is natural**: No special handling needed for async operations
-5. **Organization is intuitive**: Test hierarchy mirrors conceptual relationships
-6. **Integration is smooth**: Works with existing .NET test tooling
-
-## Evolution Path
-
-The framework evolved from a single approach (`Spec` class) to supporting two patterns:
-- **Original**: Property-based API with runtime context switching
-- **Modern**: Method-based API with builder pattern and immutability
-
-Both are maintained to support existing codebases while enabling new development with modern patterns.
+1. Tests are readable enough to serve as documentation.
+2. Common setup is written once and inherited.
+3. Lifecycle ordering is predictable and explicit — including once-per-context setup when only part of a suite is run.
+4. Async tests need no special handling.
+5. The hierarchy mirrors how the developer thinks about behavior, and Test Explorer shows that same hierarchy.
+6. The IDE can discover, navigate to, and run any `It[...]` independently.

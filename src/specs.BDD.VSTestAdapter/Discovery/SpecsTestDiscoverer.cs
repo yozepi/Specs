@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
@@ -26,6 +27,11 @@ namespace specs.BDD.VSTestAdapter.Discovery
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink)
         {
+#if DEBUG
+            if (!Debugger.IsAttached)
+                Debugger.Launch();
+#endif
+
             foreach (var source in sources)
             {
                 try
@@ -92,28 +98,23 @@ namespace specs.BDD.VSTestAdapter.Discovery
             // Validate: every Specification class must have at least one [Context] method.
             ContextMethodScanner.ValidateHasContextMethods(specClass);
 
-            var contextMethods = ContextMethodScanner.FindContextMethods(specClass);
-
-            foreach (var contextMethod in contextMethods)
+            IEnumerable<SpecTest> specTests;
+            try
             {
-                IEnumerable<SpecTest> specTests;
-                try
-                {
-                    specTests = TestStructureExtractor.ExtractTests(specClass, contextMethod);
-                }
-                catch (Exception ex)
-                {
-                    logger.SendMessage(TestMessageLevel.Warning,
-                        $"[specs.BDD.VSTestAdapter] Error extracting tests from " +
-                        $"'{specClass.FullName}.{contextMethod.Name}': {ex.Message}");
-                    continue;
-                }
+                specTests = TestStructureExtractor.ExtractTests(specClass);
+            }
+            catch (Exception ex)
+            {
+                logger.SendMessage(TestMessageLevel.Warning,
+                    $"[specs.BDD.VSTestAdapter] Error extracting tests from " +
+                    $"'{specClass.FullName}': {ex.Message}");
+                return;
+            }
 
-                foreach (var specTest in specTests)
-                {
-                    var testCase = TestCaseConverter.ToVSTestCase(specTest, source);
-                    discoverySink.SendTestCase(testCase);
-                }
+            foreach (var specTest in specTests)
+            {
+                var testCase = TestCaseConverter.ToVSTestCase(specTest, source);
+                discoverySink.SendTestCase(testCase);
             }
         }
     }

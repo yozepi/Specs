@@ -204,6 +204,42 @@ ITestContextAdapter (Framework integration)
 Actual Test Framework (NSpec, etc.)
 ```
 
+### Approach 3: VSTest Adapter Architecture (specs.BDD.VSTestAdapter)
+
+The VSTest adapter bridges specs.BDD specifications to the standard .NET test infrastructure
+(`dotnet test`, Visual Studio Test Explorer, Rider, VS Code).
+
+```
+dotnet test / VS Test Explorer
+    ↓ VSTest Protocol (ITestDiscoverer / ITestExecutor)
+specs.BDD.VSTestAdapter
+    ↓ Discovery
+    ├─ SpecificationClassScanner  → finds Specifications subclasses
+    ├─ ContextMethodScanner       → finds [Context]-decorated methods, validates presence
+    ├─ SuiteTreeBuilder           → registers each [Context] method as a named child context,
+    │                               reads Specifications.CoreBuilder (no reflection),
+    │                               calls Build() → IContextualTestCase
+    ├─ TestStructureExtractor     → recursively flattens the tree → SpecTest list
+    ├─ SourceLocationReader       → portable PDB lookup for the It[...] lambda
+    └─ TestCaseConverter          → converts SpecTest → VSTest TestCase (FQN + metadata
+                                    + RFC-0033 Hierarchy for Test Explorer nesting)
+    ↓ Execution
+    ├─ SpecsTestExecutor          → groups selected tests by (Source, ClassName)
+    ├─ TestInvoker                → resolves the type, rebuilds the suite via SuiteTreeBuilder
+    ├─ SelectionTreeWalker        → depth-first walk firing OwnSetupOnce / OwnTeardownOnce
+    │                               exactly once per live node; delegates per-test loops
+    │                               to specs.core's TestCaseExecutor
+    ├─ TestFinder                 → navigates IContextualTestCase hierarchy by context path
+    └─ ResultReporter             → creates Passed/Failed TestResult with timing
+
+Key constraint: every Specifications class MUST have at least one [Context] method.
+  → Discovery throws InvalidSpecificationException otherwise.
+```
+
+**FQN format**: `{ClassName}::{MethodName}::{ContextPath}::{TestDescription}`  
+**Display name format**: `{MethodName} → {ContextPath} → {TestDescription}` (` → ` = space+U+2192+space)  
+**Context path format**: `root context → child context → …`
+
 ### Approach 2: Legacy Runtime Architecture (Domain + Spec)
 
 ```

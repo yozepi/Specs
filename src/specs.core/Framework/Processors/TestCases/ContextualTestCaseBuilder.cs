@@ -168,12 +168,17 @@ namespace specs.core.Framework.Processors.TestCases
             teardownEach.AddRange(CollectAncestorAndSelfTeardownEachActions());
             teardownOnce.AddRange(CollectAncestorAndSelfTeardownOnceActions());
 
+            var ownSetupOnce = setupOnceBuilder.Build() ?? (() => { });
+            var ownTeardownOnce = teardownOnceBuilder.Build() ?? (() => { });
+
             return ContextualTestCase.CreateTestCase(
                 setupOnce: () => { foreach (var action in setupOnce) { action.Invoke(); } },
                 setupEach: () => { foreach (var action in setupEach) { action.Invoke(); } },
                 act: () => { foreach (var action in act) { action.Invoke(); } },
                 teardownEach: () => { foreach (var action in teardownEach) { action.Invoke(); } },
                 teardownOnce: () => { foreach (var action in teardownOnce) { action.Invoke(); } },
+                ownSetupOnce: ownSetupOnce,
+                ownTeardownOnce: ownTeardownOnce,
                 tests: new List<(string description, Action test)>(this.testActions),
                 childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder))
             );
@@ -191,6 +196,8 @@ namespace specs.core.Framework.Processors.TestCases
                 act: testCase.Act,
                 teardownEach: testCase.TeardownEach,
                 teardownOnce: testCase.TeardownOnce,
+                ownSetupOnce: testCase.OwnSetupOnce,
+                ownTeardownOnce: testCase.OwnTeardownOnce,
                 tests: testCase.Tests.ToList(),
                 childContexts: testCase.ChildContexts.ToList()
             );

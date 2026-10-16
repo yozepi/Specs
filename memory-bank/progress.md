@@ -1,316 +1,161 @@
 # Progress: Specs
 
-## Current Status: **STABLE AND FEATURE-COMPLETE**
+## Overall Status — **Stable & Feature-Complete**
 
-The Specs framework is in a stable, production-ready state with comprehensive test coverage and two fully functional API approaches.
+All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) are stable, fully tested, and ready for use. Both BDD API styles work, async is supported across all lifecycle hooks, and Specs tests are discoverable and runnable from any VSTest host.
 
 ## What Works ✅
 
-### Core Framework (specs.core)
-- ✅ **Builder Pattern**: `ContextualTestCaseBuilder` fully implemented
-- ✅ **Hierarchical Contexts**: Parent-child relationships with inheritance
-- ✅ **Immutable Test Cases**: Test cases immutable after `Build()`
-- ✅ **Lifecycle Management**: All phases working correctly
-  - SetupOnce (parent → child)
-  - SetupEach (parent → child)
-  - Act (parent → child)
-  - TeardownEach (child → parent)
-  - TeardownOnce (child → parent)
-- ✅ **Async Support**: Full async/await support in all lifecycle phases
-- ✅ **Adapter Pattern**: Framework-agnostic core with clean adapter interfaces
-- ✅ **Test Execution**: `TestCaseExecutor` orchestrates lifecycle correctly
-- ✅ **Action Collection**: Top-down setup, bottom-up teardown working as designed
-- ✅ **Context Switching**: Callback pattern enables proper nested contexts
+### specs.core
 
-### specs.BDD API (Modern Approach)
-- ✅ **Method-Based Lifecycle**: `BeforeAll()`, `BeforeEach()`, `Act()`, etc.
-- ✅ **Builder Properties**: `Describe`, `Context`, `It`, `ItAsync`
-- ✅ **Fluent Indexer Syntax**: `Describe["name"] = () => { }`
-- ✅ **Context Switching**: Automatic scope management for nested contexts
-- ✅ **Async Methods**: Both sync and async variants for all lifecycle hooks
-- ✅ **Integration**: Built on `IContextualTestCaseBuilder` from core
+- ✅ `ContextualTestCaseBuilder` — fluent construction (`AddSetupOnce`, `AddSetupEach`, `AddAct`, `AddTest`, `AddTeardownEach`, `AddTeardownOnce`, `ChildTestCase`, `Build`).
+- ✅ Immutable `ContextualTestCase` after `Build()`.
+- ✅ Hierarchical contexts with parent-child inheritance.
+- ✅ Five-phase lifecycle with top-down setup / bottom-up teardown.
+- ✅ Async-to-sync conversion on every hook.
+- ✅ `TestCaseExecutor.ProcessTestCase(CancellationToken)` — single canonical lifecycle implementation.
+- ✅ `TestCaseExecutorSettings.StopOnAssertFailure`.
+- ✅ `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` — node-local once-actions for the selection walker.
+- ✅ Adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`).
+- ✅ `RunAllBuilder` / `RunAllRunner` action aggregation.
+- ✅ Zero external NuGet dependencies.
 
-### Legacy API (Spec Class)
-- ✅ **Property-Based Lifecycle**: `BeforeEach = () => { }`
-- ✅ **Runtime Context Switching**: `IRunContext` integration
-- ✅ **Exception Testing**: `ShouldThrow()` methods with predicates
-- ✅ **Domain Layer**: ActionRunner, TaskRunner, Spec definitions
-- ✅ **Async Support**: `BeforeEachAsync`, `ActAsync`, `ShouldThrowAsync`
-- ✅ **Backward Compatibility**: Existing codebases continue to work
+### specs.BDD (`specs.specification`)
 
-### Integration
-- ✅ **NSpec Integration**: TestHarness provides temporary NSpec bridge for internal testing
-  - Note: TestHarness is internal infrastructure only, not a deliverable
-  - Used to test Specs framework itself during development
-  - Will be phased out once Specs can test itself
-- ✅ **Tag Filtering**: Support for test tags and focus tags
-- ✅ **Formatter Support**: Configurable output formatting
-- ✅ **Fail-Fast**: Early termination on first failure
+- ✅ `Specifications` base class with method-based lifecycle (`BeforeAll`, `BeforeEach`, `Act`, `AfterEach`, `AfterAll` — sync + async overloads).
+- ✅ `Describe[...]`, `Context[...]`, `It[...]`, `ItAsync[...]` indexers.
+- ✅ Callback-driven nested-context scope switching.
+- ✅ `[Context]` attribute marking feature-set methods.
+- ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
+
+### specs.BDD.VSTestAdapter
+
+- ✅ **Discovery**: `SpecsTestDiscoverer`, `SpecificationClassScanner`, `ContextMethodScanner`, `SuiteTreeBuilder`, `TestStructureExtractor`, `SourceLocationReader`.
+- ✅ **Conversion**: `SpecTest` POCO, `TestCaseConverter`, `TestProperties` (custom `TestProperty` registry).
+- ✅ **Execution**: `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `TestFinder`, `ResultReporter`, `VSTestLoggingAdapter`, `VSTestTestProvider`.
+- ✅ Once-per-node `BeforeAll` / `AfterAll` for arbitrary test selections.
+- ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property.
+- ✅ Source navigation to the `It[...]` line via portable PDB, falling back to the `[Context]` method.
+- ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
+- ✅ Cancellation flowing from `ITestExecutor.Cancel()` into `TestCaseExecutor`.
+- ✅ `InvalidSpecificationException` surfaced when a suite has no `[Context]` methods.
+- ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
+
+### Legacy `Spec` API
+
+- ✅ Property-based lifecycle (`BeforeEach = ...`, `Act = ...`, `AfterEach = ...`).
+- ✅ `It[...]`, `ItAsync[...]`, `Context[...]`, `Describe[...]` indexers.
+- ✅ `ShouldThrow<T>()` / `ShouldThrowAsync<T>()` helpers for exception testing.
+- ✅ Domain layer (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`, `IRunContainer`).
+- ✅ Coexists with the modern API.
 
 ### Testing
-- ✅ **Unit Tests**: Comprehensive test suite for all components
-  - Uses NUnit to test the framework itself
-  - TestHarness used internally as temporary scaffolding
-- ✅ **Lifecycle Tests**: 2,900+ lines of lifecycle verification
-- ✅ **Adapter Tests**: 27+ tests for TestContextAdapter
-- ✅ **Builder Tests**: 41+ tests for ContextualTestCaseBuilder
-- ✅ **Exception Tests**: 19+ tests for exception handling utilities
-- ✅ **All Tests Pass**: Zero known failing tests
 
-### Documentation
-- ✅ **XML Documentation**: All public APIs documented
-- ✅ **Memory Bank**: Standard Cline format (6 core files created)
-- ✅ **Examples**: ConsoleExample demonstrates usage
-- ✅ **Architecture Docs**: Patterns and design decisions documented
-- ✅ **Migration Guide**: Path from legacy to modern API
-
-## What's Left to Build 📋
-
-### Nothing Critical
-The framework is **feature-complete** for its intended purpose. All planned functionality is implemented and working.
-
-### Optional Future Enhancements
-
-#### Documentation Improvements
-- 📋 **More Examples**: Additional real-world usage examples
-- 📋 **Tutorial Series**: Step-by-step guides for common scenarios
-- 📋 **API Reference**: Auto-generated API documentation site
-- 📋 **Migration Cookbook**: Detailed recipes for common migration patterns
-
-#### Additional Integrations
-- 📋 **XUnit Integration**: Adapter for XUnit test runner
-- 📋 **MSTest Integration**: Adapter for MSTest runner
-- 📋 **Custom Test Runners**: Documentation for building custom adapters
-
-#### Developer Experience
-- 📋 **Roslyn Analyzers**: Custom analyzers for common mistakes
-- 📋 **Code Snippets**: Visual Studio/VS Code snippets for common patterns
-- 📋 **Project Templates**: `dotnet new` templates for quick setup
-
-#### Performance Enhancements
-- 📋 **Parallel Execution**: Support for running tests in parallel (requires thread-safety work)
-- 📋 **Lazy Child Context Evaluation**: Defer child context creation until needed
-- 📋 **Action Deduplication**: Detect and eliminate duplicate actions in hierarchy
-
-#### Advanced Features
-- 📋 **Test Data Builders**: Built-in support for test data generation
-- 📋 **Mocking Integration**: First-class integration with Moq/NSubstitute
-- 📋 **Shared Context Fixtures**: Cross-test shared resources
-- 📋 **Test Retry Logic**: Automatic retry for flaky tests
-
-## Known Issues and Limitations 🔍
-
-### By Design (Not Issues)
-- **Async Blocking**: `GetAwaiter().GetResult()` blocks, but this is acceptable for test scenarios
-- **Single-Threaded**: Tests run sequentially, not in parallel (by design for simplicity)
-- **NSpec Primary**: While framework-agnostic, primary integration is NSpec (other runners need custom adapters)
-
-### Known Limitations
-- **No Parallel Execution**: Tests execute sequentially within a context
-  - **Impact**: Longer test suite execution time
-  - **Workaround**: Run test projects in parallel externally
-  - **Future**: Could be addressed with thread-safety improvements
-
-- **Async Deadlock Risk**: If tested code doesn't use `ConfigureAwait(false)`, deadlocks possible
-  - **Impact**: Tests may hang with certain async code
-  - **Workaround**: Ensure tested libraries use `ConfigureAwait(false)`
-  - **Future**: Could offer pure async API variant
-
-- **No Built-in Data-Driven Tests**: No native support for parameterized tests
-  - **Impact**: Must write separate test cases for different data
-  - **Workaround**: Use loops or helper methods
-  - **Future**: Could add data-driven test support
-
-- **Memory Overhead**: Immutable test cases create copies of action collections
-  - **Impact**: Small memory overhead for large test suites
-  - **Workaround**: None needed, overhead is minimal
-  - **Future**: Could optimize with structural sharing
-
-### Documentation Gaps (Being Addressed)
-- ✅ **Memory Bank Structure**: Now using standard Cline format (in progress)
-- 📋 **Advanced Patterns**: More examples of complex scenarios needed
-- 📋 **Troubleshooting Guide**: Common issues and solutions
-
-### No Known Bugs
-- **Zero open bugs** in core framework
-- **All tests passing**
-- **No reported issues** from example usage
+- ✅ `specs.core.UnitTests` — **315 tests**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`.
+- ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface.
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 113 NUnit tests across Discovery / Conversion / Execution.
+- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 25 end-to-end tests (`CalculatorSpecs`, `StringSpecs`, `AsyncAndExceptionSpecs`) through the real VSTest pipeline.
+- ✅ All 458 tests passing across the solution; build is clean with 0 warnings.
 
 ## Evolution Timeline
 
-### Phase 1: Legacy Foundation (Early Development)
-**Status**: Complete
+```mermaid
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    P1["Phase 1<br/>Legacy Spec API"]:::deprecated
+    P2["Phase 2<br/>Core extraction<br/>(builder + immutable model)"]:::app
+    P3["Phase 3<br/>Modern Specifications API"]:::app
+    P4["Phase 4<br/>VSTest adapter"]:::app
+    P5["Phase 5<br/>Executor consolidation"]:::app
+    P6["Phase 6<br/>Memory bank rebuild"]:::app
+    P7["Phase 7<br/>Suite tree + selection walk"]:::app
+    P8["Phase 8<br/>Self-hosting core tests"]:::app
 
-**Implemented**:
-- Property-based API (`Spec` class)
-- Runtime context switching via `IRunContext`
-- Domain layer with ActionRunner/TaskRunner
-- Direct NSpec integration
-- Exception testing methods
+    P1 --> P2 --> P3 --> P4
+    P4 --> P5 --> P6 --> P7 --> P8
 
-**Learnings**:
-- Property-based API is intuitive but less testable
-- Runtime mutability makes reasoning harder
-- Tight coupling to test framework limits flexibility
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
 
-### Phase 2: Core Framework Extraction (Mid Development)
-**Status**: Complete
+### Phase 1 — Legacy foundation (early)
 
-**Implemented**:
-- Framework-agnostic core (`specs.core`)
-- Builder pattern for test construction
-- Adapter pattern for framework integration
-- Immutable test cases after build
-- Comprehensive unit tests
+Property-based `Spec` class, runtime context switching via `IRunContext`, direct nspec integration through `TestHarness`. Still supported; not the recommended starting point for new code.
 
-**Learnings**:
-- Separation of concerns improves testability
-- Builder pattern provides better API
-- Adapters enable multiple integrations
-- Immutability prevents subtle bugs
+### Phase 2 — Core extraction (mid)
 
-### Phase 3: Modern API Layer (Late Development)
-**Status**: Complete
+Pulled the lifecycle, builder, and adapter interfaces into `specs.core` with zero external dependencies. Test cases became immutable after `Build()`.
 
-**Implemented**:
-- Method-based API (`Specifications` class)
-- Context switching via callback pattern
-- Full async support throughout
-- Integration with core builder
-- Comprehensive specs.BDD tests
+### Phase 3 — Modern `Specifications` (late)
 
-**Learnings**:
-- Method-based API more familiar to C# developers
-- Callback pattern cleanly handles scope switching
-- Async conversion keeps API simple
-- Both API styles can coexist successfully
+Method-based API with indexer-driven `Describe` / `Context` / `It`, callback-driven nested-context scope switching, and full async/await support on every hook.
 
-### Phase 4: Documentation and Polish (Current)
-**Status**: In Progress
+### Phase 4 — VSTest adapter
 
-**Implemented**:
-- Standard Cline Memory Bank structure
-- Six core files (projectbrief, productContext, activeContext, systemPatterns, techContext, progress)
-- Architecture documentation
-- Pattern documentation
+`specs.BDD.VSTestAdapter` added discovery (`ITestDiscoverer`) and execution (`ITestExecutor`) of Specs from Test Explorer, `dotnet test`, and any other VSTest host. `[Context]` attribute introduced; PDB-based source navigation added.
 
-**In Progress**:
-- Finalizing memory bank restructuring
-- Consolidating existing documentation
-- Improving examples
+### Phase 5 — Executor consolidation (Feb 2026)
 
-**Next**:
-- Update README.md
-- Organize existing custom files
-- Validate documentation completeness
+Folded the adapter's hand-rolled lifecycle into `TestCaseExecutor`. Removed reflection. New `VSTestLoggingAdapter` + `VSTestTestProvider` implement the core adapter interfaces.
 
-## Success Metrics 🎯
+### Phase 6 — Memory bank rebuild (May 2026)
 
-### Test Coverage
-- ✅ **Core Framework**: >90% code coverage
-- ✅ **Lifecycle Tests**: 2,900+ lines of comprehensive tests
-- ✅ **Edge Cases**: Null handling, empty collections, error conditions
-- ✅ **Integration**: NSpec integration fully tested
+Six core memory-bank files regenerated to reflect the third deliverable, current dependency stack, current solution layout, and Mermaid-only diagrams.
 
-### Code Quality
-- ✅ **Zero Compiler Warnings**: Clean build with TreatWarningsAsErrors
-- ✅ **Nullable Annotations**: Full nullable reference type support
-- ✅ **XML Documentation**: All public APIs documented
-- ✅ **Consistent Style**: Adheres to C# conventions
+### Phase 7 — Suite tree + selection walk (Oct 2026)
 
-### API Usability
-- ✅ **Fluent API**: Readable, expressive test definitions
-- ✅ **Discoverability**: IntelliSense-friendly
-- ✅ **Two Styles**: Both property-based and method-based supported
-- ✅ **Async Support**: Transparent async/await handling
+`SuiteTreeBuilder` became the single source of truth for tree construction, registering `[Context]` methods as named child contexts. `SelectionTreeWalker` fires `OwnSetupOnce` / `OwnTeardownOnce` exactly once per live node, fixing `BeforeAll` / `AfterAll` semantics for partial test selections. `ITestCase` gained `OwnSetupOnce` / `OwnTeardownOnce`; `TestCaseExecutorSettings.IsCancelled` was replaced by a `CancellationToken` parameter on `ProcessTestCase`. Test Explorer gained real tree nesting (RFC-0033 `TestCase.Hierarchy`) and `It[...]`-precise source navigation.
 
-### Performance
-- ✅ **Build Time**: Minimal overhead at test definition time
-- ✅ **Execution Time**: Negligible framework overhead
-- ✅ **Memory Usage**: Reasonable for immutable collections
-- ✅ **Scalability**: Handles large test suites efficiently
+> **📌 See**: `systemPatterns.md` section "Once-Per-Node Lifecycle (selection-tree walk)" for BEFORE/AFTER diagrams.
 
-## Migration Status
+### Phase 8 — Self-hosting core tests (Oct 2026, current)
 
-### Legacy to Modern API
-**Status**: Both APIs fully supported
+`specs.core.UnitTests` migrated off NUnit fixtures onto `Specifications` + `[Context]`. `NUnit3TestAdapter` and `NUnit.Analyzers` removed; the project now references `specs.BDD.VSTestAdapter` and its 315 tests are discovered and run by Specs itself.
 
-**Migration Path Available**:
-- ✅ Clear migration documentation
-- ✅ Side-by-side comparison
-- ✅ Both APIs can coexist
-- ✅ Gradual migration possible
-- ✅ No forced migration timeline
+## Known Limitations
 
-**Adoption**:
-- Legacy API: Maintained for backward compatibility
-- Modern API: Recommended for new development
-- Both approaches: Fully documented and supported
+| Limitation | Impact | Workaround / Future |
+|------------|--------|---------------------|
+| Sequential execution within a suite | Larger suites run slower than parallel frameworks | Run separate test projects in parallel via the runner; parallel-within-suite is a candidate future feature |
+| Async hooks block on `GetAwaiter().GetResult()` | Async-only deadlocks possible if user code captures sync context without `ConfigureAwait(false)` | Use `ConfigureAwait(false)` in libraries under test |
+| No built-in data-driven tests | Must hand-roll loops or generate `It[...]` programmatically | Possible future enhancement |
+| Discovery materializes the full test tree | Slightly heavier than attribute-only discovery, but enables full `It[...]` granularity | Acceptable; the tree is built once per class per run |
+| `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; `TestStructureExtractor.PathSeparator` is settable if a project must change it |
+| `AfterAll` failures are swallowed by the selection walker | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
+| Legacy `Spec` API retained | Two API styles to document and maintain | Both supported indefinitely; modern API recommended for new suites |
 
-## Roadmap Priorities
+## Future Enhancements (Not Committed)
 
-### High Priority (Documentation Phase)
-1. ✅ Complete memory bank restructuring
-2. 📋 Update README.md to reflect new structure
-3. 📋 Consolidate existing documentation files
-4. 📋 Add more usage examples
+- Parallel test execution within a suite.
+- Data-driven specifications.
+- Roslyn analyzers for common authoring mistakes (missing `[Context]`, etc.).
+- `dotnet new` templates.
+- Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package.
+- Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.
 
-### Medium Priority (Enhancement Phase)
-1. 📋 Create additional test framework adapters (XUnit, MSTest)
-2. 📋 Develop Roslyn analyzers for common issues
-3. 📋 Build Visual Studio/VS Code snippets
-4. 📋 Create `dotnet new` templates
+## Success Metrics
 
-### Low Priority (Future Exploration)
-1. 📋 Investigate parallel test execution
-2. 📋 Explore pure async API variant
-3. 📋 Consider data-driven test support
-4. 📋 Evaluate performance optimizations
-
-## Maintenance Status
-
-### Active Maintenance
-- ✅ Bug fixes (if any are discovered)
-- ✅ Documentation improvements
-- ✅ Example updates
-- ✅ Memory bank synchronization
-
-### Passive Maintenance
-- Framework is stable and requires minimal changes
-- No breaking changes planned
-- Backward compatibility maintained
-- Both API approaches supported indefinitely
+| Metric | Status |
+|--------|--------|
+| Build cleanliness across all 9 projects | ✅ Clean — 0 warnings, 0 errors |
+| Test pass rate | ✅ 100% (458 / 458) |
+| Self-hosted core tests | ✅ 315 passing via the Specs adapter |
+| Adapter unit tests | ✅ 113 passing |
+| Adapter integration tests | ✅ 25 passing |
+| `specs.core` external dependencies | ✅ Zero |
+| Known open bugs | ✅ None |
+| Documentation accuracy | ✅ Refreshed (October 2026) |
 
 ## Summary
 
-The Specs framework is **feature-complete and production-ready**:
+| Deliverable | State |
+|-------------|-------|
+| `specs.core` | ✅ Production-ready |
+| `specs.BDD` | ✅ Production-ready |
+| `specs.BDD.VSTestAdapter` | ✅ Production-ready |
+| Legacy `Spec` class | ✅ Maintained for backward compatibility |
+| `TestHarness` | 🔧 Internal-only; retirement candidate now that the core self-hosts |
+| Examples | ✅ `ConsoleExample` demonstrates the legacy API |
+| Memory bank | ✅ Refreshed October 2026 |
 
-### ✅ Deliverable Components Ready
-- **specs.core** - Core framework library
-- **specs.BDD** - High-level BDD API
-
-### ✅ All Core Features Working
-- Hierarchical contexts with inheritance
-- Sophisticated lifecycle management
-- Full async/await support
-- Two API styles (modern and legacy)
-- Framework-agnostic core
-- Comprehensive test coverage
-
-### 🔧 Internal Infrastructure
-- TestHarness exists solely for internal testing during development
-- Not part of project deliverables
-- Temporary solution until framework is self-hosting
-
-### 📋 Optional Enhancements Available
-- Additional integrations (XUnit, MSTest)
-- Developer experience improvements (analyzers, snippets)
-- Performance optimizations (parallel execution)
-- Documentation expansions (tutorials, examples)
-
-### 🎯 Current Focus
-- Finalizing documentation restructuring
-- Improving examples and guides
-- Maintaining stability and compatibility
-
-The framework successfully delivers on all original goals and is ready for production use.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs, and a framework-agnostic core that tests itself.

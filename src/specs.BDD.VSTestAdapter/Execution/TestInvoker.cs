@@ -1,37 +1,39 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using specs.BDD.VSTestAdapter.Conversion;
+using specs.BDD.VSTestAdapter.Discovery;
 using specs.core.Framework.Processors.TestCases;
 
 namespace specs.BDD.VSTestAdapter.Execution
 {
     /// <summary>
-    /// Loads the assembly for a <see cref="TestCase"/>, rebuilds the specification's test
-    /// hierarchy, locates the specific test, and runs its full lifecycle.
+    /// Loads the assembly for a <see cref="TestCase"/>, rebuilds the full specification
+    /// suite tree via <see cref="SuiteTreeBuilder"/>, and runs the requested tests.
     /// </summary>
     /// <remarks>
-    /// For each execution, a fresh <see cref="specs.BDD.Specifications"/> instance is created
-    /// and the [Context] method is re-invoked so that lifecycle closures capture a clean scope.
-    /// This mirrors the isolation guarantee provided during discovery.
+    /// <para>
+    /// For single-test execution (<see cref="Invoke"/>), the suite tree is built and
+    /// <see cref="TestFinder"/> navigates to the exact test action, which is then run with
+    /// the cascaded lifecycle (SetupOnce through TeardownOnce).
+    /// </para>
+    /// <para>
+    /// For suite execution (<see cref="InvokeSuite"/>), a <see cref="SelectionTreeWalker"/>
+    /// fires each node's <c>BeforeAll</c> / <c>AfterAll</c> exactly once and delegates
+    /// per-test loops to <see cref="specs.core.Framework.Processors.TestExecutors.TestCaseExecutor"/>.
+    /// </para>
     /// </remarks>
     internal static class TestInvoker
     {
-        /// <summary>
-        /// Reflection handle for the private <c>coreBuilder</c> field on
-        /// <see cref="specs.BDD.Specifications"/>.
-        /// </summary>
-        private static readonly FieldInfo? CoreBuilderField =
-            typeof(specs.BDD.Specifications).GetField(
-                "coreBuilder",
-                BindingFlags.NonPublic | BindingFlags.Instance);
+        // â”€â”€ Single-test execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         /// <summary>
-        /// Executes a single <see cref="TestCase"/> end-to-end:
-        /// resolves the type and method from metadata, rebuilds the hierarchy,
-        /// navigates to the target test, runs the full lifecycle, and returns a
+        /// Executes a single <see cref="TestCase"/> end-to-end and returns a
         /// <see cref="TestResult"/> with the outcome.
         /// </summary>
         public static TestResult Invoke(TestCase testCase)
@@ -52,18 +54,49 @@ namespace specs.BDD.VSTestAdapter.Execution
             }
         }
 
-        // ── Private helpers ────────────────────────────────────────────────────────────────────
+        // â”€â”€ Suite execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+        /// <summary>
+        /// Executes all <paramref name="tests"/> from a single specification class.
+        /// The suite tree is built once and a <see cref="SelectionTreeWalker"/> ensures
+        /// each node's <c>BeforeAll</c> / <c>AfterAll</c> fires exactly once.
+        /// </summary>
+        internal static void InvokeSuite(
+            string source,
+            string className,
+            IEnumerable<TestCase> tests,
+            IFrameworkHandle frameworkHandle,
+            CancellationToken cancellationToken)
+        {
+            var testList = new List<TestCase>(tests);
+            if (testList.Count == 0) return;
+
+            Type specType;
+            string rootPath;
+            specs.core.Framework.Processors.TestCases.IContextualTestCase root;
+            try
+            {
+                specType = ResolveSpecType(source, className);
+                rootPath = ""; // root node has no path; [Context] children are the first level
+                root = SuiteTreeBuilder.BuildSuite(specType);
+            }
+            catch (Exception buildEx)
+            {
+                ReportAllAsFailed(testList, frameworkHandle, buildEx);
+                return;
+            }
+
+            var walker = new SelectionTreeWalker(root, rootPath, testList, frameworkHandle, cancellationToken);
+            walker.Walk();
+        }
+
+        // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private static void InvokeCore(TestCase testCase)
         {
-            // 1. Read the metadata that was embedded during discovery.
             var className = testCase.GetPropertyValue<string>(TestProperties.ClassName, null)
                 ?? throw new InvalidOperationException(
                     "TestCase is missing the ClassName metadata property.");
-
-            var methodName = testCase.GetPropertyValue<string>(TestProperties.ContextMethod, null)
-                ?? throw new InvalidOperationException(
-                    "TestCase is missing the ContextMethod metadata property.");
 
             var contextPath = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null)
                 ?? throw new InvalidOperationException(
@@ -73,74 +106,33 @@ namespace specs.BDD.VSTestAdapter.Execution
                 ?? throw new InvalidOperationException(
                     "TestCase is missing the TestDescription metadata property.");
 
-            // 2. Load the assembly and resolve the specification type.
-            //    ClassName is stored as AssemblyQualifiedName; strip assembly-info suffix so
-            //    we can use Assembly.GetType() with just the namespace-qualified type name.
-            var assembly = Assembly.LoadFrom(testCase.Source);
-            var typeName = className.Contains(',') ? className.Split(',')[0].Trim() : className;
-            var specType = assembly.GetType(typeName)
-                ?? throw new InvalidOperationException(
-                    $"Cannot find type '{typeName}' in '{testCase.Source}'.");
+            var specType = ResolveSpecType(testCase.Source, className);
+            var root = SuiteTreeBuilder.BuildSuite(specType);
 
-            // 3. Resolve the [Context] method.
-            var contextMethod = specType.GetMethod(
-                    methodName,
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException(
-                    $"Cannot find method '{methodName}' on '{typeName}'.");
-
-            // 4. Instantiate the spec, invoke the [Context] method, and build the hierarchy.
-            var root = BuildHierarchy(specType, contextMethod);
-
-            // 5. Navigate to the correct context node and test action.
             var found = TestFinder.Find(root, contextPath, testDescription)
                 ?? throw new InvalidOperationException(
                     $"Cannot locate test '{testDescription}' at path '{contextPath}' " +
-                    $"in '{typeName}.{methodName}'.");
+                    $"in '{specType.FullName}'.");
 
-            // 6. Run the full test lifecycle.
             RunLifecycle(found.Context, found.TestAction);
         }
 
         /// <summary>
-        /// Creates a fresh specification instance, invokes the [Context] method to populate
-        /// the builder, then builds and returns the immutable test case hierarchy.
+        /// Resolves the <see cref="Type"/> from the stored <paramref name="className"/> metadata.
         /// </summary>
-        private static IContextualTestCase BuildHierarchy(Type specType, MethodInfo contextMethod)
+        private static Type ResolveSpecType(string source, string className)
         {
-            if (CoreBuilderField == null)
-                throw new InvalidOperationException(
-                    "Cannot locate internal 'coreBuilder' field on Specifications. " +
-                    "The Specifications class implementation may have changed.");
-
-            var instance = Activator.CreateInstance(specType) as specs.BDD.Specifications
+            var assembly = Assembly.LoadFrom(source);
+            var typeName = className.Contains(',') ? className.Split(',')[0].Trim() : className;
+            return assembly.GetType(typeName)
                 ?? throw new InvalidOperationException(
-                    $"Cannot instantiate specification class '{specType.FullName}'.");
-
-            // Invoke the [Context] method — runs user code that populates the builder.
-            // Unwrap TargetInvocationException so any user error surfaces cleanly.
-            try
-            {
-                contextMethod.Invoke(instance, null);
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException != null)
-            {
-                ExceptionDispatchInfo.Capture(tie.InnerException).Throw();
-                throw; // unreachable; satisfies the compiler
-            }
-
-            var builder = CoreBuilderField.GetValue(instance) as IContextualTestCaseBuilder
-                ?? throw new InvalidOperationException(
-                    "Internal 'coreBuilder' field is null after context method invocation.");
-
-            return builder.Build();
+                    $"Cannot find type '{typeName}' in '{source}'.");
         }
 
         /// <summary>
-        /// Executes the full test lifecycle around a single test action:
-        /// SetupOnce → SetupEach → Act → [test] → TeardownEach → TeardownOnce.
-        /// Teardown runs even when the test action throws. The exception is re-thrown
-        /// with its original stack trace preserved after teardown completes.
+        /// Runs the cascaded full lifecycle for a single test action.
+        /// SetupOnce â†’ SetupEach â†’ Act â†’ [test] â†’ TeardownEach â†’ TeardownOnce.
+        /// Teardown runs even when the test throws; the exception is re-thrown afterwards.
         /// </summary>
         private static void RunLifecycle(ITestCase context, Action testAction)
         {
@@ -148,7 +140,6 @@ namespace specs.BDD.VSTestAdapter.Execution
             context.SetupEach();
             context.Act();
 
-            // Capture the failure so teardown still runs, then re-throw it afterwards.
             Exception? failure = null;
             try
             {
@@ -165,5 +156,19 @@ namespace specs.BDD.VSTestAdapter.Execution
             if (failure != null)
                 ExceptionDispatchInfo.Capture(failure).Throw();
         }
+
+        private static void ReportAllAsFailed(
+            IEnumerable<TestCase> cases,
+            IFrameworkHandle frameworkHandle,
+            Exception ex)
+        {
+            var startTime = DateTimeOffset.UtcNow;
+            foreach (var tc in cases)
+            {
+                frameworkHandle.RecordStart(tc);
+                frameworkHandle.RecordResult(ResultReporter.Failure(tc, ex, startTime, TimeSpan.Zero));
+            }
+        }
     }
 }
+

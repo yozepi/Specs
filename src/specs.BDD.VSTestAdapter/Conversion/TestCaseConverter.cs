@@ -1,5 +1,6 @@
 using System;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using specs.BDD.VSTestAdapter.Discovery;
 
 namespace specs.BDD.VSTestAdapter.Conversion
 {
@@ -14,6 +15,21 @@ namespace specs.BDD.VSTestAdapter.Conversion
         /// Must match the <c>[ExtensionUri]</c> attribute on <c>SpecsTestExecutor</c>.
         /// </summary>
         public static readonly Uri ExecutorUri = new Uri("executor://SpecsTestExecutor/v1");
+
+        /// <summary>
+        /// VSTest RFC-0033 hierarchy property. A string[4] of [Container, Namespace, Class, TestGroup]
+        /// that drives the nested tree in VS Test Explorer.
+        /// </summary>
+        private static readonly TestProperty HierarchyProperty =
+            TestProperty.Register(
+                id: "TestCase.Hierarchy",
+                label: "Hierarchy",
+                category: string.Empty,
+                description: string.Empty,
+                valueType: typeof(string[]),
+                validateValueCallback: null,
+                attributes: TestPropertyAttributes.Immutable,
+                owner: typeof(TestCase));
 
         /// <summary>
         /// Converts the given <see cref="SpecTest"/> into a VSTest <see cref="TestCase"/> object.
@@ -37,11 +53,31 @@ namespace specs.BDD.VSTestAdapter.Conversion
             testCase.SetPropertyValue(TestProperties.ClassName,
                 specTest.SpecificationClass.AssemblyQualifiedName ?? specTest.SpecificationClass.FullName!);
             testCase.SetPropertyValue(TestProperties.ContextMethod,
-                specTest.ContextMethod.Name);
+                specTest.ContextMethod?.Name ?? "");
             testCase.SetPropertyValue(TestProperties.ContextPath,
                 specTest.ContextPath);
             testCase.SetPropertyValue(TestProperties.TestDescription,
                 specTest.TestDescription);
+
+            // Set the VSTest RFC-0033 Hierarchy property so Test Explorer renders the
+            // [Context] method name and Describe[...] blocks as tree nodes above the It[...] leaf.
+            testCase.SetPropertyValue(HierarchyProperty, BuildHierarchy(specTest));
+
+            // Prefer the It[...] lambda's source line so Test Explorer navigates to the test
+            // definition rather than the top of the [Context] method.  Fall back to the
+            // [Context] method when the lambda has no PDB sequence points (e.g. empty body).
+            var location =
+                (specTest.ItAction != null
+                    ? SourceLocationReader.TryGetLocation(source, specTest.ItAction.Method)
+                    : null)
+                ?? (specTest.ContextMethod != null
+                    ? SourceLocationReader.TryGetLocation(source, specTest.ContextMethod)
+                    : null);
+            if (location != null)
+            {
+                testCase.CodeFilePath = location.FilePath;
+                testCase.LineNumber = location.LineNumber;
+            }
 
             return testCase;
         }
@@ -57,18 +93,37 @@ namespace specs.BDD.VSTestAdapter.Conversion
         {
             return string.Join("::",
                 specTest.SpecificationClass.FullName,
-                specTest.ContextMethod.Name,
+                specTest.ContextMethod?.Name ?? "",
                 specTest.ContextPath,
                 specTest.TestDescription);
         }
 
         /// <summary>
         /// Builds the human-readable display name shown in Test Explorer.
-        /// Format: {ContextPath} → {TestDescription}
+        /// Format: {TestDescription}
         /// </summary>
         private static string BuildDisplayName(SpecTest specTest)
         {
-            return $"{specTest.ContextPath} \u2192 {specTest.TestDescription}";
+            return specTest.TestDescription;
+        }
+
+        /// <summary>
+        /// Builds the VSTest RFC-0033 Hierarchy array (exactly 4 elements) that controls how
+        /// Test Explorer nests this test in its tree:
+        ///   [0] Container  — null, so VS uses the project/assembly name
+        ///   [1] Namespace  — the namespace of the Specifications class
+        ///   [2] Class      — the simple (unqualified) class name
+        ///   [3] TestGroup  — the full context path (e.g. "describe_addition → when adding positive numbers")
+        /// </summary>
+        private static string[] BuildHierarchy(SpecTest specTest)
+        {
+            return new string[]
+            {
+                null!,                                             // [0] Container  — VS fills from assembly
+                specTest.SpecificationClass.Namespace ?? "",      // [1] Namespace
+                specTest.SpecificationClass.Name,                 // [2] Class
+                specTest.ContextPath                              // [3] TestGroup — [Context] + Describe chain
+            };
         }
     }
 }

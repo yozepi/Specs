@@ -9,7 +9,8 @@ namespace specs.core.Framework.Processors.TestExecutors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TestCaseExecutorSettings"/> class
-        /// with default values. Sets <see cref="StopOnAssertFailure"/> to false.
+        /// with default values. Sets <see cref="StopOnAssertFailure"/> to false
+        /// and <see cref="IsCancelled"/> to null.
         /// </summary>
         public TestCaseExecutorSettings()
         {

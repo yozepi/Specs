@@ -315,13 +315,13 @@ var testCase = builder.Build();
 
 **Key Method**:
 ```csharp
-public void ProcessTestCase()
+public void ProcessTestCase(CancellationToken cancellationToken)
 ```
 
 **Execution Flow**:
 1. Retrieve test instances from provider
 2. Execute SetupOnce
-3. For each test:
+3. For each test (stopping early if the token is cancelled):
    - Execute SetupEach
    - Execute Act
    - Execute Test (with error handling)
@@ -447,6 +447,146 @@ NSpec Runner → NUnit Assertions
 
 ---
 
+---
+
+## VSTest Adapter Components (specs.BDD.VSTestAdapter)
+
+The VSTest adapter enables test discovery and execution via `dotnet test`, Visual Studio Test
+Explorer, and any IDE that supports the VSTest protocol.
+
+**Project structure**:
+```
+src/specs.BDD.VSTestAdapter/
+├── Discovery/
+│   ├── SpecsTestDiscoverer.cs          - ITestDiscoverer entry point
+│   ├── SpecificationClassScanner.cs    - Finds Specifications subclasses
+│   ├── ContextMethodScanner.cs         - Finds + validates [Context] methods
+│   ├── SuiteTreeBuilder.cs             - Builds the whole-class suite tree
+│   ├── TestStructureExtractor.cs       - Flattens the tree into SpecTest records
+│   ├── SourceLocationReader.cs         - Portable PDB sequence-point lookup
+│   └── InvalidSpecificationException.cs
+├── Conversion/
+│   ├── SpecTest.cs                     - Data model (class, method, It action, path, description)
+│   ├── TestProperties.cs               - VSTest TestProperty registrations
+│   └── TestCaseConverter.cs            - SpecTest → VSTest TestCase (+ RFC-0033 Hierarchy)
+├── Execution/
+│   ├── SpecsTestExecutor.cs            - ITestExecutor entry point
+│   ├── TestInvoker.cs                  - Resolves type, builds suite, dispatches
+│   ├── SelectionTreeWalker.cs          - Once-per-node BeforeAll/AfterAll walk
+│   ├── TestFinder.cs                   - Navigates IContextualTestCase tree
+│   ├── VSTestLoggingAdapter.cs         - ILoggingAdapter over IFrameworkHandle
+│   ├── VSTestTestProvider.cs           - ITestProviderAdapter over TestCase triples
+│   └── ResultReporter.cs               - Creates Passed/Failed TestResult
+└── Properties/
+    └── AssemblyInfo.cs                 - InternalsVisibleTo test project
+```
+
+### SpecsTestDiscoverer
+
+**Purpose**: VSTest `ITestDiscoverer` — called during discovery  
+**Attributes**: `[FileExtension(".dll")]`, `[FileExtension(".exe")]`, `[DefaultExecutorUri("executor://SpecsTestExecutor/v1")]`  
+**Flow**: loads assembly → `SpecificationClassScanner` → `ContextMethodScanner` → `TestStructureExtractor` → `TestCaseConverter` → sink
+
+### SpecsTestExecutor
+
+**Purpose**: VSTest `ITestExecutor` — called during execution  
+**Attribute**: `[ExtensionUri("executor://SpecsTestExecutor/v1")]`  
+**Key behaviours**:
+- `RunTests(IEnumerable<TestCase>)` — groups tests by `(Source, ClassName)` and calls `TestInvoker.InvokeSuite` per group
+- `RunTests(IEnumerable<string>)` — re-discovers via `SpecsTestDiscoverer` then delegates
+- `Cancel()` — trips a `CancellationTokenSource`; the token is passed down to `TestCaseExecutor`
+
+### SpecificationClassScanner
+
+**Purpose**: Finds all non-abstract `Specifications` subclasses in an assembly  
+**Method**: `FindSpecificationClasses(Assembly) → IEnumerable<Type>`
+
+### ContextMethodScanner
+
+**Purpose**: Finds methods decorated with `[Context]`; throws `InvalidSpecificationException` if none exist  
+**Methods**: `FindContextMethods(Type) → IEnumerable<MethodInfo>`, `ValidateHasContextMethods(Type)`
+
+### SuiteTreeBuilder
+
+**Purpose**: Single source of truth for suite-tree construction, shared by discovery and execution  
+**Key detail**: instantiates the spec class once and registers every `[Context]` method as a *named child context* (`instance.Context[name] = () => method.Invoke(instance, null)`), then returns `instance.CoreBuilder.Build()`  
+**Why it matters**: `[Context]` methods become real tree nodes that can own `BeforeAll` / `AfterAll` and appear in `ContextPath`
+
+### TestStructureExtractor
+
+**Purpose**: Builds the suite tree via `SuiteTreeBuilder` and flattens it into `SpecTest` records  
+**Key detail**: reads `Specifications.CoreBuilder` directly — no reflection; the member is `internal protected` and exposed through `InternalsVisibleTo("specs.BDD.VSTestAdapter")`  
+**Recursion**: `ITestCaseContext` doesn't expose `ChildContexts`; cast to `IContextualTestCase` to recurse
+
+### TestCaseConverter
+
+**Purpose**: Converts `SpecTest` → VSTest `TestCase`  
+**FQN format**: `{AssemblyQualifiedClassName}::{MethodName}::{ContextPath}::{TestDescription}`  
+**Display name**: `{MethodName} → {ContextPath segments joined with →} → {TestDescription}`  
+**Metadata slots** (via `TestProperties`): `ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`
+
+### SpecTest (data model)
+
+```csharp
+public class SpecTest {
+    public Type SpecificationClass { get; set; }
+    public MethodInfo? ContextMethod { get; set; }
+    public Action? ItAction { get; set; }         // used for It[...]-precise source navigation
+    public string ContextPath { get; set; }      // " → " separated
+    public string TestDescription { get; set; }
+}
+```
+
+### TestFinder (internal)
+
+**Purpose**: Navigate `IContextualTestCase` tree to locate the `(ITestCase, Action)` pair for a given path  
+**Path splitting**: splits on `" → "` (space + U+2192 + space); follows `ChildContexts` by `Description`
+
+### TestInvoker (internal)
+
+**Purpose**: Resolve the spec type, rebuild the suite tree, and run the requested tests  
+**Suite mode** (`InvokeSuite`, used for all VSTest runs):
+1. Resolve `Type` from `ClassName` metadata; load assembly from `TestCase.Source`; strip AQN suffix (`className.Split(',')[0].Trim()`)
+2. `SuiteTreeBuilder.BuildSuite(specType)` — one tree per class, not per test
+3. Hand the tree and the selected `TestCase` list to `SelectionTreeWalker`
+4. On build failure, report every test in the group as failed
+
+**Single-test mode** (`Invoke`): builds the suite, locates the test with `TestFinder`, then runs the cascaded lifecycle `SetupOnce → SetupEach → Act → try{test} → TeardownEach → TeardownOnce`. Teardown always runs; failure is rethrown via `ExceptionDispatchInfo.Capture().Throw()`.
+
+### SelectionTreeWalker (internal)
+
+**Purpose**: Depth-first walk that fires each live node's `OwnSetupOnce` / `OwnTeardownOnce` exactly once  
+**Live node**: one with at least one selected test at or beneath it; idle branches are skipped  
+**Delegation**: per-test loops go to `TestCaseExecutor` with no-op once-actions, so cascaded `SetupEach` / `Act` / `TeardownEach` still run per test without re-firing `BeforeAll` / `AfterAll`
+
+### ResultReporter (internal)
+
+**Purpose**: Create `TestResult` with correct `TestOutcome` and timing  
+**Success**: `TestOutcome.Passed`, sets `Duration`  
+**Failure**: `TestOutcome.Failed`, unwraps nested `TargetInvocationException` chains to surface root cause in `ErrorMessage` + `ErrorStackTrace`
+
+### InvalidSpecificationException
+
+**Purpose**: Thrown during discovery when a `Specifications` subclass has no `[Context]` methods  
+**Rule**: Every class inheriting `Specifications` or `Spec` that is discovered by the adapter MUST have at least one `[Context]` method.
+
+---
+
+## Integration Test Project (specs.BDD.VSTestAdapter.IntegrationTests)
+
+Demonstrates end-to-end usage of the adapter via `dotnet test`. Requires only:
+- `PackageReference: Microsoft.NET.Test.Sdk`
+- `ProjectReference: specs.BDD.VSTestAdapter`
+
+**Patterns demonstrated**:
+| File | Demonstrates |
+|------|-------------|
+| `CalculatorSpecs.cs` | Multiple `[Context]` methods, nested `Context[...]` blocks |
+| `StringSpecs.cs` | Second spec class in same assembly, 3-level context nesting |
+| `AsyncAndExceptionSpecs.cs` | `Act(async () => ...)`, `ItAsync["..."]`, async `BeforeAll/AfterAll`, exception capture in Act |
+
+---
+
 ## Summary
 
 The framework is built on three core pillars:
@@ -454,5 +594,9 @@ The framework is built on three core pillars:
 1. **Builder Layer**: Fluent API for constructing hierarchical test cases
 2. **Model Layer**: Immutable representations of test cases and contexts
 3. **Execution Layer**: Orchestrated execution with proper lifecycle management
+
+**VSTest integration** adds a fourth pillar:
+
+4. **Adapter Layer**: Bridges specs.BDD to the .NET VSTest platform, enabling `dotnet test`, Test Explorer, and IDE debugging for specs.BDD specifications
 
 These components work together to provide a powerful, flexible testing framework that supports complex test hierarchies while maintaining a clean, intuitive API.

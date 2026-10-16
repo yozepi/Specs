@@ -1,6 +1,7 @@
+using specs.BDD.VSTestAdapter.Discovery;
+using specs.core.Framework.Processors.TestCases;
 using System;
 using System.Linq;
-using specs.core.Framework.Processors.TestCases;
 
 namespace specs.BDD.VSTestAdapter.Execution
 {
@@ -17,7 +18,6 @@ namespace specs.BDD.VSTestAdapter.Execution
     /// </remarks>
     internal static class TestFinder
     {
-        private static readonly string[] PathSeparator = { " \u2192 " }; // " → "
 
         /// <summary>
         /// Locates the <see cref="ITestCase"/> node and its matching <see cref="Action"/>
@@ -38,17 +38,18 @@ namespace specs.BDD.VSTestAdapter.Execution
             string contextPath,
             string testDescription)
         {
-            var segments = contextPath.Split(PathSeparator, StringSplitOptions.None);
+            var segments = contextPath.Split(TestStructureExtractor.PathSeparator, StringSplitOptions.None);
 
-            // Segment[0] is the root context name — we are already at the root, so skip it.
-            // Each subsequent segment is a child context Description to navigate into.
+            // Navigate ALL segments from root.ChildContexts downward.
+            // The tree root (built by SuiteTreeBuilder) has no description of its own;
+            // each segment corresponds to a child context description.
             ITestCase current = root;
-            for (int i = 1; i < segments.Length; i++)
+            foreach (var segment in segments)
             {
                 if (current is IContextualTestCase parent)
                 {
                     var child = parent.ChildContexts
-                        .FirstOrDefault(c => c.Description == segments[i]);
+                        .FirstOrDefault(c => c.Description == segment);
 
                     if (child == null)
                         return null;

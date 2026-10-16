@@ -2,6 +2,7 @@
 using specs.core.Framework.ParameterValidation;
 using System;
 using System.Linq;
+using System.Threading;
 
 namespace specs.core.Framework.Processors.TestExecutors
 {
@@ -27,7 +28,7 @@ namespace specs.core.Framework.Processors.TestExecutors
             this.testProvider = tests;
         }
 
-        public void ProcessTestCase()
+        public void ProcessTestCase(CancellationToken cancellationToken)
         {
             try
             {
@@ -38,6 +39,9 @@ namespace specs.core.Framework.Processors.TestExecutors
 
                     foreach (var test in tests)
                     {
+                        if (cancellationToken.IsCancellationRequested)
+                            break;
+
                         testContext.SetupEach();
                         testContext.Act();
 

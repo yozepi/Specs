@@ -5,6 +5,7 @@ using specs.BDD.VSTestAdapter.Execution;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using System.Reflection;
+using specs.BDD.VSTestAdapter.Discovery;
 
 namespace specs.BDD.VSTestAdapter.Tests.Execution
 {
@@ -136,7 +137,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var testCase = MakeTestCase<NestedContextSpec>(
                 "describe_something",
-                "root context \u2192 when doing X",
+                $"root context{TestStructureExtractor.PathSeparator}when doing X",
                 "should work for X");
 
             var result = TestInvoker.Invoke(testCase);
@@ -149,7 +150,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var testCase = MakeTestCase<DeeplyNestedContextSpec>(
                 "describe_something",
-                "root \u2192 level one \u2192 level two",
+                $"root{TestStructureExtractor.PathSeparator}level one{TestStructureExtractor.PathSeparator}level two",
                 "deep test");
 
             var result = TestInvoker.Invoke(testCase);

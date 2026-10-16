@@ -4,9 +4,9 @@
 
 **MANDATORY FIRST STEP**: Review the memory bank documentation before proceeding with any task.
 
-1. **Start here**: Read `memory-bank/README.md` for navigation
+1. **Start here**: Read the 6 core files in order — `projectbrief.md` → `productContext.md` → `activeContext.md` → `systemPatterns.md` → `techContext.md` → `progress.md`
 2. **Understand the context**: Review relevant documentation based on task type:
-   - Architecture or design changes → `architecture.md`
+   - Architecture or design changes → `systemPatterns.md`
    - Working with specific components → `core-components.md`
    - Creating or modifying tests → `test-patterns.md`
    - Unfamiliar terms → `glossary.md`
@@ -35,7 +35,8 @@
    - New components → Update `core-components.md`
    - New patterns → Add to `test-patterns.md`
    - New terminology → Add to `glossary.md`
-   - Architectural changes → Update `architecture.md`
+   - Architectural changes → Update `systemPatterns.md` (with BEFORE/AFTER diagrams)
+   - Current work / status → Update `activeContext.md` and `progress.md`
 
 2. **Maintain Consistency**: Keep memory bank documentation synchronized with code
 
@@ -51,13 +52,19 @@
 ```
 ├── memory-bank/             # 📚 Documentation (READ THIS FIRST!)
 └── src/
-    ├── specs.core/          # Core framework
+    ├── specs.core/                  # DELIVERABLE — framework-agnostic core
     │   └── Framework/
-    │       ├── Adapters/    # External dependency abstractions
-    │       ├── Processors/  # Test case models & executors
-    │       └── Settings/    # Configuration
-    ├── specs.core.UnitTests/ # Framework tests
-    └── TestHarness/         # NSpec integration
+    │       ├── Adapters/            # External dependency abstractions
+    │       ├── Processors/          # Test case models & executors
+    │       └── Settings/            # Configuration
+    ├── specs.specification/         # DELIVERABLE — specs.BDD authoring API
+    ├── specs.BDD.VSTestAdapter/     # DELIVERABLE — Discovery/Conversion/Execution
+    ├── specs.core.UnitTests/        # Self-hosted (runs on Specs itself)
+    ├── specs.specification.UnitTests/
+    ├── specs.BDD.VSTestAdapter.Tests/
+    ├── specs.BDD.VSTestAdapter.IntegrationTests/
+    ├── Specs.csproj + Domain/       # Legacy property-based Spec API
+    └── TestHarness/                 # Internal-only nspec bridge (NOT a deliverable)
 ```
 
 ## 🚫 Common Pitfalls to Avoid

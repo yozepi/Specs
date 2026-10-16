@@ -1,57 +1,53 @@
 using NFluent;
+using specs.BDD;
+using specs.BDD.Attributes;
 using specs.core.Framework.Adapters;
-using yozepi;
 
 namespace specs.core.UnitTests.Framework.Adapters
 {
-    public class TestInstance_Tests : nSpecTestHarness
+    public class TestInstance_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
-
-        private void TestInstance_Specs()
+        [Context]
+        public void TestInstance_Specs()
         {
             TestInstance subject = null!;
             string description = null!;
             Action test = null!;
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 description = "Test description";
                 test = () => { };
-            };
+            });
 
-            describe["TestInstance constructor"] = () =>
+            Describe["TestInstance constructor"] = () =>
             {
-                context["when both parameters are valid"] = () =>
+                Context["when both parameters are valid"] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new TestInstance(description, test);
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should set Description property"] = () =>
+                    It["should set Description property"] = () =>
                     {
                         Check.That(subject.Description).IsEqualTo(description);
                     };
 
-                    it["should set Test property"] = () =>
+                    It["should set Test property"] = () =>
                     {
                         Check.That(subject.Test).IsEqualTo(test);
                     };
                 };
 
-                context["when description is null"] = () =>
+                Context["when description is null"] = () =>
                 {
-                    it["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException"] = () =>
                     {
                         ArgumentNullException exception = null!;
                         try
@@ -67,9 +63,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                     };
                 };
 
-                context["when test is null"] = () =>
+                Context["when test is null"] = () =>
                 {
-                    it["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException"] = () =>
                     {
                         ArgumentNullException exception = null!;
                         try
@@ -85,9 +81,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                     };
                 };
 
-                context["when both parameters are null"] = () =>
+                Context["when both parameters are null"] = () =>
                 {
-                    it["should throw ArgumentNullException for description first"] = () =>
+                    It["should throw ArgumentNullException for description first"] = () =>
                     {
                         ArgumentNullException exception = null!;
                         try
@@ -104,26 +100,26 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["Description property"] = () =>
+            Describe["Description property"] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject = new TestInstance(description, test);
-                };
+                });
 
-                it["should return the value provided in constructor"] = () =>
+                It["should return the value provided in constructor"] = () =>
                 {
                     Check.That(subject.Description).IsEqualTo(description);
                 };
 
-                it["should be read-only (no setter)"] = () =>
+                It["should be read-only (no setter)"] = () =>
                 {
                     var propertyInfo = typeof(TestInstance).GetProperty("Description");
                     Check.That(propertyInfo).IsNotNull();
                     Check.That(propertyInfo!.CanWrite).IsFalse();
                 };
 
-                context["with various description formats"] = () =>
+                Context["with various description formats"] = () =>
                 {
                     var testDescriptions = new[]
                     {
@@ -139,7 +135,7 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                     foreach (var testDescription in testDescriptions)
                     {
-                        it[$"should preserve description: '{testDescription}'"] = () =>
+                        It[$"should preserve description: '{testDescription}'"] = () =>
                         {
                             var instance = new TestInstance(testDescription, test);
                             Check.That(instance.Description).IsEqualTo(testDescription);
@@ -148,26 +144,26 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["Test property"] = () =>
+            Describe["Test property"] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject = new TestInstance(description, test);
-                };
+                });
 
-                it["should return the value provided in constructor"] = () =>
+                It["should return the value provided in constructor"] = () =>
                 {
                     Check.That(subject.Test).IsEqualTo(test);
                 };
 
-                it["should be read-only (no setter)"] = () =>
+                It["should be read-only (no setter)"] = () =>
                 {
                     var propertyInfo = typeof(TestInstance).GetProperty("Test");
                     Check.That(propertyInfo).IsNotNull();
                     Check.That(propertyInfo!.CanWrite).IsFalse();
                 };
 
-                it["should be invokable"] = () =>
+                It["should be invokable"] = () =>
                 {
                     bool invoked = false;
                     var testAction = new Action(() => invoked = true);
@@ -178,9 +174,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                     Check.That(invoked).IsTrue();
                 };
 
-                context["with different test action behaviors"] = () =>
+                Context["with different test action behaviors"] = () =>
                 {
-                    it["should preserve action that does nothing"] = () =>
+                    It["should preserve action that does nothing"] = () =>
                     {
                         var emptyAction = new Action(() => { });
                         subject = new TestInstance(description, emptyAction);
@@ -188,7 +184,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                         Check.ThatCode(() => subject.Test.Invoke()).DoesNotThrow();
                     };
 
-                    it["should preserve action that throws exception"] = () =>
+                    It["should preserve action that throws exception"] = () =>
                     {
                         var throwingAction = new Action(() => throw new InvalidOperationException("Test failed"));
                         subject = new TestInstance(description, throwingAction);
@@ -198,7 +194,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                             .WithMessage("Test failed");
                     };
 
-                    it["should preserve action with side effects"] = () =>
+                    It["should preserve action with side effects"] = () =>
                     {
                         int counter = 0;
                         var countingAction = new Action(() => counter++);
@@ -212,9 +208,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["instance independence"] = () =>
+            Describe["instance independence"] = () =>
             {
-                it["should create independent instances with same description"] = () =>
+                It["should create independent instances with same description"] = () =>
                 {
                     var instance1 = new TestInstance("same description", () => { });
                     var instance2 = new TestInstance("same description", () => { });
@@ -225,7 +221,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                     Check.That(instance1.Description).IsEqualTo(instance2.Description);
                 };
 
-                it["should create independent instances with same test action"] = () =>
+                It["should create independent instances with same test action"] = () =>
                 {
                     var sharedAction = new Action(() => { });
                     var instance1 = new TestInstance("description 1", sharedAction);
@@ -237,7 +233,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                     Check.That(instance1.Test).IsSameReferenceAs(instance2.Test);
                 };
 
-                it["should allow multiple instances to execute independently"] = () =>
+                It["should allow multiple instances to execute independently"] = () =>
                 {
                     int counter1 = 0;
                     int counter2 = 0;
@@ -253,9 +249,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["real-world usage patterns"] = () =>
+            Describe["real-world usage patterns"] = () =>
             {
-                it["should work with NSpec-style test descriptions"] = () =>
+                It["should work with NSpec-style test descriptions"] = () =>
                 {
                     var testDescriptions = new[]
                     {
@@ -271,7 +267,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                     }
                 };
 
-                it["should work with assertion-based tests"] = () =>
+                It["should work with assertion-based tests"] = () =>
                 {
                     var expectedResult = 42;
                     var actualResult = 0;
@@ -290,7 +286,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                     Check.That(actualResult).IsEqualTo(42);
                 };
 
-                it["should work with expect<TException> pattern"] = () =>
+                It["should work with expect<TException> pattern"] = () =>
                 {
                     var instance = new TestInstance(
                         "should throw ArgumentException",
@@ -304,7 +300,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                         .WithMessage("Invalid argument");
                 };
 
-                it["should support tests that modify shared state"] = () =>
+                It["should support tests that modify shared state"] = () =>
                 {
                     var sharedState = new List<string>();
 
@@ -319,28 +315,28 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["immutability"] = () =>
+            Describe["immutability"] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject = new TestInstance(description, test);
-                };
+                });
 
-                it["should not allow Description to be modified after construction"] = () =>
+                It["should not allow Description to be modified after construction"] = () =>
                 {
                     var originalDescription = subject.Description;
                     // Properties are read-only, verified in property tests
                     Check.That(subject.Description).IsEqualTo(originalDescription);
                 };
 
-                it["should not allow Test to be modified after construction"] = () =>
+                It["should not allow Test to be modified after construction"] = () =>
                 {
                     var originalTest = subject.Test;
                     // Properties are read-only, verified in property tests
                     Check.That(subject.Test).IsEqualTo(originalTest);
                 };
 
-                it["should maintain same reference for Test action"] = () =>
+                It["should maintain same reference for Test action"] = () =>
                 {
                     var testAction = new Action(() => { });
                     var instance = new TestInstance("test", testAction);
@@ -349,29 +345,29 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["type constraints and validation"] = () =>
+            Describe["type constraints and validation"] = () =>
             {
-                it["should accept Action with no parameters"] = () =>
+                It["should accept Action with no parameters"] = () =>
                 {
                     Action validAction = () => Console.WriteLine("test");
                     Check.ThatCode(() => new TestInstance("test", validAction))
                         .DoesNotThrow();
                 };
 
-                it["should work with lambda expressions"] = () =>
+                It["should work with lambda expressions"] = () =>
                 {
                     subject = new TestInstance("test", () => Console.WriteLine("lambda"));
                     Check.That(subject.Test).IsNotNull();
                 };
 
-                it["should work with method references"] = () =>
+                It["should work with method references"] = () =>
                 {
                     void TestMethod() { }
                     subject = new TestInstance("test", TestMethod);
                     Check.That(subject.Test).IsNotNull();
                 };
 
-                it["should work with closures"] = () =>
+                It["should work with closures"] = () =>
                 {
                     int capturedVariable = 0;
                     subject = new TestInstance("test", () => capturedVariable++);
@@ -381,9 +377,9 @@ namespace specs.core.UnitTests.Framework.Adapters
                 };
             };
 
-            describe["ToString() behavior"] = () =>
+            Describe["ToString() behavior"] = () =>
             {
-                it["should return meaningful string representation"] = () =>
+                It["should return meaningful string representation"] = () =>
                 {
                     subject = new TestInstance("my test description", () => { });
                     var stringRepresentation = subject.ToString();

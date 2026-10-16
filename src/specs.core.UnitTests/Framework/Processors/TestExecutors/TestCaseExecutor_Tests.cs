@@ -1,23 +1,20 @@
-﻿using Autofac.Extras.Moq;
+using Autofac.Extras.Moq;
 using Moq;
 using NFluent;
 using NUnit.Framework.Internal;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.Processors.TestExecutors;
 using System.ComponentModel;
-using yozepi;
+using specs.BDD;
+using specs.BDD.Attributes;
 
 namespace specs.core.UnitTests.Framework.Processors.TestExecutors
 {
-    public class TestCaseExecutor_Tests : nSpecTestHarness
+    public class TestCaseExecutor_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
 
-        private void TestCaseExecutor_Specs()
+        [Context]
+        public void TestCaseExecutor_Specs()
         {
             TestCaseExecutor subject = null!;
             TestCaseExecutorSettings settings = null!;
@@ -31,10 +28,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
             List<CalledMethods> methodCallOrder = null!;
 
             AutoMock mocker = null!;
+            Exception? _caughtActException = null;
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 subject = null!;
+                _caughtActException = null;
                 settings = new TestCaseExecutorSettings();
                 logger = null!;
 
@@ -47,14 +46,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 tests = new List<TestInstance>();
                 testCaseTest = () => methodCallOrder.Add(CalledMethods.Assert);
                 tests.Add(new TestInstance(testCaseDescription, testCaseTest));
-            };
+            });
 
-            afterEach = () =>
+            AfterEach(() =>
             {
                 mocker.Dispose();
-            };
+            });
 
-            act = () =>
+            Act(() =>
             {
                 mocker.Mock<ITestProviderAdapter>()
                     .Setup(x => x.GetTestInstances())
@@ -70,11 +69,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     testProvider
                 );
 
-                subject.ProcessTestCase();
-            };
-            describe["Test execution call order..."] = () =>
+                try { subject.ProcessTestCase(CancellationToken.None); }
+                catch (Exception ex) { _caughtActException = ex; }
+            });
+            Describe["Test execution call order..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.SetupOnce())
@@ -91,9 +91,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     mocker.Mock<ITestContextAdapter>()
                           .Setup(x => x.TeardownOnce())
                           .Callback(() => methodCallOrder.Add(CalledMethods.TeardownOnce));
-                };
+                });
 
-                context["when there is one test in the test case..."] = () =>
+                Context["when there is one test in the test case..."] = () =>
                 {
                     var oneTestCompleteCallOrder = new CalledMethods[] {
                     CalledMethods.SetupOnce,
@@ -103,20 +103,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     CalledMethods.TeardownEach,
                     CalledMethods.TeardownOnce
                 };
-                    it[$"should execute in the following order:\n\t\t\t{string.Join(",\n\t\t\t", oneTestCompleteCallOrder)}"] = () =>
+                    It[$"should execute in the following order:\n\t\t\t{string.Join(",\n\t\t\t", oneTestCompleteCallOrder)}"] = () =>
                     {
                         Check.That(methodCallOrder).ContainsExactly(oneTestCompleteCallOrder);
                     };
                 };
 
-                context["when there are two tests in the test case..."] = () =>
+                Context["when there are two tests in the test case..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
                         var test = new TestInstance(testCaseDescription, testCaseTest);
                         tests.AddRange(new TestInstance[] { test, test });
-                    };
+                    });
                     var multiTestCompleteCallOrder = new CalledMethods[] {
                         CalledMethods.SetupOnce,
                         CalledMethods.SetupEach,
@@ -129,18 +129,18 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         CalledMethods.TeardownEach,
                         CalledMethods.TeardownOnce
                     };
-                    it[$"should execute in the following order:\n\t\t\t{string.Join(",\n\t\t\t", multiTestCompleteCallOrder)}"] = () =>
+                    It[$"should execute in the following order:\n\t\t\t{string.Join(",\n\t\t\t", multiTestCompleteCallOrder)}"] = () =>
                     {
                         Check.That(methodCallOrder).ContainsExactly(multiTestCompleteCallOrder);
                     };
                 };
             };
 
-            describe["Test assertion behavior..."] = () =>
+            Describe["Test assertion behavior..."] = () =>
             {
-                context["when the assertion passes..."] = () =>
+                Context["when the assertion passes..."] = () =>
                 {
-                    it["should log the passing test"] = () =>
+                    It["should log the passing test"] = () =>
                     {
                         Check
                              .That(methodCallOrder)
@@ -150,44 +150,48 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     };
                 };
 
-                context["when the assertion fails..."] = () =>
+                Context["when the assertion fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         testCaseTest = () => throw new AssertionException("Test Failed");
                         var test = new TestInstance(testCaseDescription, testCaseTest);
                         tests.Clear();
                         tests.AddRange(new TestInstance[] { test });
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogAssertFailure(It.IsAny<AssertionException>(), testCaseDescription), Times.Once());
+                            .Verify(x => x.LogAssertFailure(Moq.It.IsAny<AssertionException>(), testCaseDescription), Times.Once());
                     };
 
-                    context["when configured to stop on an assertion failure..."] = () =>
+                    Context["when configured to stop on an assertion failure..."] = () =>
                     {
-                        beforeEach = () =>
+                        BeforeEach(() =>
                         {
                             settings.StopOnAssertFailure = true;
-                        };
+                        });
 
-                        it["should throw the exception"] = expect<AssertionException>();
+                        It["should throw the exception"] = () =>
+                        {
+                            Check.That(_caughtActException).IsNotNull();
+                            Check.That(_caughtActException).IsInstanceOf<AssertionException>();
+                        };
                     };
                 };
             };
 
-            describe[$"{nameof(ITestContextAdapter.SetupOnce)} behavior..."] = () =>
+            Describe[$"{nameof(ITestContextAdapter.SetupOnce)} behavior..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.SetupOnce())
                         .Callback(() => methodCallOrder.Add(CalledMethods.SetupOnce));
-                };
+                });
 
-                it[$"should execute {nameof(ITestContextAdapter.SetupOnce)} before asserting the test"] = () =>
+                It[$"should execute {nameof(ITestContextAdapter.SetupOnce)} before asserting the test"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -196,37 +200,41 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             CalledMethods.Assert);
                 };
 
-                context[$"when the {nameof(ITestContextAdapter.SetupOnce)} method fails..."] = () =>
+                Context[$"when the {nameof(ITestContextAdapter.SetupOnce)} method fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         mocker.Mock<ITestContextAdapter>().Setup(m => m.SetupOnce())
                             .Throws<InvalidEnumArgumentException>();
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(It.IsAny<InvalidEnumArgumentException>()), Times.Once());
+                            .Verify(x => x.LogException(Moq.It.IsAny<InvalidEnumArgumentException>()), Times.Once());
                     };
 
-                    it["should throw the exception"] = expect<InvalidEnumArgumentException>();
+                    It["should throw the exception"] = () =>
+                    {
+                        Check.That(_caughtActException).IsNotNull();
+                        Check.That(_caughtActException).IsInstanceOf<InvalidEnumArgumentException>();
+                    };
 
-                    it["should not assert the test"] = () =>
+                    It["should not assert the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
                 
-                context["when there are no tests to run..."] = () =>
+                Context["when there are no tests to run..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
-                    };
+                    });
 
-                    it[$"should not invoke {nameof(ITestContextAdapter.SetupOnce)}"] = () =>
+                    It[$"should not invoke {nameof(ITestContextAdapter.SetupOnce)}"] = () =>
                     {
                         mocker.Mock<ITestContextAdapter>()
                             .Verify(x => x.SetupOnce(), Times.Never());
@@ -234,16 +242,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 };
             };
 
-            describe[$"{nameof(ITestContextAdapter.SetupEach)} behavior..."] = () =>
+            Describe[$"{nameof(ITestContextAdapter.SetupEach)} behavior..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.SetupEach())
                         .Callback(() => methodCallOrder.Add(CalledMethods.SetupEach));
-                };
+                });
 
-                it[$"should execute {nameof(ITestContextAdapter.SetupEach)} before asserting the test"] = () =>
+                It[$"should execute {nameof(ITestContextAdapter.SetupEach)} before asserting the test"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -252,37 +260,41 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             CalledMethods.Assert);
                 };
 
-                context[$"when the {nameof(ITestContextAdapter.SetupEach)} method fails..."] = () =>
+                Context[$"when the {nameof(ITestContextAdapter.SetupEach)} method fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         mocker.Mock<ITestContextAdapter>().Setup(m => m.SetupEach())
                             .Throws<NullReferenceException>();
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(It.IsAny<NullReferenceException>()), Times.Once());
+                            .Verify(x => x.LogException(Moq.It.IsAny<NullReferenceException>()), Times.Once());
                     };
 
-                    it["should throw the exception"] = expect<NullReferenceException>();
+                    It["should throw the exception"] = () =>
+                    {
+                        Check.That(_caughtActException).IsNotNull();
+                        Check.That(_caughtActException).IsInstanceOf<NullReferenceException>();
+                    };
 
-                    it["should not assert the test"] = () =>
+                    It["should not assert the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
 
-                context["when there are no tests to run..."] = () =>
+                Context["when there are no tests to run..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
-                    };
+                    });
 
-                    it[$"should not invoke {nameof(ITestContextAdapter.SetupEach)}"] = () =>
+                    It[$"should not invoke {nameof(ITestContextAdapter.SetupEach)}"] = () =>
                     {
                         mocker.Mock<ITestContextAdapter>()
                             .Verify(x => x.SetupEach(), Times.Never());
@@ -290,16 +302,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 };
             };
 
-            describe[$"{nameof(ITestContextAdapter.Act)} behavior..."] = () =>
+            Describe[$"{nameof(ITestContextAdapter.Act)} behavior..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.Act())
                         .Callback(() => methodCallOrder.Add(CalledMethods.Act));
-                };
+                });
 
-                it[$"should execute {nameof(ITestContextAdapter.Act)} before asserting the test"] = () =>
+                It[$"should execute {nameof(ITestContextAdapter.Act)} before asserting the test"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -308,37 +320,41 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             CalledMethods.Assert);
                 };
 
-                context["when the Act method fails..."] = () =>
+                Context["when the Act method fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         mocker.Mock<ITestContextAdapter>().Setup(m => m.Act())
                             .Throws<NullReferenceException>();
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(It.IsAny<NullReferenceException>()), Times.Once());
+                            .Verify(x => x.LogException(Moq.It.IsAny<NullReferenceException>()), Times.Once());
                     };
 
-                    it["should throw the exception"] = expect<NullReferenceException>();
+                    It["should throw the exception"] = () =>
+                    {
+                        Check.That(_caughtActException).IsNotNull();
+                        Check.That(_caughtActException).IsInstanceOf<NullReferenceException>();
+                    };
 
-                    it["should not assert the test"] = () =>
+                    It["should not assert the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
                     };
                 };
 
-                context["when there are no tests to run..."] = () =>
+                Context["when there are no tests to run..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
-                    };
+                    });
 
-                    it[$"should not invoke {nameof(ITestContextAdapter.Act)}"] = () =>
+                    It[$"should not invoke {nameof(ITestContextAdapter.Act)}"] = () =>
                     {
                         mocker.Mock<ITestContextAdapter>()
                             .Verify(x => x.Act(), Times.Never());
@@ -346,16 +362,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 };
             };
 
-            describe[$"{nameof(ITestContextAdapter.TeardownEach)} behavior..."] = () =>
+            Describe[$"{nameof(ITestContextAdapter.TeardownEach)} behavior..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.TeardownEach())
                         .Callback(() => methodCallOrder.Add(CalledMethods.TeardownOnce));
-                };
+                });
 
-                it[$"should assert the test before running {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
+                It[$"should assert the test before running {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -364,37 +380,41 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             CalledMethods.TeardownOnce);
                 };
 
-                context[$"when {nameof(ITestContextAdapter.TeardownEach)} fails..."] = () =>
+                Context[$"when {nameof(ITestContextAdapter.TeardownEach)} fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         mocker.Mock<ITestContextAdapter>().Setup(m => m.TeardownOnce())
                             .Throws<InvalidCastException>();
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(It.IsAny<InvalidCastException>()), Times.Once());
+                            .Verify(x => x.LogException(Moq.It.IsAny<InvalidCastException>()), Times.Once());
                     };
 
-                    it["should throw the exception"] = expect<InvalidCastException>();
+                    It["should throw the exception"] = () =>
+                    {
+                        Check.That(_caughtActException).IsNotNull();
+                        Check.That(_caughtActException).IsInstanceOf<InvalidCastException>();
+                    };
 
-                    it["should have already asserted the test"] = () =>
+                    It["should have already asserted the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
                     };
                 };
 
-                context["when there are no tests to run..."] = () =>
+                Context["when there are no tests to run..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
-                    };
+                    });
 
-                    it[$"should not invoke {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
+                    It[$"should not invoke {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
                     {
                         mocker.Mock<ITestContextAdapter>()
                             .Verify(x => x.TeardownEach(), Times.Never());
@@ -402,16 +422,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 };
             };
 
-            describe[$"{nameof(ITestContextAdapter.TeardownOnce)} behavior..."] = () =>
+            Describe[$"{nameof(ITestContextAdapter.TeardownOnce)} behavior..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.TeardownOnce())
                         .Callback(() => methodCallOrder.Add(CalledMethods.TeardownOnce));
-                };
+                });
 
-                it[$"should assert the test before running {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                It[$"should assert the test before running {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
                 {
                     Check
                         .That(methodCallOrder)
@@ -420,37 +440,41 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             CalledMethods.TeardownOnce);
                 };
 
-                context[$"when {nameof(ITestContextAdapter.TeardownOnce)} fails..."] = () =>
+                Context[$"when {nameof(ITestContextAdapter.TeardownOnce)} fails..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         mocker.Mock<ITestContextAdapter>().Setup(m => m.TeardownOnce())
                             .Throws<InvalidCastException>();
-                    };
+                    });
 
-                    it["should log the failure"] = () =>
+                    It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(It.IsAny<InvalidCastException>()), Times.Once());
+                            .Verify(x => x.LogException(Moq.It.IsAny<InvalidCastException>()), Times.Once());
                     };
 
-                    it["should throw the exception"] = expect<InvalidCastException>();
+                    It["should throw the exception"] = () =>
+                    {
+                        Check.That(_caughtActException).IsNotNull();
+                        Check.That(_caughtActException).IsInstanceOf<InvalidCastException>();
+                    };
 
-                    it["should have already asserted the test"] = () =>
+                    It["should have already asserted the test"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
                     };
                 };
 
-                context["when there are no tests to run..."] = () =>
+                Context["when there are no tests to run..."] = () =>
                 {
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         tests.Clear();
-                    };
+                    });
 
-                    it[$"should not invoke {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                    It[$"should not invoke {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
                     {
                         mocker.Mock<ITestContextAdapter>()
                             .Verify(x => x.TeardownOnce(), Times.Never());

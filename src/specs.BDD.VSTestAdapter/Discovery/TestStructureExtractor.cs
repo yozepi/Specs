@@ -9,63 +9,45 @@ namespace specs.BDD.VSTestAdapter.Discovery
 {
     /// <summary>
     /// Extracts the flat list of <see cref="SpecTest"/> items from a specification class by
-    /// instantiating it, invoking a [Context] method, and recursively traversing the resulting
-    /// test hierarchy.
+    /// building the full suite tree via <see cref="SuiteTreeBuilder"/> and flattening it.
     /// </summary>
     public static class TestStructureExtractor
     {
-        /// <summary>
-        /// Reflection handle to the private <c>coreBuilder</c> field on <see cref="specs.BDD.Specifications"/>.
-        /// Accessed after the [Context] method has been invoked to retrieve the fully-built test structure.
-        /// </summary>
-        private static readonly FieldInfo? CoreBuilderField =
-            typeof(specs.BDD.Specifications).GetField(
-                "coreBuilder",
-                BindingFlags.NonPublic | BindingFlags.Instance);
+        public static string PathSeparator { get; set; } = " \u2192 ";
 
         /// <summary>
-        /// Instantiates <paramref name="specClass"/>, invokes <paramref name="contextMethod"/> to build
-        /// the test structure, and flattens all <see cref="SpecTest"/> items from the resulting hierarchy.
-        /// A fresh instance is created for each invocation so context methods do not interfere with each other.
+        /// Builds the complete suite tree for <paramref name="specClass"/> and flattens all
+        /// <see cref="SpecTest"/> items from the resulting hierarchy.
         /// </summary>
-        /// <param name="specClass">The specification class to instantiate.</param>
-        /// <param name="contextMethod">The [Context]-decorated method to invoke.</param>
+        /// <param name="specClass">The specification class to extract tests from.</param>
         /// <returns>A flat enumerable of all discovered tests.</returns>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the internal builder field cannot be located or is null after invocation.
+        /// Thrown when the specification class cannot be instantiated.
         /// </exception>
-        public static IEnumerable<SpecTest> ExtractTests(Type specClass, MethodInfo contextMethod)
+        public static IEnumerable<SpecTest> ExtractTests(Type specClass)
         {
-            if (CoreBuilderField == null)
-                throw new InvalidOperationException(
-                    "Cannot locate internal 'coreBuilder' field on Specifications. " +
-                    "The Specifications class implementation may have changed.");
+            // Build name → MethodInfo lookup so each SpecTest knows which [Context] method
+            // it belongs to (used for source-location navigation in Test Explorer).
+            var methodByContextName = new Dictionary<string, MethodInfo>(StringComparer.Ordinal);
+            foreach (var m in ContextMethodScanner.FindContextMethods(specClass))
+            {
+                var attr = m.GetCustomAttribute<ContextAttribute>();
+                var name = !string.IsNullOrWhiteSpace(attr?.Description)
+                    ? attr!.Description!
+                    : m.Name;
+                methodByContextName[name] = m;
+            }
 
-            // 1. Create a fresh instance so this context method builds in isolation.
-            var instance = Activator.CreateInstance(specClass) as specs.BDD.Specifications
-                ?? throw new InvalidOperationException(
-                    $"Cannot instantiate specification class '{specClass.FullName}'.");
+            var root = SuiteTreeBuilder.BuildSuite(specClass);
 
-            // 2. Invoke the [Context] method — this runs the user's fluent setup code and
-            //    populates the internal builder with the full test hierarchy.
-            contextMethod.Invoke(instance, null);
-
-            // 3. Access the private builder field (IContextualTestCaseBuilder) via reflection.
-            var builder = CoreBuilderField.GetValue(instance) as IContextualTestCaseBuilder
-                ?? throw new InvalidOperationException(
-                    "Internal 'coreBuilder' field is null after context method invocation.");
-
-            // 4. Build the immutable test case tree.
-            var testCase = builder.Build();
-
-            // 5. Determine the root display name from the [Context] attribute description, or the method name.
-            var contextAttr = contextMethod.GetCustomAttribute<ContextAttribute>();
-            var rootContextName = !string.IsNullOrWhiteSpace(contextAttr?.Description)
-                ? contextAttr!.Description!
-                : contextMethod.Name;
-
-            // 6. Flatten and return all tests.
-            return FlattenTests(testCase, specClass, contextMethod, rootContextName);
+            // The root node represents the class level. Its immediate children are the
+            // [Context] method contexts, so each child's description IS the root path.
+            foreach (var child in root.ChildContexts)
+            {
+                methodByContextName.TryGetValue(child.Description, out var ctxMethod);
+                foreach (var test in FlattenChildContext(child, specClass, child.Description, ctxMethod))
+                    yield return test;
+            }
         }
 
         // ── Private helpers ────────────────────────────────────────────────────────────────────
@@ -73,26 +55,28 @@ namespace specs.BDD.VSTestAdapter.Discovery
         private static IEnumerable<SpecTest> FlattenTests(
             IContextualTestCase testCase,
             Type specClass,
-            MethodInfo contextMethod,
-            string contextPath)
+            string rootPath,
+            Dictionary<string, MethodInfo> methodByContextName)
         {
-            // Tests defined directly inside the [Context] method (not nested in a sub-context).
-            foreach (var (description, _) in testCase.Tests)
+            // Tests defined directly at the class root (before any [Context] call).
+            foreach (var (description, action) in testCase.Tests)
             {
                 yield return new SpecTest
                 {
                     SpecificationClass = specClass,
-                    ContextMethod = contextMethod,
-                    ContextPath = contextPath,
-                    TestDescription = description
+                    ContextPath = rootPath,
+                    TestDescription = description,
+                    ContextMethod = null,
+                    ItAction = action
                 };
             }
 
-            // Recurse into each child context (Context["..."] or Describe["..."] blocks).
+            // Recurse into each child context ([Context] method or nested Describe block).
             foreach (var child in testCase.ChildContexts)
             {
-                var childPath = $"{contextPath} \u2192 {child.Description}";
-                foreach (var test in FlattenChildContext(child, specClass, contextMethod, childPath))
+                var childPath = $"{rootPath}{PathSeparator}{child.Description}";
+                methodByContextName.TryGetValue(child.Description, out var ctxMethod);
+                foreach (var test in FlattenChildContext(child, specClass, childPath, ctxMethod))
                     yield return test;
             }
         }
@@ -100,18 +84,19 @@ namespace specs.BDD.VSTestAdapter.Discovery
         private static IEnumerable<SpecTest> FlattenChildContext(
             ITestCaseContext child,
             Type specClass,
-            MethodInfo contextMethod,
-            string contextPath)
+            string contextPath,
+            MethodInfo? contextMethod)
         {
             // Tests defined directly at this context level.
-            foreach (var (description, _) in child.Tests)
+            foreach (var (description, action) in child.Tests)
             {
                 yield return new SpecTest
                 {
                     SpecificationClass = specClass,
-                    ContextMethod = contextMethod,
                     ContextPath = contextPath,
-                    TestDescription = description
+                    TestDescription = description,
+                    ContextMethod = contextMethod,
+                    ItAction = action
                 };
             }
 
@@ -122,8 +107,9 @@ namespace specs.BDD.VSTestAdapter.Discovery
             {
                 foreach (var grandChild in contextualChild.ChildContexts)
                 {
-                    var grandChildPath = $"{contextPath} \u2192 {grandChild.Description}";
-                    foreach (var test in FlattenChildContext(grandChild, specClass, contextMethod, grandChildPath))
+                    //var grandChildPath = $"{contextPath}.{grandChild.Description.Replace(".", "")}";
+                    var grandChildPath = $"{contextPath}{PathSeparator}{grandChild.Description}";
+                    foreach (var test in FlattenChildContext(grandChild, specClass, grandChildPath, contextMethod))
                         yield return test;
                 }
             }

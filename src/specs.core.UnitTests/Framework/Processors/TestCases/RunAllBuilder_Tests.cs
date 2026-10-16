@@ -1,19 +1,16 @@
 using NFluent;
 using NUnit.Framework;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
+using specs.BDD;
+using specs.BDD.Attributes;
 
 namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
-    public class RunAllBuilder_Tests : nSpecTestHarness
+    public class RunAllBuilder_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
 
-        private void RunAllBuilder_Specs()
+        [Context]
+        public void RunAllBuilder_Specs()
         {
             RunAllBuilder subject = null!;
             Action? result = null!;
@@ -21,95 +18,95 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
             List<int> callOrder = null!;
             Action trackAction(int n) => () => callOrder.Add(n);
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 subject = new RunAllBuilder();
                 result = null;
                 callOrder = [];
-            };
+            });
 
-            describe["Build() with no actions added..."] = () =>
+            Describe["Build() with no actions added..."] = () =>
             {
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
-                };
+                });
 
-                it["should return null"] = () =>
+                It["should return null"] = () =>
                 {
                     Check.That(result).IsNull();
                 };
             };
 
-            describe["Build() with single action added..."] = () =>
+            Describe["Build() with single action added..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
                     result?.Invoke();
-                };
+                });
 
-                it["should return non-null Action"] = () =>
+                It["should return non-null Action"] = () =>
                 {
                     Check.That(result).IsNotNull();
                 };
 
-                it["should execute the action when invoked"] = () =>
+                It["should execute the action when invoked"] = () =>
                 {
                     int[] expected = { 1 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["Build() with multiple actions added..."] = () =>
+            Describe["Build() with multiple actions added..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
                     subject.AddAction(trackAction(2));
                     subject.AddAction(trackAction(3));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
                     result?.Invoke();
-                };
+                });
 
-                it["should execute all actions in order"] = () =>
+                It["should execute all actions in order"] = () =>
                 {
                     int[] expected = { 1, 2, 3 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["Build() called multiple times without adding new actions..."] = () =>
+            Describe["Build() called multiple times without adding new actions..."] = () =>
             {
                 Action? firstBuild = null;
                 Action? secondBuild = null;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     firstBuild = subject.Build();
                     secondBuild = subject.Build();
-                };
+                });
 
-                it["should return the same Action instance (cached)"] = () =>
+                It["should return the same Action instance (cached)"] = () =>
                 {
                     Check.That(firstBuild).IsSameReferenceAs(secondBuild);
                 };
 
-                it["should execute action only once when both are invoked"] = () =>
+                It["should execute action only once when both are invoked"] = () =>
                 {
                     firstBuild?.Invoke();
                     secondBuild?.Invoke();
@@ -119,12 +116,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["AddAction() called after Build()..."] = () =>
+            Describe["AddAction() called after Build()..."] = () =>
             {
                 Action? firstBuild = null;
                 Action? secondBuild = null;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
                     firstBuild = subject.Build();
@@ -134,20 +131,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
                     subject.AddAction(trackAction(2));
                     secondBuild = subject.Build();
-                };
+                });
 
-                it["should create a new Action instance"] = () =>
+                It["should create a new Action instance"] = () =>
                 {
                     Check.That(firstBuild).Not.IsSameReferenceAs(secondBuild);
                 };
 
-                it["first build should have executed with only original action"] = () =>
+                It["first build should have executed with only original action"] = () =>
                 {
                     int[] expected = { 1 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
 
-                it["second build should execute all accumulated actions"] = () =>
+                It["second build should execute all accumulated actions"] = () =>
                 {
                     callOrder.Clear();
                     secondBuild?.Invoke();
@@ -155,7 +152,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     Check.That(callOrder).ContainsExactly(expected);
                 };
 
-                it["first build should not execute again (idempotency)"] = () =>
+                It["first build should not execute again (idempotency)"] = () =>
                 {
                     int beforeCount = callOrder.Count;
                     firstBuild?.Invoke();
@@ -163,49 +160,49 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["AddAction() with null parameter..."] = () =>
+            Describe["AddAction() with null parameter..."] = () =>
             {
-                it["should throw ArgumentNullException"] = () =>
+                It["should throw ArgumentNullException"] = () =>
                 {
                     Check.ThatCode(() => subject.AddAction(null!))
                         .Throws<ArgumentNullException>();
                 };
             };
 
-            describe["Built action invoked multiple times..."] = () =>
+            Describe["Built action invoked multiple times..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
                     subject.AddAction(trackAction(2));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
                     result?.Invoke();
                     result?.Invoke();
                     result?.Invoke();
-                };
+                });
 
-                it["should execute actions only once (idempotency guarantee)"] = () =>
+                It["should execute actions only once (idempotency guarantee)"] = () =>
                 {
                     int[] expected = { 1, 2 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["Built action with exception in first action..."] = () =>
+            Describe["Built action with exception in first action..."] = () =>
             {
                 Exception? caughtException = null;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(() => throw new InvalidOperationException("First action failed"));
                     subject.AddAction(trackAction(2));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
                     try
@@ -216,21 +213,21 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     {
                         caughtException = ex;
                     }
-                };
+                });
 
-                it["should throw the exception"] = () =>
+                It["should throw the exception"] = () =>
                 {
                     Check.That(caughtException).IsNotNull();
                     Check.That(caughtException).IsInstanceOf<InvalidOperationException>();
                     Check.That(caughtException!.Message).IsEqualTo("First action failed");
                 };
 
-                it["should not execute subsequent actions"] = () =>
+                It["should not execute subsequent actions"] = () =>
                 {
                     Check.That(callOrder).IsEmpty();
                 };
 
-                it["should allow retry on second invocation"] = () =>
+                It["should allow retry on second invocation"] = () =>
                 {
                     // Clear previous exception
                     caughtException = null;
@@ -250,18 +247,18 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["Built action with exception in middle action..."] = () =>
+            Describe["Built action with exception in middle action..."] = () =>
             {
                 Exception? caughtException = null;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddAction(trackAction(1));
                     subject.AddAction(() => throw new InvalidOperationException("Middle action failed"));
                     subject.AddAction(trackAction(3));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     result = subject.Build();
                     try
@@ -272,20 +269,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     {
                         caughtException = ex;
                     }
-                };
+                });
 
-                it["should execute actions up to the exception"] = () =>
+                It["should execute actions up to the exception"] = () =>
                 {
                     int[] expected = { 1 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
 
-                it["should not execute actions after the exception"] = () =>
+                It["should not execute actions after the exception"] = () =>
                 {
                     Check.That(callOrder).Not.Contains(3);
                 };
 
-                it["should retry from beginning on second invocation"] = () =>
+                It["should retry from beginning on second invocation"] = () =>
                 {
                     callOrder.Clear();
                     caughtException = null;
@@ -305,14 +302,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["Multiple independent RunAllBuilder instances..."] = () =>
+            Describe["Multiple independent RunAllBuilder instances..."] = () =>
             {
                 RunAllBuilder builder1 = null!;
                 RunAllBuilder builder2 = null!;
                 Action? action1 = null;
                 Action? action2 = null;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     builder1 = new RunAllBuilder();
                     builder2 = new RunAllBuilder();
@@ -322,9 +319,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
                     action1 = builder1.Build();
                     action2 = builder2.Build();
-                };
+                });
 
-                it["should not share state"] = () =>
+                It["should not share state"] = () =>
                 {
                     action1?.Invoke();
                     action2?.Invoke();
@@ -333,7 +330,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     Check.That(callOrder).ContainsExactly(expected);
                 };
 
-                it["should maintain independent idempotency"] = () =>
+                It["should maintain independent idempotency"] = () =>
                 {
                     action1?.Invoke();
                     action1?.Invoke(); // Should not execute again

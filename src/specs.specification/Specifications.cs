@@ -13,68 +13,70 @@ namespace specs.BDD
     {
         private IContextualTestCaseBuilder coreBuilder = new ContextualTestCaseBuilder();
 
+        internal protected IContextualTestCaseBuilder CoreBuilder => coreBuilder;
+
         /// <summary>
         /// Defines a synchronous setup action that runs once before all tests in this context.
         /// </summary>
         /// <param name="action">The setup action to execute.</param>
-        public void BeforeAll(Action action) => coreBuilder.AddSetupOnce(action);
+        public void BeforeAll(Action action) => CoreBuilder.AddSetupOnce(action);
 
         /// <summary>
         /// Defines an asynchronous setup action that runs once before all tests in this context.
         /// </summary>
         /// <param name="taskFunction">The async setup action to execute.</param>
-        public void BeforeAll(Func<Task> taskFunction) => coreBuilder.AddSetupOnce(taskFunction);
+        public void BeforeAll(Func<Task> taskFunction) => CoreBuilder.AddSetupOnce(taskFunction);
 
         /// <summary>
         /// Defines a synchronous setup action that runs before each test.
         /// </summary>
         /// <param name="action">The setup action to execute.</param>
-        public void BeforeEach(Action action) => coreBuilder.AddSetupEach(action);
+        public void BeforeEach(Action action) => CoreBuilder.AddSetupEach(action);
 
         /// <summary>
         /// Defines an asynchronous setup action that runs before each test.
         /// </summary>
         /// <param name="taskFunction">The async setup action to execute.</param>
-        public void BeforeEach(Func<Task> taskFunction) => coreBuilder.AddSetupEach(taskFunction);
+        public void BeforeEach(Func<Task> taskFunction) => CoreBuilder.AddSetupEach(taskFunction);
 
         /// <summary>
         /// Defines the synchronous action under test.
         /// This action executes after setup and before assertions.
         /// </summary>
         /// <param name="action">The action to test.</param>
-        public void Act(Action action) => coreBuilder.AddAct(action);
+        public void Act(Action action) => CoreBuilder.AddAct(action);
 
         /// <summary>
         /// Defines the asynchronous action under test.
         /// This action executes after setup and before assertions.
         /// </summary>
         /// <param name="taskFunction">The async action to test.</param>
-        public void Act(Func<Task> taskFunction) => coreBuilder.AddAct(taskFunction);
+        public void Act(Func<Task> taskFunction) => CoreBuilder.AddAct(taskFunction);
 
         /// <summary>
         /// Defines a synchronous teardown action that runs after each test.
         /// </summary>
         /// <param name="action">The teardown action to execute.</param>
-        public void AfterEach(Action action) => coreBuilder.AddTeardownEach(action);
+        public void AfterEach(Action action) => CoreBuilder.AddTeardownEach(action);
 
         /// <summary>
         /// Defines an asynchronous teardown action that runs after each test.
         /// </summary>
         /// <param name="taskFunction">The async teardown action to execute.</param>
-        public void AfterEach(Func<Task> taskFunction) => coreBuilder.AddTeardownEach(taskFunction);
+        public void AfterEach(Func<Task> taskFunction) => CoreBuilder.AddTeardownEach(taskFunction);
 
         /// <summary>
         /// Defines a synchronous teardown action that runs once after all tests in this context.
         /// </summary>
         /// <param name="action">The teardown action to execute.</param>
-        public void AfterAll(Action action) => coreBuilder.AddTeardownOnce(action);
+        public void AfterAll(Action action) => CoreBuilder.AddTeardownOnce(action);
 
         /// <summary>
         /// Defines an asynchronous teardown action that runs once after all tests in this context.
         /// </summary>
         /// <param name="taskFunction">The async teardown action to execute.</param>
-        public void AfterAll(Func<Task> taskFunction) => coreBuilder.AddTeardownOnce(taskFunction);
- 
+        public void AfterAll(Func<Task> taskFunction) => CoreBuilder.AddTeardownOnce(taskFunction);
+
         /// <summary>
         /// Defines "what" is being tested using behavior-driven design (BDD) style.
         /// Use Describe to specify the subject under test, such as a class name, feature, or component.
@@ -94,7 +96,7 @@ namespace specs.BDD
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Describe => new ContextBuilder(coreBuilder, contextCallBack);
+        public ContextBuilder Describe => new ContextBuilder(CoreBuilder, contextCallBack);
 
 
         /// <summary>
@@ -111,16 +113,15 @@ namespace specs.BDD
         /// {
         ///     Describe["UserProfile"] = () =>
         ///     {
-        ///         // Test cases for authenticated user profile
+        ///     // Test cases for authenticated user profile
         ///     };
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Context => new ContextBuilder(coreBuilder, contextCallBack);
+        public ContextBuilder Context => new ContextBuilder(CoreBuilder, contextCallBack);
 
         private void contextCallBack(IContextualTestCaseBuilder childCoreBuilder, Action action)
         {
-
             var previousCoreBuilder = this.coreBuilder;
             this.coreBuilder = childCoreBuilder;
             try
@@ -147,32 +148,31 @@ namespace specs.BDD
         /// {
         ///     It["should add two numbers correctly"] = () =>
         ///     {
-        ///         // Test assertion
+        ///       // Test assertion
         ///     };
         /// };
         /// </code>
         /// </example>
-        public AssertBuilder It => new AssertBuilder(coreBuilder);
+        public AssertBuilder It => new AssertBuilder(CoreBuilder);
 
         /// <summary>
-        /// Defines asyncronous "then" test assertions in behavior-driven design (BDD) style.
-        /// Use It to specify individual test assertions within a context or describe block.
-        /// This property is protected and only accessible from derived test specification classes.
+        /// Defines asynchronous "then" test assertions in behavior-driven design (BDD) style.
+        /// Use ItAsync to specify individual asynchronous test assertions within a context or describe block.
         /// </summary>
         /// <returns>
-        /// A builder instance enabling fluent indexer syntax for defining test assertions.
+        /// A builder instance enabling fluent indexer syntax for defining asynchronous test assertions.
         /// </returns>
         /// <example>
         /// <code>
         /// Describe["Calculator"] = () =>
         /// {
-        ///     It["should add two numbers correctly"] = () =>
+        ///     ItAsync["should return data from the remote service"] = async () =>
         ///     {
-        ///         // Test assertion
+        ///         // Async test assertion
         ///     };
         /// };
         /// </code>
         /// </example>
-        public AssertBuilderAsync ItAsync => new AssertBuilderAsync(coreBuilder);
+        public AssertBuilderAsync ItAsync => new AssertBuilderAsync(CoreBuilder);
     }
 }

@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="specs.BDD.VSTestAdapter" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\specs.core\specs.core.csproj" />
   </ItemGroup>
 

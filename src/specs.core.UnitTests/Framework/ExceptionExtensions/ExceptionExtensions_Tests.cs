@@ -1,39 +1,36 @@
 using NFluent;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.ParameterValidation;
-using yozepi;
+using specs.BDD;
+using specs.BDD.Attributes;
 
 namespace specs.core.UnitTests.Framework.ExceptionExtensions
 {
-    public class ExceptionExtensions_Tests : nSpecTestHarness
+    public class ExceptionExtensions_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
 
-        private void ExceptionExtensions_Specs()
+        [Context]
+        public void ExceptionExtensions_Specs()
         {
-            describe["SetValueOrThrowIfParameterIsNull extension method"] = () =>
+            Describe["SetValueOrThrowIfParameterIsNull extension method"] = () =>
             {
-                context["when parameter is null reference type"] = () =>
+                Context["when parameter is null reference type"] = () =>
                 {
-                    it["should throw ArgumentNullException for null Action"] = () =>
+                    It["should throw ArgumentNullException for null Action"] = () =>
                     {
                         Action nullAction = null!;
                         Check.ThatCode(() => nullAction.ThrowIfNull("testParam"))
                             .Throws<ArgumentNullException>();
                     };
 
-                    it["should throw ArgumentNullException for null List"] = () =>
+                    It["should throw ArgumentNullException for null List"] = () =>
                     {
                         List<int> nullList = null!;
                         Check.ThatCode(() => nullList.ThrowIfNull("listParam"))
                             .Throws<ArgumentNullException>();
                     };
 
-                    it["should include parameter name in exception message"] = () =>
+                    It["should include parameter name in exception message"] = () =>
                     {
                         string nullString = null!;
                         ArgumentNullException exception = null!;
@@ -51,7 +48,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                         Check.That(exception.Message).Contains("myParameter cannot be null.");
                     };
 
-                    it["should include different parameter names in message"] = () =>
+                    It["should include different parameter names in message"] = () =>
                     {
                         Action nullAction = null!;
                         ArgumentNullException exception = null!;
@@ -70,23 +67,23 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     };
                 };
 
-                context["when parameter is non-null reference type"] = () =>
+                Context["when parameter is non-null reference type"] = () =>
                 {
-                    it["should return the same instance for Action"] = () =>
+                    It["should return the same instance for Action"] = () =>
                     {
                         Action testAction = () => { };
                         var result = testAction.ThrowIfNull("actionParam");
                         Check.That(result).IsSameReferenceAs(testAction);
                     };
 
-                    it["should return the same instance for string"] = () =>
+                    It["should return the same instance for string"] = () =>
                     {
                         string testString = "test value";
                         var result = testString.ThrowIfNullOrWhiteSpace("stringParam");
                         Check.That(result).IsSameReferenceAs(testString);
                     };
 
-                    it["should return the same instance for List<T>"] = () =>
+                    It["should return the same instance for List<T>"] = () =>
                     {
                         var testList = new List<int> { 1, 2, 3 };
                         var result = testList.ThrowIfNull("listParam");
@@ -94,23 +91,23 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     };
                 };
 
-                context["when used with value types"] = () =>
+                Context["when used with value types"] = () =>
                 {
-                    it["should return the value for int"] = () =>
+                    It["should return the value for int"] = () =>
                     {
                         int testInt = 42;
                         var result = testInt.ThrowIfNull("intParam");
                         Check.That(result).IsEqualTo(42);
                     };
 
-                    it["should return the value for bool"] = () =>
+                    It["should return the value for bool"] = () =>
                     {
                         bool testBool = true;
                         var result = testBool.ThrowIfNull("boolParam");
                         Check.That(result).IsEqualTo(true);
                     };
 
-                    it["should return zero value for int"] = () =>
+                    It["should return zero value for int"] = () =>
                     {
                         int zeroInt = 0;
                         var result = zeroInt.ThrowIfNull("intParam");
@@ -118,23 +115,23 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     };
                 };
 
-                context["when used with framework types"] = () =>
+                Context["when used with framework types"] = () =>
                 {
-                    it["should work with TestInstance"] = () =>
+                    It["should work with TestInstance"] = () =>
                     {
                         var instance = new TestInstance("desc", () => { });
                         var result = instance.ThrowIfNull("testInstance");
                         Check.That(result).IsSameReferenceAs(instance);
                     };
 
-                    it["should throw for null TestInstance"] = () =>
+                    It["should throw for null TestInstance"] = () =>
                     {
                         TestInstance nullInstance = null!;
                         Check.ThatCode(() => nullInstance.ThrowIfNull("testInstance"))
                             .Throws<ArgumentNullException>();
                     };
 
-                    it["should work with Action parameter"] = () =>
+                    It["should work with Action parameter"] = () =>
                     {
                         Action action = () => Console.WriteLine("test");
                         var result = action.ThrowIfNull("action");
@@ -142,9 +139,9 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     };
                 };
 
-                context["edge cases"] = () =>
+                Context["edge cases"] = () =>
                 {
-                    it["should handle empty string as parameter name"] = () =>
+                    It["should handle empty string as parameter name"] = () =>
                     {
                         string nullString = null!;
                         ArgumentNullException exception = null!;
@@ -162,7 +159,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                         Check.That(exception.Message).Contains(" cannot be null.");
                     };
 
-                    it["should work with various parameter name formats"] = () =>
+                    It["should work with various parameter name formats"] = () =>
                     {
                         var paramNames = new[] { "camelCase", "PascalCase", "snake_case", "UPPER_CASE" };
 
@@ -186,9 +183,9 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                     };
                 };
 
-                context["real-world usage patterns from codebase"] = () =>
+                Context["real-world usage patterns from codebase"] = () =>
                 {
-                    it["should validate constructor parameters like TestContextAdapter"] = () =>
+                    It["should validate constructor parameters like TestContextAdapter"] = () =>
                     {
                         Action setupOnce = () => { };
                         Action setupEach = () => { };
@@ -210,7 +207,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
                         Check.That(validatedTeardownOnce).IsSameReferenceAs(teardownOnce);
                     };
 
-                    it["should throw when constructor parameter is null"] = () =>
+                    It["should throw when constructor parameter is null"] = () =>
                     {
                         Action nullSetupOnce = null!;
                         ArgumentNullException exception = null!;

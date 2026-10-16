@@ -1,12 +1,13 @@
 using NFluent;
+using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
 
 namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
-    class TeardownOnce : nSpecTestHarness
+    public partial class ContextualTestCaseBuilder_Tests
     {
-        private void TeardownOnce_Specs()
+        [Context("TeardownOnce Specs")]
+        public void TeardownOnce_Specs()
         {
             ContextualTestCaseBuilder subject = null!;
             IContextualTestCase subjectTestCase = null!;
@@ -14,29 +15,29 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
             List<int> callOrder = null!;
             Action teardownAction(int n) => () => callOrder.Add(n);
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 subject = new ContextualTestCaseBuilder();
                 subjectTestCase = null!;
 
                 callOrder = [];
-            };
+            });
 
-            act = () =>
+            Act(() =>
             {
                 // Just build - don't invoke TeardownOnce yet
                 // Let individual tests control when TeardownOnce runs
                 subjectTestCase = subject.Build();
-            };
+            });
 
-            describe["invoking TeardownOnce after adding an action..."] = () =>
+            Describe["invoking TeardownOnce after adding an action..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(1));
-                };
+                });
 
-                it["should invoke the action"] = () =>
+                It["should invoke the action"] = () =>
                 {
                     subjectTestCase.TeardownOnce?.Invoke();
                     int[] expected = { 1 };
@@ -44,16 +45,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["invoking TeardownOnce after adding multiple actions..."] = () =>
+            Describe["invoking TeardownOnce after adding multiple actions..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(1));
                     subject.AddTeardownOnce(teardownAction(2));
                     subject.AddTeardownOnce(teardownAction(3));
-                };
+                });
 
-                it["should invoke the actions in the order they were added"] = () =>
+                It["should invoke the actions in the order they were added"] = () =>
                 {
                     subjectTestCase.TeardownOnce?.Invoke();
                     int[] expected = { 1, 2, 3 };
@@ -61,13 +62,13 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["invoking TeardownOnce after adding a Func<Task>..."] = () =>
+            Describe["invoking TeardownOnce after adding a Func<Task>..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(async () => await Task.Run(() => callOrder.Add(1)));
-                };
-                it["should invoke the Func<Task>"] = () =>
+                });
+                It["should invoke the Func<Task>"] = () =>
                 {
                     subjectTestCase.TeardownOnce?.Invoke();
                     int[] expected = { 1 };
@@ -75,17 +76,17 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["invoking TeardownOnce after adding multiple actions and Func<Task>'s..."] = () =>
+            Describe["invoking TeardownOnce after adding multiple actions and Func<Task>'s..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(1));
                     subject.AddTeardownOnce(() => Task.Run(teardownAction(2)));
                     subject.AddTeardownOnce(teardownAction(3));
                     subject.AddTeardownOnce(() => Task.Run(teardownAction(4)));
-                };
+                });
 
-                it["should invoke the actions and Func<Task>'s in the order they were added"] = () =>
+                It["should invoke the actions and Func<Task>'s in the order they were added"] = () =>
                 {
                     subjectTestCase.TeardownOnce?.Invoke();
                     int[] expected = { 1, 2, 3, 4 };
@@ -93,35 +94,35 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["invoking TeardownOnce multiple times..."] = () =>
+            Describe["invoking TeardownOnce multiple times..."] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(10));
                     subject.AddTeardownOnce(teardownAction(20));
                     subject.AddTeardownOnce(teardownAction(30));
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     subjectTestCase.TeardownOnce?.Invoke();
                     subjectTestCase.TeardownOnce?.Invoke();
                     subjectTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should not run the actions more than once (idempotent)"] = () =>
+                It["should not run the actions more than once (idempotent)"] = () =>
                 {
                     int[] expected = { 10, 20, 30 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["child test case handling"] = () =>
+            Describe["child test case handling"] = () =>
             {
                 IContextualTestCaseBuilder childTestCaseBuilder = null!;
                 IContextualTestCase childTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(100));
 
@@ -132,13 +133,13 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(teardownAction(400));
                         childTestCaseBuilder = child;
                     });
-                };
+                });
 
-                context["when the parent context TeardownOnce has run..."] = () =>
+                Context["when the parent context TeardownOnce has run..."] = () =>
                 {
-                    describe["the parent context..."] = () =>
+                    Describe["the parent context..."] = () =>
                     {
-                        it["should only invoke the parent context's TeardownOnce instance and not the child's"] = () =>
+                        It["should only invoke the parent context's TeardownOnce instance and not the child's"] = () =>
                         {
                             subjectTestCase.TeardownOnce?.Invoke();
                             int[] expected = { 100 };
@@ -146,16 +147,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         };
                     };
 
-                    context["the child context..."] = () =>
+                    Context["the child context..."] = () =>
                     {
-                        act = () =>
+                        Act(() =>
                         {
                             callOrder.Clear();
                             childTestCase = childTestCaseBuilder.Build();
                             childTestCase.TeardownOnce?.Invoke();
-                        };
+                        });
 
-                        it["should invoke child's TeardownOnce first, then parent's (REVERSE order - inherited)"] = () =>
+                        It["should invoke child's TeardownOnce first, then parent's (REVERSE order - inherited)"] = () =>
                         {
                             // CRITICAL: TeardownOnce runs in REVERSE order (child first, then parent) - inherited like TeardownEach
                             int[] expected = { 200, 300, 400, 100 };
@@ -164,11 +165,11 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     };
                 };
 
-                context["when the parent context TeardownOnce has NOT run..."] = () =>
+                Context["when the parent context TeardownOnce has NOT run..."] = () =>
                 {
-                    describe["the parent context..."] = () =>
+                    Describe["the parent context..."] = () =>
                     {
-                        it["should only invoke the parent context's TeardownOnce instance and not the child's"] = () =>
+                        It["should only invoke the parent context's TeardownOnce instance and not the child's"] = () =>
                         {
                             subjectTestCase.TeardownOnce?.Invoke();
                             int[] expected = { 100 };
@@ -176,16 +177,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         };
                     };
 
-                    context["the child context..."] = () =>
+                    Context["the child context..."] = () =>
                     {
-                        act = () =>
+                        Act(() =>
                         {
                             callOrder.Clear();
                             childTestCase = childTestCaseBuilder.Build();
                             childTestCase.TeardownOnce?.Invoke();
-                        };
+                        });
 
-                        it["should invoke child's TeardownOnce first, then parent's (REVERSE order - inherited)"] = () =>
+                        It["should invoke child's TeardownOnce first, then parent's (REVERSE order - inherited)"] = () =>
                         {
                             // CRITICAL: TeardownOnce runs in REVERSE order (child first, then parent) - inherited like TeardownEach
                             int[] expected = { 200, 300, 400, 100 };
@@ -195,9 +196,9 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["when no actions are added..."] = () =>
+            Describe["when no actions are added..."] = () =>
             {
-                it["should have an empty TeardownOnce that does nothing"] = () =>
+                It["should have an empty TeardownOnce that does nothing"] = () =>
                 {
                     // TeardownOnce exists but does nothing
                     subjectTestCase.TeardownOnce?.Invoke();
@@ -206,12 +207,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["exception handling..."] = () =>
+            Describe["exception handling..."] = () =>
             {
                 Exception thrownException = null!;
                 IContextualTestCase exceptionTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     thrownException = new InvalidOperationException("Test exception");
                     var exceptionSubject = new ContextualTestCaseBuilder();
@@ -219,16 +220,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     exceptionSubject.AddTeardownOnce(() => throw thrownException);
                     exceptionSubject.AddTeardownOnce(teardownAction(3));
                     exceptionTestCase = exceptionSubject.Build();
-                };
+                });
 
-                it["should throw the exception when invoked"] = () =>
+                It["should throw the exception when invoked"] = () =>
                 {
                     Check.ThatCode(() => exceptionTestCase.TeardownOnce?.Invoke())
                         .Throws<InvalidOperationException>()
                         .WithMessage("Test exception");
                 };
 
-                it["should have executed actions before the exception"] = () =>
+                It["should have executed actions before the exception"] = () =>
                 {
                     callOrder.Clear();
                     try { exceptionTestCase.TeardownOnce?.Invoke(); } catch { }
@@ -236,14 +237,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                     Check.That(callOrder).ContainsExactly(expected);
                 };
 
-                it["should not execute actions after the exception"] = () =>
+                It["should not execute actions after the exception"] = () =>
                 {
                     callOrder.Clear();
                     try { exceptionTestCase.TeardownOnce?.Invoke(); } catch { }
                     Check.That(callOrder).Not.Contains(3);
                 };
 
-                it["should retry on subsequent invocations (hasRunToCompletion stays false)"] = () =>
+                It["should retry on subsequent invocations (hasRunToCompletion stays false)"] = () =>
                 {
                     callOrder.Clear();
                     try { exceptionTestCase.TeardownOnce?.Invoke(); } catch { }
@@ -259,13 +260,13 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["multiple levels of nesting..."] = () =>
+            Describe["multiple levels of nesting..."] = () =>
             {
                 IContextualTestCaseBuilder childBuilder = null!;
                 IContextualTestCaseBuilder grandchildBuilder = null!;
                 IContextualTestCase grandchildTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(100));
 
@@ -282,16 +283,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
                         childBuilder = child;
                     });
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     callOrder.Clear();
                     grandchildTestCase = grandchildBuilder.Build();
                     grandchildTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should invoke in REVERSE order: grandchild, parent, grandparent"] = () =>
+                It["should invoke in REVERSE order: grandchild, parent, grandparent"] = () =>
                 {
                     // TeardownOnce runs DEEPEST FIRST (like TeardownEach), then up the chain - REVERSE order
                     int[] expected = { 300, 400, 200, 100 };
@@ -299,12 +300,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["parent with no actions, child with actions..."] = () =>
+            Describe["parent with no actions, child with actions..."] = () =>
             {
                 IContextualTestCaseBuilder childBuilder = null!;
                 IContextualTestCase childTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     // Parent has no TeardownOnce actions
                     subject.ChildTestCase("child", child =>
@@ -313,30 +314,30 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(teardownAction(2));
                         childBuilder = child;
                     });
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     callOrder.Clear();
                     childTestCase = childBuilder.Build();
                     childTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should invoke only the child's actions"] = () =>
+                It["should invoke only the child's actions"] = () =>
                 {
                     int[] expected = { 1, 2 };
                     Check.That(callOrder).ContainsExactly(expected);
                 };
             };
 
-            describe["multiple sibling children..."] = () =>
+            Describe["multiple sibling children..."] = () =>
             {
                 IContextualTestCaseBuilder child1Builder = null!;
                 IContextualTestCaseBuilder child2Builder = null!;
                 IContextualTestCase child1TestCase = null!;
                 IContextualTestCase child2TestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(100));
 
@@ -351,34 +352,34 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(teardownAction(300));
                         child2Builder = child;
                     });
-                };
+                });
 
-                context["first child..."] = () =>
+                Context["first child..."] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         callOrder.Clear();
                         child1TestCase = child1Builder.Build();
                         child1TestCase.TeardownOnce?.Invoke();
-                    };
+                    });
 
-                    it["should invoke child1 first, then parent (reverse order)"] = () =>
+                    It["should invoke child1 first, then parent (reverse order)"] = () =>
                     {
                         int[] expected = { 200, 100 };
                         Check.That(callOrder).ContainsExactly(expected);
                     };
                 };
 
-                context["second child..."] = () =>
+                Context["second child..."] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         callOrder.Clear();
                         child2TestCase = child2Builder.Build();
                         child2TestCase.TeardownOnce?.Invoke();
-                    };
+                    });
 
-                    it["should invoke child2 first, then parent (reverse order)"] = () =>
+                    It["should invoke child2 first, then parent (reverse order)"] = () =>
                     {
                         int[] expected = { 300, 100 };
                         Check.That(callOrder).ContainsExactly(expected);
@@ -386,25 +387,25 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["building multiple times from the same builder..."] = () =>
+            Describe["building multiple times from the same builder..."] = () =>
             {
                 IContextualTestCase firstBuild = null!;
                 IContextualTestCase secondBuild = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject.AddTeardownOnce(teardownAction(1));
                     subject.AddTeardownOnce(teardownAction(2));
-                };
+                });
 
                 // Don't run in parent act - let this test manage invocation
-                act = () =>
+                Act(() =>
                 {
                     // Just build, don't invoke yet
                     subjectTestCase = subject.Build();
-                };
+                });
 
-                it["should share idempotency state (only run once total across all builds)"] = () =>
+                It["should share idempotency state (only run once total across all builds)"] = () =>
                 {
                     callOrder.Clear();
                     firstBuild = subject.Build();
@@ -419,28 +420,28 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["invoking TeardownOnce after all tests complete..."] = () =>
+            Describe["invoking TeardownOnce after all tests complete..."] = () =>
             {
                 List<string> executionOrder = null!;
                 IContextualTestCase testCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     executionOrder = [];
                     subject.AddTeardownOnce(() => executionOrder.Add("teardown"));
                     subject.AddTest("test1", () => executionOrder.Add("test1"));
                     subject.AddTest("test2", () => executionOrder.Add("test2"));
                     subject.AddTest("test3", () => executionOrder.Add("test3"));
-                };
+                });
 
                 // Don't invoke TeardownOnce in parent act
-                act = () =>
+                Act(() =>
                 {
                     // Just build
                     subjectTestCase = subject.Build();
-                };
+                });
 
-                it["should run TeardownOnce once after all tests"] = () =>
+                It["should run TeardownOnce once after all tests"] = () =>
                 {
                     executionOrder.Clear();
                     testCase = subject.Build();
@@ -457,27 +458,27 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["TeardownOnce idempotency with multiple test runs..."] = () =>
+            Describe["TeardownOnce idempotency with multiple test runs..."] = () =>
             {
                 List<string> executionOrder = null!;
                 IContextualTestCase testCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     executionOrder = [];
                     subject.AddTeardownOnce(() => executionOrder.Add("teardown"));
                     subject.AddTest("test1", () => executionOrder.Add("test1"));
                     subject.AddTest("test2", () => executionOrder.Add("test2"));
-                };
+                });
 
                 // Don't invoke TeardownOnce in parent act
-                act = () =>
+                Act(() =>
                 {
                     // Just build
                     subjectTestCase = subject.Build();
-                };
+                });
 
-                it["should run TeardownOnce only once, even across multiple test runs"] = () =>
+                It["should run TeardownOnce only once, even across multiple test runs"] = () =>
                 {
                     executionOrder.Clear();
                     testCase = subject.Build();
@@ -501,13 +502,13 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 };
             };
 
-            describe["demonstrating SetupOnce/TeardownOnce symmetry..."] = () =>
+            Describe["demonstrating SetupOnce/TeardownOnce symmetry..."] = () =>
             {
                 List<string> executionOrder = null!;
                 IContextualTestCaseBuilder childBuilder = null!;
                 IContextualTestCase childTestCase = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     executionOrder = [];
                     subject.AddSetupOnce(() => executionOrder.Add("setup-parent"));
@@ -519,18 +520,18 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         child.AddTeardownOnce(() => executionOrder.Add("teardown-child"));
                         childBuilder = child;
                     });
-                };
+                });
 
-                act = () =>
+                Act(() =>
                 {
                     executionOrder.Clear();
                     childTestCase = childBuilder.Build();
                     childTestCase.SetupOnce?.Invoke();
                     executionOrder.Add("TEST");
                     childTestCase.TeardownOnce?.Invoke();
-                };
+                });
 
-                it["should show different patterns: SetupOnce runs parent then child (already ran in parent act), TeardownOnce inherited in REVERSE order"] = () =>
+                It["should show different patterns: SetupOnce runs parent then child (already ran in parent act), TeardownOnce inherited in REVERSE order"] = () =>
                 {
                     // SetupOnce: parent already ran in parent act, then child runs (idempotent across shared builder)
                     // TeardownOnce: child then parent (REVERSE order - inherited like TeardownEach)

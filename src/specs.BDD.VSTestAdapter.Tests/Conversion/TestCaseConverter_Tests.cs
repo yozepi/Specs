@@ -1,3 +1,4 @@
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NFluent;
 using NUnit.Framework;
 using specs.BDD.VSTestAdapter.Conversion;
@@ -10,6 +11,12 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
     public class TestCaseConverter_Tests
     {
         private static readonly string FakeSource = @"C:\tests\MyTests.dll";
+
+        private static readonly string RealSource =
+            typeof(TestCaseConverter_Tests).Assembly.Location;
+
+        // A real lambda defined in this class so its Method has a PDB entry in the test assembly.
+        private static readonly Action RealItAction = () => { var x = 1 + 1; _ = x; };
 
         private SpecTest BuildSpecTest(
             string contextPath = "my context → sub context",
@@ -26,6 +33,16 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
                 ContextPath = contextPath,
                 TestDescription = testDescription
             };
+        }
+
+        private SpecTest BuildSpecTestWithItAction(
+            string contextPath = "my context → sub context",
+            string testDescription = "should behave correctly",
+            string contextMethodName = "describe_something")
+        {
+            var specTest = BuildSpecTest(contextPath, testDescription, contextMethodName);
+            specTest.ItAction = RealItAction;
+            return specTest;
         }
 
         // ── Fully-qualified name ──────────────────────────────────────────────────────────────
@@ -72,7 +89,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         // ── Display name ──────────────────────────────────────────────────────────────────────
 
         [Test]
-        public void DisplayName_CombinesContextPathAndTestDescriptionWithArrow()
+        public void DisplayName_IsTestDescriptionOnly()
         {
             var specTest = BuildSpecTest(
                 contextPath: "my context → sub context",
@@ -80,16 +97,16 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
 
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
 
-            Check.That(testCase.DisplayName).IsEqualTo("my context → sub context → should behave correctly");
+            Check.That(testCase.DisplayName).IsEqualTo("should behave correctly");
         }
 
         [Test]
-        public void DisplayName_WorksWithFlatContextPath()
+        public void DisplayName_IsTestDescriptionOnly_WithFlatContextPath()
         {
             var specTest = BuildSpecTest(contextPath: "root context", testDescription: "my test");
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
 
-            Check.That(testCase.DisplayName).IsEqualTo("root context → my test");
+            Check.That(testCase.DisplayName).IsEqualTo("my test");
         }
 
         // ── Source ────────────────────────────────────────────────────────────────────────────
@@ -157,6 +174,121 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
             var storedDesc = testCase.GetPropertyValue<string>(TestProperties.TestDescription, null);
 
             Check.That(storedDesc).IsEqualTo("should behave correctly");
+        }
+
+        // ── Source location ───────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void WhenItActionIsProvided_SourceLocationUsesLambdaMethod()
+        {
+            var specTest = BuildSpecTestWithItAction();
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            // Lambda is in this same assembly/PDB so the location should resolve.
+            Check.That(testCase.CodeFilePath).IsNotNull();
+            Check.That(testCase.CodeFilePath).EndsWith(".cs");
+        }
+
+        [Test]
+        public void WhenItActionIsProvided_SourceLocationFileContainsTestCaseConverterTests()
+        {
+            var specTest = BuildSpecTestWithItAction();
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            Check.That(testCase.CodeFilePath).IsNotNull();
+            Check.That(testCase.CodeFilePath).Contains("TestCaseConverter_Tests");
+        }
+
+        [Test]
+        public void WhenItActionIsNullAndContextMethodExists_FallsBackToContextMethodLocation()
+        {
+            // ItAction intentionally left null; ContextMethod points into this assembly.
+            var specTest = BuildSpecTest();
+            specTest.ItAction = null;
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            // The fallback should still resolve because the context method lives in this assembly.
+            Check.That(testCase.CodeFilePath).IsNotNull();
+        }
+
+        [Test]
+        public void WhenItActionYieldsNoLocation_DoesNotThrow()
+        {
+            // Use a fake DLL path so the PDB is not found → TryGetLocation returns null.
+            // The converter must degrade gracefully and not throw.
+            var specTest = BuildSpecTestWithItAction();
+
+            Check.ThatCode(() => TestCaseConverter.ToVSTestCase(specTest, FakeSource))
+                .DoesNotThrow();
+        }
+
+        // ── Hierarchy property ────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Hierarchy_HasExactlyFourElements()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null);
+
+            Check.That(hierarchy).IsNotNull();
+            Check.That(hierarchy).HasSize(4);
+        }
+
+        [Test]
+        public void Hierarchy_ContainerElementIsNullOrEmpty()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null)!;
+
+            Check.That(hierarchy[0]).IsNullOrEmpty();
+        }
+
+        [Test]
+        public void Hierarchy_NamespaceElementMatchesSpecClassNamespace()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null)!;
+
+            Check.That(hierarchy[1]).IsEqualTo(typeof(FakeSpecClass).Namespace);
+        }
+
+        [Test]
+        public void Hierarchy_ClassElementMatchesSpecClassSimpleName()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null)!;
+
+            Check.That(hierarchy[2]).IsEqualTo(nameof(FakeSpecClass));
+        }
+
+        [Test]
+        public void Hierarchy_TestGroupElementMatchesContextPath()
+        {
+            var specTest = BuildSpecTest(contextPath: "my context → sub context");
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null)!;
+
+            Check.That(hierarchy[3]).IsEqualTo("my context → sub context");
+        }
+
+        [Test]
+        public void Hierarchy_WhenContextPathIsEmpty_StillHasFourElements()
+        {
+            var specTest = BuildSpecTest(contextPath: "");
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null);
+
+            Check.That(hierarchy).IsNotNull();
+            Check.That(hierarchy).HasSize(4);
         }
 
         // ── Test double ───────────────────────────────────────────────────────────────────────

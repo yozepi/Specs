@@ -1,16 +1,12 @@
-﻿using NFluent;
+using NFluent;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
+using specs.BDD;
+using specs.BDD.Attributes;
 
 namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
-    public class ContextualTestCase_Tests : nSpecTestHarness
+    public class ContextualTestCase_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
 
         string description = "description";
         Action setupOnce = () => { };
@@ -23,14 +19,15 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
         List<ITestCaseContext> childContexts = [];
 
 
-        private void ContextualTestCase_Specs()
+        [Context]
+        public void ContextualTestCase_Specs()
         {
 
-            describe["CreateTestCase static factory method"] = () =>
+            Describe["CreateTestCase static factory method"] = () =>
             {
                 IContextualTestCase subject = null!;
 
-                act = () =>
+                Act(() =>
                 {
                     subject = ContextualTestCase.CreateTestCase(
                         setupOnce: setupOnce,
@@ -38,11 +35,13 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         act: actAction,
                         teardownEach: teardownEach,
                         teardownOnce: teardownOnce,
+                        ownSetupOnce: () => { },
+                        ownTeardownOnce: () => { },
                         tests: tests,
                         childContexts: childContexts);
-                };
+                });
 
-                it["should create a new instance of IContextualTestCase"] = () =>
+                It["should create a new instance of IContextualTestCase"] = () =>
                 {
                     Check.That(subject).IsNotNull();
                     Check.That(subject).InheritsFrom<IContextualTestCase>();
@@ -50,16 +49,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
                 ITestCaseTests(() => subject);
 
-                it["should set the ChildContexts property"] = () =>
+                It["should set the ChildContexts property"] = () =>
                 {
                     Check.That(subject.ChildContexts).IsEqualTo(childContexts);
                 };
             };
 
-            describe["CreateTestCaseContext static factory method"] = () => 
+            Describe["CreateTestCaseContext static factory method"] = () => 
             {
                 ITestCaseContext subject = null!;
-                act = () =>
+                Act(() =>
                 {
                     subject = ContextualTestCase.CreateTestCaseContext(
                         description: description,
@@ -68,18 +67,20 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                         act: actAction,
                         teardownEach: teardownEach,
                         teardownOnce: teardownOnce,
+                        ownSetupOnce: () => { },
+                        ownTeardownOnce: () => { },
                         tests: tests,
                         childContexts: childContexts);
-                };
+                });
 
 
-                it["should create a new instance of IContextualTestCase"] = () =>
+                It["should create a new instance of IContextualTestCase"] = () =>
                 {
                     Check.That(subject).IsNotNull();
                     Check.That(subject).InheritsFrom<ITestCaseContext>();
                 };
 
-                it["should set the Description property"] = () =>
+                It["should set the Description property"] = () =>
                 {
                     Check.That(subject.Description).IsEqualTo(description);
                 };
@@ -90,32 +91,32 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 
         private void ITestCaseTests(Func<ITestCase> subjectFactory)
         {
-            it["should set the SetupOnce property"] = () =>
+            It["should set the SetupOnce property"] = () =>
             {
                 Check.That(subjectFactory().SetupOnce).IsEqualTo(setupOnce);
             };
 
-            it["should set the SetupEach property"] = () =>
+            It["should set the SetupEach property"] = () =>
             {
                 Check.That(subjectFactory().SetupEach).IsEqualTo(setupEach);
             };
 
-            it["should set the Act property"] = () =>
+            It["should set the Act property"] = () =>
             {
                 Check.That(subjectFactory().Act).IsEqualTo(actAction);
             };
 
-            it["should set the TeardownEach property"] = () =>
+            It["should set the TeardownEach property"] = () =>
             {
                 Check.That(subjectFactory().TeardownEach).IsEqualTo(teardownEach);
             };
 
-            it["should set the TeardownOnce property"] = () =>
+            It["should set the TeardownOnce property"] = () =>
             {
                 Check.That(subjectFactory().TeardownOnce).IsEqualTo(teardownOnce);
             };
 
-            it["should set the Tests property"] = () =>
+            It["should set the Tests property"] = () =>
             {
                 Check.That(subjectFactory().Tests).IsEqualTo(tests);
             };

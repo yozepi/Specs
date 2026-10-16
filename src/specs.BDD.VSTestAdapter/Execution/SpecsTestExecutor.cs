@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
+using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 
 namespace specs.BDD.VSTestAdapter.Execution
@@ -16,7 +20,7 @@ namespace specs.BDD.VSTestAdapter.Execution
     [ExtensionUri("executor://SpecsTestExecutor/v1")]
     public class SpecsTestExecutor : ITestExecutor
     {
-        private volatile bool _cancelled;
+        private CancellationTokenSource? _cancellationTokenSource = default;
 
         /// <inheritdoc/>
         /// <remarks>
@@ -28,19 +32,38 @@ namespace specs.BDD.VSTestAdapter.Execution
             IRunContext? runContext,
             IFrameworkHandle? frameworkHandle)
         {
-            _cancelled = false;
-
             if (tests == null || frameworkHandle == null)
                 return;
 
-            foreach (var testCase in tests)
-            {
-                if (_cancelled)
-                    break;
+#if DEBUG
+            //if (!Debugger.IsAttached)
+            //    Debugger.Launch();
+#endif
 
-                frameworkHandle.RecordStart(testCase);
-                var result = TestInvoker.Invoke(testCase);
-                frameworkHandle.RecordResult(result);
+            // Group tests by specification class so that BeforeAll / AfterAll fire exactly once
+            // per class per run, regardless of which context methods or paths are selected.
+            var groups = tests.GroupBy(tc => (
+                Source: tc.Source,
+                ClassName: tc.GetPropertyValue<string>(TestProperties.ClassName, null) ?? ""
+            ));
+
+            using (EnsureCancellationTokenSource())
+            {
+                foreach (var group in groups)
+                {
+                    if (_cancellationTokenSource!.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    TestInvoker.InvokeSuite(
+                        group.Key.Source,
+                        group.Key.ClassName,
+                        group,
+                        frameworkHandle,
+                        _cancellationTokenSource.Token);
+                }
+
             }
         }
 
@@ -57,8 +80,6 @@ namespace specs.BDD.VSTestAdapter.Execution
             IRunContext? runContext,
             IFrameworkHandle? frameworkHandle)
         {
-            _cancelled = false;
-
             if (sources == null || frameworkHandle == null)
                 return;
 
@@ -69,7 +90,7 @@ namespace specs.BDD.VSTestAdapter.Execution
         /// <inheritdoc/>
         public void Cancel()
         {
-            _cancelled = true;
+            EnsureCancellationTokenSource().Cancel();
         }
 
         // ── Private helpers ────────────────────────────────────────────────────────────────────
@@ -112,6 +133,24 @@ namespace specs.BDD.VSTestAdapter.Execution
             public CollectingSink(List<TestCase> tests) => _tests = tests;
 
             public void SendTestCase(TestCase discoveredTest) => _tests.Add(discoveredTest);
+        }
+
+        private CancellationTokenSource EnsureCancellationTokenSource()
+        {
+            try
+            {
+                if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+                {
+                    _cancellationTokenSource = new CancellationTokenSource();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+
+                _cancellationTokenSource = new CancellationTokenSource();
+            }
+
+            return _cancellationTokenSource;
         }
     }
 }

@@ -1,260 +1,226 @@
 # Active Context: Specs
 
-## Current Work Focus
+## Current Focus
 
-### Memory Bank Restructuring (In Progress)
-Converting memory bank from custom structure to standard Cline Memory Bank format:
-- ✅ Created `projectbrief.md` - Foundation document
-- ✅ Created `productContext.md` - Why the project exists
-- 🔄 Creating remaining core files (activeContext, systemPatterns, techContext, progress)
-- 📋 Need to update `README.md` to reflect new structure
-- 📋 Need to decide what to do with existing custom files
+**Correct Test Explorer semantics + self-hosting (October 2026)** — two threads of work are in flight:
 
-### Project Status
-- Framework is **feature-complete** and **stable**
-- Two API approaches are fully implemented and tested
-- Comprehensive test coverage exists for core framework
-- Documentation is being restructured for better maintainability
+1. **Suite-tree execution** — `SuiteTreeBuilder` + `SelectionTreeWalker` replace the per-test rebuild so `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is selected. `[Context]` methods are now registered as named child contexts rather than invoked directly.
+2. **Self-hosting `specs.core.UnitTests`** — the core unit-test project was migrated off NUnit fixtures onto `Specifications` + `[Context]` and is discovered/run by `specs.BDD.VSTestAdapter`. Specs now tests its own core with itself.
 
-## Recent Changes
+Alongside these: Test Explorer now renders a real tree (RFC-0033 `TestCase.Hierarchy`) and "Go to Source" navigates to the `It[...]` line rather than the top of the `[Context]` method.
 
-### Suite → Feature Set → Specification Hierarchy Correction (February 2026)
-**Critical correction based on user feedback**: The `[Context]` attribute and `Context[...]` indexer were incorrectly documented as two separate test paradigms. They are actually parts of the **same paradigm** at different levels of the hierarchy.
+## Project Status Snapshot
 
-**Correct understanding**:
-- A **Specification class** (inheriting from `Specifications` or `Spec`) is a **test suite** for a single subject (e.g., `Weather_Controller`)
-- **`[Context]` decorated methods** within the class are **feature sets** — each method covers one feature/aspect of the subject, with its own lifecycle control
-- **`Context[...]`/`Describe[...]` indexers** inside those methods organize **scenarios** within a feature set
-- **`It[...]`** indexer defines individual **specifications**
-- **Class-level lifecycle** (`BeforeAll`/`AfterAll`/`BeforeEach`/`AfterEach`) applies to the **entire suite** (all feature sets)
-- **Feature-level lifecycle** (inside a `[Context]` method) applies only to **that feature set's specs**
+| Area | State |
+|------|-------|
+| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker |
+| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected` |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; 113 adapter unit tests + 25 integration tests passing |
+| `specs.core.UnitTests` | 📌 Migrated to Specs (self-hosted); 315 tests passing with no NUnit test adapter |
+| Legacy `Spec` API | Maintained for backward compatibility |
+| TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
+| Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
-**Files Updated**:
-1. **test-patterns.md**: Rewrote to show Suite → Feature Set → Scenario → Specification hierarchy as primary pattern
-2. **glossary.md**: Added Suite, Feature Set, Scenario, Specification definitions; clarified Context vs [Context]
-3. **architecture.md**: Corrected overview to show single paradigm with two API styles, not two paradigms
-4. **core-components.md**: Added ContextAttribute documentation, clarified Specifications as suite base class with two lifecycle levels
-5. **productContext.md**: Updated examples to show full hierarchy with [Context] methods
-6. **activeContext.md**: Documented this correction (current file)
+## Recent Architectural Changes
 
-### TestHarness Clarification (February 2026)
-**Critical correction based on user feedback**: TestHarness is internal testing infrastructure only, NOT a project deliverable.
+### 📌 NEW — `SuiteTreeBuilder` + `SelectionTreeWalker`
 
-Updated documentation across all memory bank files to clarify:
-- TestHarness exists solely to support internal unit testing during development
-- It is NOT part of project output or deliverables
-- It is a temporary solution until Specs framework is mature enough to test itself
-- Will eventually be phased out once framework is self-hosting
+Suite construction and once-per-node lifecycle moved behind two new adapter components. Full BEFORE/AFTER diagrams and the failure contract live in `systemPatterns.md` section "Once-Per-Node Lifecycle (selection-tree walk)".
 
-**Files Updated**:
-1. **projectbrief.md**: Restructured solution structure to distinguish deliverable vs internal projects
-2. **techContext.md**: Added notes clarifying TestHarness is not deliverable, updated project structure
-3. **progress.md**: Clarified TestHarness role in integration and testing sections
-4. **README.md**: Updated project structure and version information sections
-5. **activeContext.md**: Documented this correction (current file)
+Key points:
 
-### Memory Bank Documentation (February 2026)
-1. **Created projectbrief.md**: Established foundation document defining project identity, goals, and structure
-2. **Created productContext.md**: Documented why the framework exists and what problems it solves
-3. **Expanded project-overview.md**: Updated from 3 to 5 projects, documented both API approaches
-4. **Enhanced architecture.md**: Added comparison between Modern (specs.BDD) and Legacy (Spec) approaches
-5. **Updated glossary.md**: Added key terminology for both API styles
+- `SuiteTreeBuilder.BuildSuite(type)` instantiates the suite **once** and registers every `[Context]` method as a named child context (`instance.Context[name] = () => method.Invoke(instance, null)`), then returns `CoreBuilder.Build()`. Discovery and execution both go through it.
+- `SelectionTreeWalker` walks the immutable tree depth-first, entering only **live** nodes (those with a selected test at or beneath them) and firing `OwnSetupOnce` / `OwnTeardownOnce` exactly once per node.
+- Per-test loops still delegate to `TestCaseExecutor`, which receives no-op once-actions so it never double-fires `BeforeAll` / `AfterAll`.
 
-### Documentation Improvements
-- Clarified the existence of TWO distinct API approaches (not just one)
-- Documented five projects (not three) in the solution
-- Added architectural comparisons and migration guidance
-- Improved understanding of framework layers and data flow
+### 📌 NEW — `ITestCase.OwnSetupOnce` / `OwnTeardownOnce`
+
+The existing `SetupOnce` / `TeardownOnce` cascade ancestor actions into the node. The walker needs a node's *own* actions in isolation, so `specs.core` now exposes both forms.
+
+### 📌 NEW — Test Explorer tree + precise navigation
+
+- `TestCaseConverter` sets the VSTest RFC-0033 `TestCase.Hierarchy` property (`[null, Namespace, Class, ContextPath]`) so Test Explorer nests `[Context]` and `Describe[...]` levels.
+- `SpecTest.ItAction` captures the `It[...]` lambda at discovery; `SourceLocationReader` resolves its PDB sequence point, falling back to the `[Context]` method.
+
+### 📌 UPDATED — Cancellation is a `CancellationToken`, not a setting
+
+`TestCaseExecutorSettings.IsCancelled` was **removed**. `TestCaseExecutor.ProcessTestCase(CancellationToken)` now takes the token directly and checks it before each test instance. `SpecsTestExecutor` owns a `CancellationTokenSource` that `ITestExecutor.Cancel()` trips.
+
+### 📌 NEW — Self-hosting migration (`specs.core.UnitTests`)
+
+| Before | After |
+|--------|-------|
+| `[TestFixture]` / `[Test]` NUnit classes | Classes derive from `Specifications` with `[Context]` methods |
+| `NUnit3TestAdapter` + `NUnit.Analyzers` package references | Removed; `ProjectReference` to `specs.BDD.VSTestAdapter` instead |
+| `TestContextAdapter_Tests.cs` (NUnit) | `TestContextAdapter.cs` (Specs-style suite) |
+| 2 test projects discovered by NUnit's adapter | `specs.core.UnitTests` is discovered by the Specs adapter |
+
+315 core tests pass under the Specs adapter. `Autofac.Extras.Moq` + `NFluent` are unchanged; only the *host* changed.
+
+### 📌 UPDATED — Execution consolidated in `TestCaseExecutor`
+
+#### BEFORE (duplicated lifecycle)
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    VST["VSTest Platform"]:::external --> EXR1["SpecsTestExecutor"]:::deprecated
+    EXR1 --> INV1["TestInvoker<br/>(re-implements lifecycle)"]:::deprecated
+    INV1 -.->|"reflection"| BUILD1["instance.coreBuilder field"]:::deprecated
+    INV1 --> RUN1["Manual Setup/Act/Test/Teardown loop"]:::deprecated
+
+    CORE["TestCaseExecutor<br/>(unused by adapter)"]:::deprecated
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Lifecycle was implemented twice (once in `TestCaseExecutor`, once in `TestInvoker`).
+- `TestInvoker` reached the builder via reflection on a private field.
+- Cancellation handling was ad-hoc in the adapter.
+
+#### AFTER (single execution authority)
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    VST["VSTest Platform"]:::external --> EXR["SpecsTestExecutor"]:::app
+    EXR --> INV["TestInvoker"]:::app
+    INV -->|"instance.CoreBuilder<br/>(internal)"| BUILD["ContextualTestCaseBuilder"]:::app
+    INV ==> EXE["TestCaseExecutor.ProcessTestCase"]:::app
+    EXE --> VLOG["VSTestLoggingAdapter"]:::app
+    EXE --> VPROV["VSTestTestProvider"]:::app
+    VLOG --> VST
+    EXE -.->|"polls token"| CT(["CancellationToken"]):::data
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Benefits:
+
+- One canonical lifecycle implementation (`TestCaseExecutor`) shared by all hosts.
+- No reflection — `Specifications.CoreBuilder` exposed via `InternalsVisibleTo("specs.BDD.VSTestAdapter")`.
+- Cancellation flows as a `CancellationToken` parameter on `ProcessTestCase`.
+- Adapter contributes two small `I*Adapter` implementations (`VSTestLoggingAdapter`, `VSTestTestProvider`) — no execution logic.
+
+### 📌 CLARIFIED — Suite → Feature Set → Scenario → Specification
+
+`[Context]` (attribute on a method) and `Context[...]` (indexer inside a method body) are **levels of the same hierarchy**, not separate paradigms. The earlier documentation that described them as alternatives has been corrected throughout the memory bank.
+
+### 📌 CLARIFIED — TestHarness is not a deliverable
+
+TestHarness is an internal nspec bridge used only to test Specs while it could not yet test itself. It is not packed and not shipped. Now that `specs.core.UnitTests` runs on Specs, TestHarness survives only as a transitive dependency of the remaining NUnit projects and is a retirement candidate.
+
+### 📌 UPDATED — Memory bank consolidated
+
+The memory bank was trimmed from 17 files to 10: the 6 core files plus `architecture.md`, `core-components.md`, `test-patterns.md`, and `glossary.md`.
+
+Removed as redundant or superseded:
+
+| Removed | Reason |
+|---------|--------|
+| `project-overview.md` | Duplicated `projectbrief.md` and contradicted it (claimed 5 projects, no adapter, nspec in the shipped stack) |
+| `VSTestAdapter-Plan.md` | Completed implementation plan; phase history now lives in `progress.md`, and its usage examples duplicated `test-patterns.md` |
+| `VSTestAdapter-DeepDive.md` | Per-class detail duplicated the adapter responsibilities table in `systemPatterns.md`; its one unique insight was folded in as "The tree is built twice" |
+| `refactoring-plan-testcaseexecutor.md` | Completed plan; outcome recorded as decision #7 in `systemPatterns.md` and Phase 5 in `progress.md` |
+| `roles.md`, `devops-formatting.md` | Agent/process instructions, not project knowledge |
+| `README.md` | Navigation index; the 6-core-file reading order is documented in the root `README.md` and `.clinerules/default-rules.md` |
 
 ## Next Steps
 
-### Immediate (This Session)
-1. ✅ Create `activeContext.md` (current file)
-2. Create `systemPatterns.md` - Migrate architecture content from `architecture.md`
-3. Create `techContext.md` - Document technologies, dependencies, setup
-4. Create `progress.md` - Document what works and what's left
-5. Update `README.md` - Reflect new standard structure
-6. Decide on existing files:
-   - `project-overview.md` - Keep as additional context or merge?
-   - `architecture.md` - Keep as additional context or replace with systemPatterns?
-   - `core-components.md` - Keep or integrate?
-   - `test-patterns.md` - Keep or integrate?
-   - `glossary.md` - Keep as additional context
-   - `devops-formatting.md` - Keep as additional context
-   - `roles.md` - Keep as additional context
+### Immediate
 
-### Short-term
-1. Validate memory bank completeness
-2. Ensure all documentation is accurate and up-to-date
-3. Consider adding examples directory to memory bank
-4. Document common usage patterns
+- Stage and commit the self-hosting migration together with the `SuiteTreeBuilder` / `SelectionTreeWalker` work (currently split across staged and unstaged changes).
+- Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
+- Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
 
-### Long-term
-1. Keep memory bank synchronized with any code changes
-2. Document any new patterns or components as they emerge
-3. Maintain both API approaches equally in documentation
+### Short term
 
-## Active Decisions & Considerations
+- Migrate `specs.BDD.UnitTests` to self-hosting as well (only 5 tests remain there).
+- Extend `IntegrationTests` to cover the once-per-node contract explicitly (partial selection, failing `BeforeAll`, cancellation mid-run).
+- Document a `dotnet new` template once one exists.
 
-### Decision: Support Two API Approaches
-**Why**: 
-- Legacy `Spec` class has existing users and codebases
-- Modern `Specifications` class represents better architectural patterns
-- Both can coexist without conflict
+### Long term
 
-**Impact**:
-- Documentation must cover both approaches equally
-- Examples should show both styles where appropriate
-- Migration guidance helps teams transition gradually
+- Retire TestHarness entirely.
+- Consider parallel execution support (currently sequential by design).
+- Publish the adapter as a NuGet package.
 
-### Consideration: Memory Bank Structure
-**Current**: Transitioning from custom structure to standard Cline format
+## Active Decisions
 
-**Rationale**:
-- Standard format improves AI assistant comprehension
-- Clear hierarchy (projectbrief → productContext → activeContext → etc.)
-- Better separation of concerns (why vs. how vs. what vs. status)
+### Why three deliverables instead of two
 
-**Trade-offs**:
-- More files to maintain
-- Need to reorganize existing content
-- Some duplication during transition
+- `specs.core` and `specs.BDD` could be consumed without an IDE, but real users almost always want Test Explorer integration.
+- Keeping the adapter separate preserves the rule that **`specs.core` has zero external NuGet references** — only the adapter takes a dependency on `Microsoft.TestPlatform.ObjectModel`.
 
-### Consideration: Framework Agnosticism
-**Pattern**: Core framework uses adapter pattern for external dependencies
+### Why `Action`-based public surface
 
-**Benefits**:
-- Can integrate with different test runners
-- Core logic remains clean and testable
-- Easy to add new integrations
+- A single uniform shape across sync/async hooks.
+- Lifecycle ordering remains deterministic; no need to track outstanding `Task`s between phases.
+- Trade-off: async work blocks via `GetAwaiter().GetResult()`, which is acceptable for tests but unsuitable for production code.
 
-**Current State**: 
-- Primary integration is NSpec
-- Adapter interfaces defined
-- Future integrations possible without core changes
+### Why callbacks for nested-context scope switching
 
-## Important Patterns & Preferences
+- Avoids thread-local state or explicit context stacks in user code.
+- The `try/finally` around the swap guarantees the parent scope is restored even if the user's block throws.
 
-### Code Organization Pattern
-```
-specs.core (framework-agnostic core)
-    ↓
-specs.BDD (high-level API)
-    ↓
-User Test Code
-```
+### Why `[Context]` methods are registered instead of invoked
 
-### Naming Conventions
-- **Test Lifecycle Methods**: `BeforeAll`, `BeforeEach`, `Act`, `AfterEach`, `AfterAll`
-- **Test Organization**: `Describe` (what), `Context` (when/given), `It` (should/then)
-- **Async Methods**: Suffix with `Async` where appropriate (`BeforeEachAsync`, `ItAsync`)
+- Invoking them directly merged their contents into the class root, erasing the feature-set level from the tree.
+- Registering them as named child contexts (`instance.Context[name] = () => method.Invoke(...)`) makes each feature set a real node that can own `BeforeAll` / `AfterAll`, appears in `ContextPath`, and renders as a Test Explorer tree node.
 
-### Testing Philosophy
-1. **Hierarchical Organization**: Use nested contexts to reflect conceptual relationships
-2. **Clear Lifecycle**: Explicit phases for setup, action, assertion, teardown
-3. **DRY Principle**: Common setup in parent contexts, inherited by children
-4. **Readability First**: Tests should read like specifications
-5. **Async Support**: First-class async support throughout all lifecycle phases
+## Patterns & Preferences
 
-### Code Style Preferences
-- Immutable test cases after `Build()` (Modern approach)
-- Fluent API with indexer syntax for readability
-- Adapter pattern for external dependencies
-- Comprehensive XML documentation comments
+### Naming
 
-## Learnings & Project Insights
+| Concept | Modern (specs.BDD) | Legacy (Spec) |
+|---------|--------------------|---------------|
+| Setup once | `BeforeAll(...)` / `BeforeAll(Func<Task>)` | `BeforeAll = ...` |
+| Setup each | `BeforeEach(...)` / `BeforeEach(Func<Task>)` | `BeforeEach = ...` |
+| Action | `Act(...)` / `Act(Func<Task>)` | `Act = ...` / `ActAsync = ...` |
+| Teardown each | `AfterEach(...)` | `AfterEach = ...` |
+| Teardown once | `AfterAll(...)` | `AfterAll = ...` |
+| Describe | `Describe["..."] = () => { }` | `Describe["..."] = () => { }` |
+| Context (block) | `Context["..."] = () => { }` | `Context["..."] = () => { }` |
+| Context (feature set) | `[Context("...")] public void M()` | n/a |
+| Assertion | `It["..."] = () => { }` / `ItAsync[...] = async () => { }` | `It["..."] = () => { }` |
 
-### Insight 1: Two Architectural Philosophies
-The framework evolved to support two distinct approaches:
-- **Legacy Runtime**: Property-based API with mutable runtime state
-- **Modern Builder**: Method-based API with immutable built test cases
+### Style
 
-Both are valid and serve different needs. The legacy approach is simpler for basic cases, while the modern approach offers better testability and separation of concerns.
+- NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests and in user-facing examples.
+- NUnit constraint-based assertions (`Assert.That(..., Is.EqualTo(...))`) in the remaining NUnit projects (`specs.BDD.UnitTests`, `specs.BDD.VSTestAdapter.Tests`).
+- `null!` suppression only on fields initialized in `BeforeEach`.
+- Builder methods return `IContextualTestCaseBuilder` to enable fluent chaining.
 
-### Insight 2: Async Abstraction Strategy
-The framework maintains a simple `Action`-based interface while supporting async operations by converting `Task` to synchronous execution using `GetAwaiter().GetResult()`. This keeps the API simple while enabling modern async patterns.
+## Recent Insights
 
-### Insight 3: Lifecycle Order Matters
-- **Setup/Act**: Top-down (parent → child) ensures base setup happens first
-- **Teardown**: Bottom-up (child → parent) ensures proper cleanup order
-- This matches natural initialization/disposal patterns
+1. **One executor to rule them all** — folding the adapter's hand-rolled lifecycle into `TestCaseExecutor` eliminated a large class of subtle differences between Test Explorer behavior and internal unit tests. New lifecycle features now need to land in one place.
+2. **One tree builder, too** — discovery and execution must produce *byte-identical* context paths, or `TestFinder` silently fails to locate tests. `SuiteTreeBuilder` makes that structural rather than a convention.
+3. **`BeforeAll` only means something if the tree knows about contexts** — invoking `[Context]` methods directly flattened them out of the tree, which made once-per-context semantics impossible. Registering them as named child contexts fixed the semantics *and* gave Test Explorer its tree nodes for free.
+4. **Discovery must be side-effect free** — instantiating a `Specifications` class and invoking its `[Context]` methods is enough to enumerate tests, *provided* no setup actually executes. The builder API enforces this naturally because hooks accumulate `Action`s rather than running them.
+5. **Internal visibility is a feature** — using `InternalsVisibleTo` between the deliverables let us delete reflection-based shims and gave the adapter a clean, typed contract.
+6. **Self-hosting is the best integration test** — running 315 core tests through the adapter surfaced lifecycle and path-matching bugs that the adapter's own unit tests could not.
+7. **The two API styles really are the same paradigm** — they only differ syntactically. Documentation that frames them as alternatives invites confusion.
 
-### Insight 4: Context Switching Pattern
-The `Specifications` class uses a callback pattern to manage context switching:
-```csharp
-private void contextCallBack(IContextualTestCaseBuilder childBuilder, Action action)
-{
-    var previousBuilder = this.coreBuilder;
-    this.coreBuilder = childBuilder;  // Switch context
-    try { action.Invoke(); }          // Run user code
-    finally { this.coreBuilder = previousBuilder; }  // Restore
-}
-```
-This enables nested context definitions where lifecycle methods automatically target the correct scope.
+## Health Indicators
 
-### Insight 5: Framework Agnosticism Through Adapters
-The adapter pattern successfully decouples the core framework from specific test runners:
-- `ITestProviderAdapter` - Test instance retrieval
-- `ITestContextAdapter` - Lifecycle execution
-- `ILoggingAdapter` - Logging operations
+- **Builds**: clean across all 9 projects — 0 warnings, 0 errors.
+- **Tests**: 458 passing, 0 failing.
+  - `specs.core.UnitTests` — 315 (run by the Specs adapter)
+  - `specs.BDD.VSTestAdapter.Tests` — 113
+  - `specs.BDD.VSTestAdapter.IntegrationTests` — 25
+  - `specs.BDD.UnitTests` — 5
+- **Open bugs**: none known.
+- **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
 
-This makes the framework extensible to new test runners without modifying core logic.
+## Open Questions
 
-### Insight 6: Documentation Challenges
-The existence of two API approaches initially caused documentation confusion:
-- Some docs only covered one approach
-- Project structure was unclear (3 vs 5 projects)
-- Migration path wasn't documented
-
-**Resolution**: Comprehensive documentation that treats both approaches equally and provides clear migration guidance.
-
-## Current Project Health
-
-### ✅ What's Working Well
-- Core framework is stable and well-tested
-- Two API approaches both work reliably
-- Test coverage is comprehensive
-- Async support works throughout
-- NSpec integration is solid
-- Framework agnosticism through adapters
-
-### 🔄 In Progress
-- Memory bank restructuring to standard format
-- Documentation improvements
-- Clarifying two-approach architecture
-
-### 📋 Known Limitations
-- Primary focus on NSpec integration (other runners possible but not implemented)
-- Some documentation still being consolidated
-- Examples could be more comprehensive
-
-### 🎯 Success Metrics
-- Zero known bugs in core framework
-- Comprehensive test suite (2,900+ lines in lifecycle tests alone)
-- Clear separation between framework layers
-- Both API approaches fully functional
-- Documentation improving continuously
-
-## Questions & Open Topics
-
-### Q1: Should we keep custom memory bank files?
-Options:
-- Keep as "additional context" alongside core files
-- Merge content into core files and delete
-- Archive in a separate folder
-
-**Recommendation**: Keep core-components, test-patterns, glossary, roles, devops-formatting as additional context. They provide valuable supplementary information.
-
-### Q2: How to handle architecture.md content?
-- Much content should move to `systemPatterns.md` (standard core file)
-- Some architectural comparisons might stay in `architecture.md` as additional context
-- Need to avoid duplication
-
-**Recommendation**: Create `systemPatterns.md` with core architectural patterns, keep `architecture.md` as additional context for deeper comparisons and migration details.
-
-### Q3: Should project-overview.md be merged into core files?
-- Some content overlaps with `projectbrief.md`
-- Some content belongs in `techContext.md`
-- Could be simplified or removed after core files are complete
-
-**Recommendation**: Review after all core files are created, likely merge and remove.
+1. Should the adapter ship as a standalone NuGet package, or remain a project reference until 1.0?
+2. Should `TestCaseExecutorSettings` expose a `MaxParallelism` knob (or do we keep things sequential)?
+3. Can we retire the legacy `Spec` class once enough downstream consumers migrate? (Currently: no plan to remove.)
+4. Should `SelectionTreeWalker`'s best-effort `OwnTeardownOnce` (exceptions swallowed) instead surface as a run-level warning?
+5. Can `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` also move to self-hosting, or does the adapter need an independent NUnit safety net?

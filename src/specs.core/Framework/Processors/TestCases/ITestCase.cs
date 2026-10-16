@@ -41,6 +41,18 @@ namespace specs.core.Framework.Processors.TestCases
         Action TeardownOnce { get; }
 
         /// <summary>
+        /// Gets the setup-once action that belongs exclusively to this node (no ancestor actions included).
+        /// Used by the selection-tree walker to fire BeforeAll exactly once per node.
+        /// </summary>
+        Action OwnSetupOnce { get; }
+
+        /// <summary>
+        /// Gets the teardown-once action that belongs exclusively to this node (no ancestor actions included).
+        /// Used by the selection-tree walker to fire AfterAll exactly once per node.
+        /// </summary>
+        Action OwnTeardownOnce { get; }
+
+        /// <summary>
         /// Gets the collection of test methods with their descriptions.
         /// </summary>
         IReadOnlyList<(string description, Action test)> Tests { get; }
