@@ -4,6 +4,8 @@ using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Execution;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
+using Moq;
 using System.Reflection;
 using specs.BDD.VSTestAdapter.Discovery;
 
@@ -189,6 +191,83 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
 
             Check.That(result.TestCase.FullyQualifiedName)
                 .IsEqualTo(testCase.FullyQualifiedName);
+        }
+
+        // ── Suite execution: constructor-registered (root) lifecycle ──────────────────────────────────
+
+        private static List<TestResult> InvokeSuite<TSpec>()
+            where TSpec : specs.BDD.Specifications
+        {
+            var source = typeof(TSpec).Assembly.Location;
+            var tests = TestStructureExtractor
+                .ExtractTests(typeof(TSpec))
+                .Select(t => TestCaseConverter.ToVSTestCase(t, source))
+                .ToList();
+
+            var results = new List<TestResult>();
+            var frameworkHandle = new Mock<IFrameworkHandle>();
+            frameworkHandle
+                .Setup(h => h.RecordResult(It.IsAny<TestResult>()))
+                .Callback<TestResult>(results.Add);
+
+            TestInvoker.InvokeSuite(
+                source, typeof(TSpec).FullName!, tests, frameworkHandle.Object, showSourceLocations: true, MarkerStyle.Plain, CancellationToken.None);
+
+            return results;
+        }
+
+        [Test]
+        public void InvokeSuite_RootLifecycle_RunsInCorrectOrder()
+        {
+            SpecWithRootLifecycle.ClearLog();
+
+            InvokeSuite<SpecWithRootLifecycle>();
+
+            Check.That(SpecWithRootLifecycle.Log).ContainsExactly(
+                "root-BeforeAll",
+                "root-BeforeEach", "root-Act", "test:grouped", "root-AfterEach",
+                "root-BeforeEach", "ctx-BeforeEach", "root-Act", "test:flat one", "ctx-AfterEach", "root-AfterEach",
+                "root-BeforeEach", "ctx-BeforeEach", "root-Act", "test:flat two", "ctx-AfterEach", "root-AfterEach",
+                "root-AfterAll");
+        }
+
+        [Test]
+        public void InvokeSuite_RootLifecycle_AllTestsPass()
+        {
+            var results = InvokeSuite<SpecWithRootLifecycle>();
+
+            Check.That(results.Select(r => r.Outcome)).ContainsOnlyElementsThatMatch(o => o == TestOutcome.Passed);
+            Check.That(results).HasSize(3);
+        }
+
+        [Test]
+        public void InvokeSuite_RootBeforeAllFails_AllTestsFailWithRootException()
+        {
+            SpecWithFailingRootBeforeAll.TriggerFailure = true;
+            try
+            {
+                var results = InvokeSuite<SpecWithFailingRootBeforeAll>();
+
+                Check.That(results).HasSize(3);
+                Check.That(results.Select(r => r.Outcome)).ContainsOnlyElementsThatMatch(o => o == TestOutcome.Failed);
+                Check.That(results.Select(r => r.ErrorMessage ?? ""))
+                    .ContainsOnlyElementsThatMatch(m => m.Contains("root setup failure"));
+            }
+            finally { SpecWithFailingRootBeforeAll.TriggerFailure = false; }
+        }
+
+        [Test]
+        public void InvokeSuite_RootBeforeAllFails_RootAfterAllDoesNotRun()
+        {
+            SpecWithFailingRootBeforeAll.TriggerFailure = true;
+            SpecWithFailingRootBeforeAll.AfterAllRan = false;
+            try
+            {
+                InvokeSuite<SpecWithFailingRootBeforeAll>();
+
+                Check.That(SpecWithFailingRootBeforeAll.AfterAllRan).IsFalse();
+            }
+            finally { SpecWithFailingRootBeforeAll.TriggerFailure = false; }
         }
     }
 }

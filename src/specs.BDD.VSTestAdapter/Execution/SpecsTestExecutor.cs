@@ -47,6 +47,12 @@ namespace specs.BDD.VSTestAdapter.Execution
                 ClassName: tc.GetPropertyValue<string>(TestProperties.ClassName, null) ?? ""
             ));
 
+            var showSourceLocations = GroupingSettings.ReadShowSourceLocations(
+                runContext?.RunSettings?.SettingsXml);
+            var markerStyle = GroupingSettings.ResolveMarkerStyle(
+                GroupingSettings.ReadColorOutput(runContext?.RunSettings?.SettingsXml),
+                Environment.GetEnvironmentVariable("VSAPPIDNAME"));
+
             using (EnsureCancellationTokenSource())
             {
                 foreach (var group in groups)
@@ -61,6 +67,8 @@ namespace specs.BDD.VSTestAdapter.Execution
                         group.Key.ClassName,
                         group,
                         frameworkHandle,
+                        showSourceLocations,
+                        markerStyle,
                         _cancellationTokenSource.Token);
                 }
 

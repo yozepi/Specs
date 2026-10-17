@@ -28,12 +28,12 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             return TestCaseConverter.ToVSTestCase(specTest, typeof(TSpec).Assembly.Location);
         }
 
-        private static TestResult ExecuteGrouped<TSpec>(string contextPath)
+        private static TestResult ExecuteGrouped<TSpec>(string contextPath, bool showSourceLocations = true, MarkerStyle markerStyle = MarkerStyle.Plain)
             where TSpec : specs.BDD.Specifications
         {
             var testCase = MakeGroupedTestCase<TSpec>(contextPath);
             var root = SuiteTreeBuilder.BuildSuite(typeof(TSpec));
-            return GroupedContextRunner.Execute(testCase, root, CancellationToken.None);
+            return GroupedContextRunner.Execute(testCase, root, null, showSourceLocations, markerStyle, CancellationToken.None);
         }
 
         private static string OutputOf(TestResult result) =>
@@ -125,6 +125,110 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             finally { GroupedSpecWithFailure.TriggerFailure = false; }
         }
 
+        // ── Source locations ──
+
+        [Test]
+        public void AnsiMarkers_PassMarkerIsGreen()
+        {
+            var output = OutputOf(ExecuteGrouped<GroupedSpec>("grouped feature", markerStyle: MarkerStyle.Ansi));
+
+            Check.That(output).Contains("\u001b[32m✓\u001b[0m direct test");
+        }
+
+        [Test]
+        public void AnsiMarkers_FailMarkerIsRed()
+        {
+            GroupedSpecWithFailure.TriggerFailure = true;
+            try
+            {
+                var output = OutputOf(ExecuteGrouped<GroupedSpecWithFailure>("grouped with failure", markerStyle: MarkerStyle.Ansi));
+
+                Check.That(output).Contains("\u001b[31m✗\u001b[0m a failing spec - FAILED:");
+            }
+            finally { GroupedSpecWithFailure.TriggerFailure = false; }
+        }
+
+        [Test]
+        public void PlainMarkers_HasNoEscapeCodes()
+        {
+            var output = OutputOf(ExecuteGrouped<GroupedSpec>("grouped feature", markerStyle: MarkerStyle.Plain));
+
+            Check.That(output).Not.Contains("\u001b[");
+        }
+
+        [Test]
+        public void EmojiMarkers_UsesColoredGlyphsWithoutEscapeCodes()
+        {
+            GroupedSpecWithFailure.TriggerFailure = true;
+            try
+            {
+                var output = OutputOf(ExecuteGrouped<GroupedSpecWithFailure>("grouped with failure", markerStyle: MarkerStyle.Emoji));
+
+                Check.That(output).Contains("✅ a passing spec");
+                Check.That(output).Contains("❌ a failing spec - FAILED:");
+                Check.That(output).Not.Contains("\u001b[");
+            }
+            finally { GroupedSpecWithFailure.TriggerFailure = false; }
+        }
+
+        // ── Source locations ──
+
+        private static readonly System.Text.RegularExpressions.Regex LocationLine =
+            new System.Text.RegularExpressions.Regex(@"^\s+at .+SampleSpecifications\.cs:line \d+$");
+
+        private static System.Collections.Generic.List<string> LinesOf(TestResult result) =>
+            OutputOf(result).Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+
+        private static string LineAfter(System.Collections.Generic.List<string> lines, string line) =>
+            lines[lines.IndexOf(line) + 1];
+
+        [Test]
+        public void SourceLocations_AppearUnderEachPassingTest()
+        {
+            var lines = LinesOf(ExecuteGrouped<GroupedSpec>("grouped feature"));
+
+            Check.That(LocationLine.IsMatch(LineAfter(lines, "  ✓ direct test"))).IsTrue();
+            Check.That(LocationLine.IsMatch(LineAfter(lines, "    ✓ nested test"))).IsTrue();
+            Check.That(LineAfter(lines, "  ✓ direct test")).StartsWith("    at ");
+        }
+
+        [Test]
+        public void SourceLocations_AppearUnderFailingTest()
+        {
+            GroupedSpecWithFailure.TriggerFailure = true;
+            try
+            {
+                var lines = LinesOf(ExecuteGrouped<GroupedSpecWithFailure>("grouped with failure"));
+
+                Check.That(LocationLine.IsMatch(LineAfter(lines, "    ✗ a failing spec - FAILED:"))).IsTrue();
+            }
+            finally { GroupedSpecWithFailure.TriggerFailure = false; }
+        }
+
+        [Test]
+        public void SourceLocations_Disabled_AreOmitted()
+        {
+            var lines = LinesOf(ExecuteGrouped<GroupedSpec>("grouped feature", showSourceLocations: false));
+
+            Check.That(lines.Any(LocationLine.IsMatch)).IsFalse();
+        }
+
+        [Test]
+        public void SourceLocations_AsyncTest_PointsToSpecFile()
+        {
+            var lines = LinesOf(ExecuteGrouped<GroupedAsyncSpec>("grouped async"));
+
+            Check.That(LocationLine.IsMatch(LineAfter(lines, "  ✓ async test"))).IsTrue();
+        }
+
+        [Test]
+        public void SourceLocations_AppearUnderRootSetupFailures()
+        {
+            var lines = LinesOf(ExecuteGroupedWithRootFailure());
+
+            Check.That(LocationLine.IsMatch(LineAfter(lines, "  ✗ grouped test - FAILED: BeforeAll failed:"))).IsTrue();
+        }
+
         // ── Missing context ───────────────────────────────────────────────────────────────────
 
         [Test]
@@ -134,10 +238,42 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             testCase.SetPropertyValue(TestProperties.ContextPath, "no longer here");
 
             var root = SuiteTreeBuilder.BuildSuite(typeof(GroupedSpec));
-            var result = GroupedContextRunner.Execute(testCase, root, CancellationToken.None);
+            var result = GroupedContextRunner.Execute(testCase, root, null, showSourceLocations: true, MarkerStyle.Plain, CancellationToken.None);
 
             Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
             Check.That(result.ErrorMessage).Contains("no longer here");
+        }
+
+        // ── Root BeforeAll failure ────────────────────────────────────────────────────────────
+
+        private static TestResult ExecuteGroupedWithRootFailure()
+        {
+            var testCase = MakeGroupedTestCase<SpecWithFailingRootBeforeAll>("grouped part");
+            var root = SuiteTreeBuilder.BuildSuite(typeof(SpecWithFailingRootBeforeAll));
+            return GroupedContextRunner.Execute(
+                testCase, root, new InvalidOperationException("root setup failure"), showSourceLocations: true, MarkerStyle.Plain, CancellationToken.None);
+        }
+
+        [Test]
+        public void RootSetupFailure_OutcomeIsFailed()
+        {
+            var result = ExecuteGroupedWithRootFailure();
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(result.ErrorMessage).Contains("2 of 2 specs failed", "root setup failure");
+        }
+
+        [Test]
+        public void RootSetupFailure_OutputShowsFailedTree()
+        {
+            var output = OutputOf(ExecuteGroupedWithRootFailure());
+
+            Check.That(output).Contains(
+                "grouped part",
+                "✗ grouped test - FAILED: BeforeAll failed:",
+                "nested",
+                "✗ nested test - FAILED: BeforeAll failed:",
+                "0 passed, 2 failed, 2 total");
         }
     }
 }

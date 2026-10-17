@@ -66,6 +66,8 @@ namespace specs.BDD.VSTestAdapter.Execution
             string className,
             IEnumerable<TestCase> tests,
             IFrameworkHandle frameworkHandle,
+            bool showSourceLocations,
+            MarkerStyle markerStyle,
             CancellationToken cancellationToken)
         {
             var testList = new List<TestCase>(tests);
@@ -98,16 +100,44 @@ namespace specs.BDD.VSTestAdapter.Execution
                     regularTests.Add(tc);
             }
 
-            foreach (var groupedTest in groupedTests)
+            // Root BeforeAll/AfterAll come from the spec class constructor and run once per class.
+            Exception? rootSetupFailure = null;
+            try
             {
-                if (cancellationToken.IsCancellationRequested) break;
-                GroupedContextRunner.Run(groupedTest, root, frameworkHandle, cancellationToken);
+                root.OwnSetupOnce();
+            }
+            catch (Exception ex)
+            {
+                rootSetupFailure = ex;
             }
 
-            if (regularTests.Count == 0) return;
+            try
+            {
+                foreach (var groupedTest in groupedTests)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    GroupedContextRunner.Run(groupedTest, root, frameworkHandle, rootSetupFailure, showSourceLocations, markerStyle, cancellationToken);
+                }
 
-            var walker = new SelectionTreeWalker(root, rootPath, regularTests, frameworkHandle, cancellationToken);
-            walker.Walk();
+                if (regularTests.Count == 0) return;
+
+                if (rootSetupFailure != null)
+                {
+                    ReportAllAsFailed(regularTests, frameworkHandle, rootSetupFailure);
+                    return;
+                }
+
+                var walker = new SelectionTreeWalker(root, rootPath, regularTests, frameworkHandle, cancellationToken);
+                walker.Walk();
+            }
+            finally
+            {
+                if (rootSetupFailure == null)
+                {
+                    // Best-effort AfterAll — swallow so we don't mask test failures.
+                    try { root.OwnTeardownOnce(); } catch { /* best-effort */ }
+                }
+            }
         }
 
         // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

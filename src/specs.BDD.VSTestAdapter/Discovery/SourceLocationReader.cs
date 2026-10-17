@@ -49,6 +49,19 @@ namespace specs.BDD.VSTestAdapter.Discovery
             if (string.IsNullOrEmpty(assemblyPath) || method == null)
                 return null;
 
+            // A metadata token from another assembly would resolve to an unrelated method in this PDB.
+            if (!string.Equals(
+                    Path.GetFileName(method.Module.Assembly.Location),
+                    Path.GetFileName(assemblyPath),
+                    StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            // Async/iterator bodies' sequence points live on the state machine's MoveNext.
+            var stateMachineType = method.GetCustomAttribute<System.Runtime.CompilerServices.StateMachineAttribute>()?.StateMachineType;
+            var moveNext = stateMachineType?.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (moveNext != null)
+                method = moveNext;
+
             var pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
             if (!File.Exists(pdbPath))
                 return null;
@@ -81,5 +94,12 @@ namespace specs.BDD.VSTestAdapter.Discovery
 
             return null;
         }
+
+        /// <summary>
+        /// Returns the user-authored method behind an It[...] action, unwrapping async
+        /// tests whose wrapper is bound to the original <c>Func&lt;Task&gt;</c>.
+        /// </summary>
+        public static MethodInfo GetTestMethod(Action action)
+            => (action.Target as Delegate)?.Method ?? action.Method;
     }
 }

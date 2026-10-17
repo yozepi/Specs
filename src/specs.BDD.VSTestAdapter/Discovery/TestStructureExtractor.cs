@@ -23,13 +23,13 @@ namespace specs.BDD.VSTestAdapter.Discovery
         /// </summary>
         /// <param name="specClass">The specification class to extract tests from.</param>
         /// <param name="runSettingsGrouping">
-        /// The .runsettings <c>GroupByRootContext</c> value, or <c>null</c> when not configured.
+        /// The .runsettings <c>SpecReporting</c> value, or <c>null</c> when not configured.
         /// </param>
         /// <returns>A flat enumerable of all discovered tests.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the specification class cannot be instantiated.
         /// </exception>
-        public static IEnumerable<SpecTest> ExtractTests(Type specClass, bool? runSettingsGrouping = null)
+        public static IEnumerable<SpecTest> ExtractTests(Type specClass, SpecReporting? runSettingsGrouping = null)
         {
             // Build name → MethodInfo lookup so each SpecTest knows which [Context] method
             // it belongs to (used for source-location navigation in Test Explorer).

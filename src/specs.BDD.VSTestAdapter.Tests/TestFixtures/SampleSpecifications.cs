@@ -183,7 +183,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class GroupedSpec : Specifications
     {
-        [Context("grouped feature", Grouped = true)]
+        [Context("grouped feature", Reporting = SpecReporting.GroupedByRootContext)]
         public void describe_grouped()
         {
             It["direct test"] = () => { };
@@ -195,12 +195,51 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         }
     }
 
+    /// <summary>A grouped spec with an async It[...] test.</summary>
+    public class GroupedAsyncSpec : Specifications
+    {
+        [Context("grouped async", Reporting = SpecReporting.GroupedByRootContext)]
+        public void describe_grouped_async()
+        {
+            ItAsync["async test"] = async () =>
+            {
+                await System.Threading.Tasks.Task.Yield();
+            };
+        }
+    }
+
+    /// <summary>
+    /// A spec that opts into grouped execution at the class level.
+    /// </summary>
+    [SpecReporting(SpecReporting.GroupedByRootContext)]
+    public class ClassGroupedSpec : Specifications
+    {
+        [Context("class grouped feature")]
+        public void describe_class_grouped()
+        {
+            It["class grouped test"] = () => { };
+        }
+
+        [Context("class grouped opt-out", Reporting = SpecReporting.Individual)]
+        public void describe_opt_out()
+        {
+            It["opt-out test"] = () => { };
+        }
+    }
+
+    /// <summary>
+    /// Derives from a class-grouped spec; the class-level attribute is not inherited.
+    /// </summary>
+    public class DerivedFromClassGroupedSpec : ClassGroupedSpec
+    {
+    }
+
     /// <summary>
     /// A spec that mixes one grouped [Context] method with one regular (per-It) method.
     /// </summary>
     public class MixedGroupingSpec : Specifications
     {
-        [Context("grouped part", Grouped = true)]
+        [Context("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
         public void grouped_part()
         {
             It["grouped test"] = () => { };
@@ -222,7 +261,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>When <c>true</c>, "a failing spec" throws. Reset after use.</summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Context("grouped with failure", Grouped = true)]
+        [Context("grouped with failure", Reporting = SpecReporting.GroupedByRootContext)]
         public void describe_grouped_failure()
         {
             It["a passing spec"] = () => { };
@@ -235,6 +274,79 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
                         throw new InvalidOperationException("grouped intentional failure");
                 };
             };
+        }
+    }
+
+    // ── Root-lifecycle fixtures ────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A spec that registers its whole lifecycle in the constructor (root level).</summary>
+    public class SpecWithRootLifecycle : Specifications
+    {
+        public static readonly System.Collections.Generic.List<string> Log =
+            new System.Collections.Generic.List<string>();
+
+        public static void ClearLog() => Log.Clear();
+
+        public SpecWithRootLifecycle()
+        {
+            BeforeAll(() => Log.Add("root-BeforeAll"));
+            BeforeEach(() => Log.Add("root-BeforeEach"));
+            Act(() => Log.Add("root-Act"));
+            AfterEach(() => Log.Add("root-AfterEach"));
+            AfterAll(() => Log.Add("root-AfterAll"));
+        }
+
+        [Context("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
+        public void grouped_part()
+        {
+            It["grouped test"] = () => Log.Add("test:grouped");
+        }
+
+        [Context("flat part")]
+        public void flat_part()
+        {
+            BeforeEach(() => Log.Add("ctx-BeforeEach"));
+            AfterEach(() => Log.Add("ctx-AfterEach"));
+
+            It["flat one"] = () => Log.Add("test:flat one");
+            It["flat two"] = () => Log.Add("test:flat two");
+        }
+    }
+
+    /// <summary>A spec whose constructor-registered BeforeAll throws when <see cref="TriggerFailure"/> is set.</summary>
+    public class SpecWithFailingRootBeforeAll : Specifications
+    {
+        /// <summary>When <c>true</c>, the root BeforeAll throws. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; } = false;
+
+        public static bool AfterAllRan { get; set; }
+
+        public SpecWithFailingRootBeforeAll()
+        {
+            BeforeAll(() =>
+            {
+                if (TriggerFailure)
+                    throw new InvalidOperationException("root setup failure");
+            });
+            AfterAll(() => AfterAllRan = true);
+        }
+
+        [Context("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
+        public void grouped_part()
+        {
+            It["grouped test"] = () => { };
+
+            Context["nested"] = () =>
+            {
+                It["nested test"] = () => { };
+            };
+        }
+
+        [Context("flat part")]
+        public void flat_part()
+        {
+            It["flat one"] = () => { };
+            It["flat two"] = () => { };
         }
     }
 

@@ -35,10 +35,13 @@ namespace specs.BDD.VSTestAdapter.Execution
             TestCase testCase,
             IContextualTestCase suiteRoot,
             IFrameworkHandle frameworkHandle,
+            Exception? rootSetupFailure,
+            bool showSourceLocations,
+            MarkerStyle markerStyle,
             CancellationToken cancellationToken)
         {
             frameworkHandle.RecordStart(testCase);
-            var result = Execute(testCase, suiteRoot, cancellationToken);
+            var result = Execute(testCase, suiteRoot, rootSetupFailure, showSourceLocations, markerStyle, cancellationToken);
             frameworkHandle.RecordResult(result);
         }
 
@@ -49,6 +52,9 @@ namespace specs.BDD.VSTestAdapter.Execution
         internal static TestResult Execute(
             TestCase testCase,
             IContextualTestCase suiteRoot,
+            Exception? rootSetupFailure,
+            bool showSourceLocations,
+            MarkerStyle markerStyle,
             CancellationToken cancellationToken)
         {
             var contextName = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "";
@@ -69,8 +75,16 @@ namespace specs.BDD.VSTestAdapter.Execution
                     timer.Elapsed);
             }
 
-            var state = new RunState();
-            RunNode(node, contextName, depth: 0, state, cancellationToken);
+            var state = new RunState(showSourceLocations ? testCase.Source : null, markerStyle);
+            if (rootSetupFailure != null)
+            {
+                state.Output.AppendLine(node.Description);
+                FailSubtree(node, contextName, depth: 1, ResultReporter.Unwrap(rootSetupFailure), state);
+            }
+            else
+            {
+                RunNode(node, contextName, depth: 0, state, cancellationToken);
+            }
             timer.Stop();
 
             return BuildResult(testCase, state, startTime, timer.Elapsed);
@@ -80,6 +94,21 @@ namespace specs.BDD.VSTestAdapter.Execution
 
         private sealed class RunState
         {
+            public RunState(string? sourceForLocations, MarkerStyle markerStyle)
+            {
+                SourceForLocations = sourceForLocations;
+                (PassMark, FailMark) = markerStyle switch
+                {
+                    MarkerStyle.Ansi => ("\u001b[32m✓\u001b[0m", "\u001b[31m✗\u001b[0m"),
+                    MarkerStyle.Emoji => ("✅", "❌"),
+                    _ => ("✓", "✗")
+                };
+            }
+
+            /// <summary>Assembly path used for PDB lookups; <c>null</c> when locations are disabled.</summary>
+            public readonly string? SourceForLocations;
+            public readonly string PassMark;
+            public readonly string FailMark;
             public readonly StringBuilder Output = new StringBuilder();
             public readonly List<(string Path, Exception Cause)> Failures =
                 new List<(string, Exception)>();
@@ -160,13 +189,15 @@ namespace specs.BDD.VSTestAdapter.Execution
             if (failure == null)
             {
                 state.Passed++;
-                state.Output.AppendLine($"{Indent(depth)}✓ {description}");
+                state.Output.AppendLine($"{Indent(depth)}{state.PassMark} {description}");
+                AppendLocation(test, depth + 1, state);
             }
             else
             {
                 var cause = ResultReporter.Unwrap(failure);
                 state.Failures.Add((path + TestStructureExtractor.PathSeparator + description, cause));
-                state.Output.AppendLine($"{Indent(depth)}✗ {description} - FAILED:");
+                state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED:");
+                AppendLocation(test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
             }
         }
@@ -182,11 +213,12 @@ namespace specs.BDD.VSTestAdapter.Execution
             Exception cause,
             RunState state)
         {
-            foreach (var (description, _) in node.Tests)
+            foreach (var (description, test) in node.Tests)
             {
                 state.Total++;
                 state.Failures.Add((path + TestStructureExtractor.PathSeparator + description, cause));
-                state.Output.AppendLine($"{Indent(depth)}✗ {description} - FAILED: BeforeAll failed:");
+                state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED: BeforeAll failed:");
+                AppendLocation(test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
             }
 
@@ -270,6 +302,16 @@ namespace specs.BDD.VSTestAdapter.Execution
         }
 
         private static string Indent(int depth) => new string(' ', depth * 2);
+
+        private static void AppendLocation(Action test, int depth, RunState state)
+        {
+            if (state.SourceForLocations == null) return;
+
+            var location = SourceLocationReader.TryGetLocation(
+                state.SourceForLocations, SourceLocationReader.GetTestMethod(test));
+            if (location != null)
+                state.Output.AppendLine($"{Indent(depth)}at {location.FilePath}:line {location.LineNumber}");
+        }
 
         /// <summary>Indents every line of a (possibly multi-line) message under the given depth.</summary>
         private static string IndentMessage(string message, int depth)

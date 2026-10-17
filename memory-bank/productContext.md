@@ -135,7 +135,9 @@ Specs
 1 passed, 1 failed, 2 total
 ```
 
-It is opt-in and layered: `[Context(Grouped = true)]` on a method wins over `[assembly: GroupSpecsByRootContext]`, which wins over `<SpecsBDD><GroupByRootContext>` in `.runsettings`. The default remains one result per `It[...]`.
+It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedByRootContext`): `[Context(Reporting = ...)]` on a method wins over `[SpecReporting(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: SpecReporting(...)]`, which wins over `<SpecsBDD><SpecReporting>` in `.runsettings`. The default remains one result per `It[...]`.
+
+📌 The report adapts to its host: green/red ANSI markers in VS Code and the CLI, emoji markers in Visual Studio (which cannot render ANSI), plain markers when `<ColorOutput>false</ColorOutput>`. `<ShowSourceLocations>true</ShowSourceLocations>` adds an `at <file>:line <n>` line under every spec, including `ItAsync[...]` specs.
 
 ## User-Experience Goals
 
@@ -146,7 +148,7 @@ It is opt-in and layered: `[Context(Grouped = true)]` on a method wins over `[as
 | **Choose your style** | Method-based (`Specifications`) or property-based (`Spec`) |
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
-| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request |
+| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Migration path** | Both API styles can live side by side; no forced rewrite |
 
 ## What Makes Specs Different

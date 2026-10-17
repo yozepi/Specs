@@ -1,5 +1,6 @@
 ﻿using NFluent;
 using NUnit.Framework;
+using specs.BDD.Attributes;
 using specs.BDD.VSTestAdapter.Discovery;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using System.Linq;
@@ -203,7 +204,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void RunSettingsGrouping_AppliesToContextsWithoutExplicitSetting()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec), runSettingsGrouping: true).ToList();
+            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec), runSettingsGrouping: SpecReporting.GroupedByRootContext).ToList();
 
             Check.That(tests).HasSize(1);
             Check.That(tests[0].IsGrouped).IsTrue();

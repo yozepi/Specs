@@ -84,7 +84,35 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
             Check.That(result).IsNotNull();
             Check.That(result!.LineNumber).IsStrictlyGreaterThan(0);
         }
+        // ── Foreign assembly / delegate unwrapping ─────────────────────────────────────────────
 
+        [Test]
+        public void WhenMethodIsFromAnotherAssembly_ReturnsNull()
+        {
+            var assemblyPath = typeof(SourceLocationReader_Tests).Assembly.Location;
+            var foreignMethod = typeof(SourceLocationReader).GetMethod(nameof(SourceLocationReader.GetTestMethod))!;
+
+            var result = SourceLocationReader.TryGetLocation(assemblyPath, foreignMethod);
+
+            Check.That(result).IsNull();
+        }
+
+        [Test]
+        public void GetTestMethod_PlainAction_ReturnsActionMethod()
+        {
+            System.Action action = () => { };
+
+            Check.That(SourceLocationReader.GetTestMethod(action)).IsSameReferenceAs(action.Method);
+        }
+
+        [Test]
+        public void GetTestMethod_ActionBoundToDelegate_ReturnsInnerDelegateMethod()
+        {
+            System.Func<System.Threading.Tasks.Task> inner = () => System.Threading.Tasks.Task.CompletedTask;
+            System.Action wrapper = inner.RunWrapped;
+
+            Check.That(SourceLocationReader.GetTestMethod(wrapper)).IsSameReferenceAs(inner.Method);
+        }
         // ── Helpers ───────────────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -107,5 +135,10 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
             var method = GetSentinelMethod();
             return (assemblyPath, method);
         }
+    }
+
+    internal static class DelegateBindingTestExtensions
+    {
+        public static void RunWrapped(this System.Func<System.Threading.Tasks.Task> test) => test().GetAwaiter().GetResult();
     }
 }

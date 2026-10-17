@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace specs.core.Framework.Processors.TestCases
 {
+    internal static class AsyncTestExtensions
+    {
+        public static void RunSync(this Func<Task> test) => test().GetAwaiter().GetResult();
+    }
+
     /// <summary>
     /// Builds hierarchical test cases with parent-child context relationships and lifecycle actions.
     /// Implements the fluent builder pattern for constructing immutable test cases.
@@ -77,15 +82,10 @@ namespace specs.core.Framework.Processors.TestCases
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Func<Task> test)
         {
+            // Bound to the extension method so the wrapper's Target is the original Func<Task>.
             Action funcWrapper = null!;
-
-            if(test != null)
-            {   funcWrapper = new Action(() =>
-                    test
-                        .Invoke()
-                        .GetAwaiter()
-                        .GetResult());
-            }
+            if (test != null)
+                funcWrapper = test.RunSync;
 
             return AddTest(description, funcWrapper);
         }

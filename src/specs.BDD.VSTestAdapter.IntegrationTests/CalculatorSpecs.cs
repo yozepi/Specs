@@ -1,6 +1,7 @@
 using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
+using System.Diagnostics;
 
 namespace specs.BDD.VSTestAdapter.IntegrationTests;
 
@@ -8,22 +9,36 @@ namespace specs.BDD.VSTestAdapter.IntegrationTests;
 /// Integration specs for Calculator — demonstrates multi-context discovery
 /// and hierarchical test execution via the specs.BDD.VSTestAdapter.
 /// </summary>
+[SpecReporting(SpecReporting.GroupedByRootContext)]
 public class CalculatorSpecs : Specifications
 {
+    Calculator calculator = null!;
+    int num1 = 0;
+    int num2 = 0;
+    int? result = null;
+
+    public CalculatorSpecs()
+    {
+        BeforeAll(() => calculator = new Calculator());
+        BeforeEach(() =>
+        {
+            num1 = num2 = 0;
+            result = null;
+        });
+    }
+
+
     // ─── Context 1: Addition ──────────────────────────────────────────────────
 
-    [Context]
+    [Context("Addition")]
     public void describe_addition()
     {
-        Calculator calculator = null!;
-        int result = 0;
-
-        BeforeAll(() => { calculator = new Calculator(); });
+        Act(() => { result = calculator.Add(num1, num2); });
 
         Context["when adding two positive numbers"] = () =>
         {
-            Act(() => { result = calculator.Add(2, 3); });
 
+            BeforeEach(() => { num1 = 2; num2 = 3; });
             It["returns the correct sum"] = () =>
             {
                 Check.That(result).IsEqualTo(5);
@@ -32,8 +47,7 @@ public class CalculatorSpecs : Specifications
 
         Context["when adding a positive and a negative number"] = () =>
         {
-            Act(() => { result = calculator.Add(10, -3); });
-
+            BeforeEach(() => { num1 = 10; num2 = -3; });
             It["returns the net value"] = () =>
             {
                 Check.That(result).IsEqualTo(7);
@@ -42,8 +56,7 @@ public class CalculatorSpecs : Specifications
 
         Context["when adding zero"] = () =>
         {
-            Act(() => { result = calculator.Add(42, 0); });
-
+            BeforeEach(() => { num1 = 42; num2 = 0; });
             It["returns the original number"] = () =>
             {
                 Check.That(result).IsEqualTo(42);
@@ -53,18 +66,16 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 2: Division ─────────────────────────────────────────────────
 
-    [Context]
+    [Context("Division")]
     public void describe_division()
     {
-        Calculator calculator = null!;
 
-        BeforeAll(() => { calculator = new Calculator(); });
 
         Context["when dividing evenly"] = () =>
         {
-            int result = 0;
+            Act(() => { result = calculator.Divide(num1, num2); });
 
-            Act(() => { result = calculator.Divide(10, 2); });
+            BeforeEach(() => { num1 = 10; num2 = 2; });
 
             It["returns the correct quotient"] = () =>
             {
@@ -96,19 +107,16 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 3: Multiply (nested contexts) ────────────────────────────────
 
-    [Context]
+    [Context("Multiplication")]
     public void describe_multiplication()
-    {
-        Calculator calculator = null!;
-        int result = 0;
-
-        BeforeAll(() => { calculator = new Calculator(); });
+    { 
+        Act(() => { result = calculator.Multiply(num1, num2); });
 
         Context["positive operands"] = () =>
         {
             Context["small numbers"] = () =>
             {
-                Act(() => { result = calculator.Multiply(3, 4); });
+                BeforeEach(() => { num1 = 3; num2 = 4; });
 
                 It["returns the correct product"] = () =>
                 {
@@ -118,7 +126,7 @@ public class CalculatorSpecs : Specifications
 
             Context["large numbers"] = () =>
             {
-                Act(() => { result = calculator.Multiply(100, 200); });
+                BeforeEach(() => { num1 = 100; num2 = 200; });
 
                 It["returns the correct product"] = () =>
                 {
@@ -129,11 +137,37 @@ public class CalculatorSpecs : Specifications
 
         Context["when multiplying by zero"] = () =>
         {
-            Act(() => { result = calculator.Multiply(99, 0); });
+            BeforeEach(() => { num1 = 99; num2 = 0; });
 
             It["always returns zero"] = () =>
             {
                 Check.That(result).IsEqualTo(0);
+            };
+        };
+    }
+    
+    [Context("Subtraction (grouped)", Reporting = SpecReporting.GroupedByRootContext)]
+    public void describe_subtraction()
+    {
+        Act(() => { result = calculator.Subtract(num1, num2); });
+
+        Context["when subtracting a smaller number"] = () =>
+        {
+            BeforeEach(() => { num1 = 10; num2 = 4; });
+
+            It["returns the positive difference"] = () =>
+            {
+                Check.That(result).IsEqualTo(6);
+            };
+        };
+
+        Context["when subtracting a larger number"] = () =>
+        {
+            BeforeEach(() => { num1 = 4; num2 = 10; });
+
+            It["returns a negative difference"] = () =>
+            {
+                Check.That(result).IsEqualTo(-6);
             };
         };
     }

@@ -2,7 +2,14 @@
 
 ## Current Focus
 
-**Grouped root-context execution (October 2026)** — the adapter can now run an entire root `[Context]` as a **single test result** with an NSpec-style tree report in its output. This is opt-in and layered (`[Context(Grouped = true)]` → `[assembly: GroupSpecsByRootContext]` → `.runsettings`), with the default unchanged (one result per `It[...]`).
+**📌 `SpecReporting` API + root lifecycle (October 2026)** — the grouped-execution feature was reshaped and hardened:
+
+- The `bool` grouping switches became a `SpecReporting` enum (`Individual` / `GroupedByRootContext`) configurable at **method, class, assembly, or `.runsettings`** level.
+- Constructor-registered `BeforeAll` / `AfterAll` now actually run (once per class) — previously they were silently skipped.
+- Grouped reports gained host-aware pass/fail markers and optional per-`It` source locations.
+- `ItAsync[...]` source navigation now lands on the async body.
+
+This builds on **grouped root-context execution** (Phase 9): a root `[Context]` can run as a **single test result** with an NSpec-style tree report in its output, while the default stays one result per `It[...]`.
 
 It builds directly on the two threads completed just before it:
 
@@ -15,9 +22,9 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 | Area | State |
 |------|-------|
-| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker |
-| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `ContextAttribute.Grouped` + `GroupSpecsByRootContextAttribute` added |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; 📌 grouped mode via `GroupingSettings` + `GroupedContextRunner`; 149 adapter unit tests + 28 integration tests passing |
+| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate |
+| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class) |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 213 adapter unit tests + 20 integration results passing |
 | `specs.core.UnitTests` | Self-hosted; 289 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | Maintained for backward compatibility |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
@@ -25,9 +32,26 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 ## Recent Architectural Changes
 
-### 📌 NEW — Grouped root-context execution
+### 📌 NEW — `SpecReporting` API, root lifecycle, report polish (staged, 25 files)
 
-A root `[Context]` can collapse into one VSTest `TestCase` / `TestResult`. Full precedence diagram, runtime contract table, and dynamic view live in `systemPatterns.md` section "Grouped Root-Context Execution".
+BEFORE/AFTER diagrams live in `systemPatterns.md` sections "Root (class-level) Lifecycle" and "Grouped Root-Context Execution → Configuration API"; `.runsettings` keys in `techContext.md` section "Adapter Configuration".
+
+| Layer | What changed |
+|-------|--------------|
+| `specs.BDD` | 📌 **Breaking**: `ContextAttribute.Grouped` / `GroupedSetting` → `Reporting` / `ReportingSetting` (`SpecReporting?` backing). `GroupSpecsByRootContextAttribute` deleted; new `SpecReporting` enum + `SpecReportingAttribute` (`AttributeTargets.Assembly \| Class`, `Inherited = false`) |
+| `specs.core` | `AddTest(string, Func<Task>)` wraps via `AsyncTestExtensions.RunSync` (extension-method-bound) so `Action.Target` is the user's `Func<Task>` |
+| Adapter / Discovery | `GroupingSettings.Resolve` takes 4 layers (method → class → assembly → runsettings); `ReadRunSettings` reads `SpecsBDD/SpecReporting` (names only); new `ReadShowSourceLocations`, `ReadColorOutput`, `ResolveMarkerStyle`. `SourceLocationReader.GetTestMethod` + state-machine `MoveNext` lookup + cross-assembly guard. `SpecsTestDiscoverer` / `TestStructureExtractor` signatures switched to `SpecReporting?` |
+| Adapter / Conversion | `TestCaseConverter` resolves `It` locations through `GetTestMethod` |
+| Adapter / Execution | `TestInvoker.InvokeSuite` runs root `OwnSetupOnce` / `OwnTeardownOnce` and passes `rootSetupFailure`; `GroupedContextRunner` takes `rootSetupFailure`, `showSourceLocations`, `MarkerStyle`; new internal `MarkerStyle` enum; `SpecsTestExecutor` resolves settings + `VSAPPIDNAME` once per run |
+| Tests | +64 adapter tests (runsettings parsing, marker styles, source locations incl. async, root lifecycle order/failure, class-level + non-inherited precedence); fixtures `GroupedAsyncSpec`, `ClassGroupedSpec`, `DerivedFromClassGroupedSpec`, `SpecWithRootLifecycle`, `SpecWithFailingRootBeforeAll`; Moq 4.20.72 added to adapter tests |
+| Integration | `GroupedCalculatorSpecs` deleted; `CalculatorSpecs` is class-level grouped, shares a constructor `BeforeAll` / `BeforeEach`, names its contexts, and adds a `Subtraction (grouped)` context using `Calculator.Subtract` |
+| Self-hosted core | `TestContextAdapter` suite migrated to `[Context(Reporting = SpecReporting.GroupedByRootContext)]` |
+
+> ⚠️ Staged `CalculatorSpecs.cs` renames `It["exception message mentions zero"]` to `"...mentions zerod"` — looks like an accidental typo; worth reverting before commit.
+
+### 📌 Grouped root-context execution (Phase 9)
+
+A root `[Context]` can collapse into one VSTest `TestCase` / `TestResult`. Full precedence diagram, runtime contract table, and dynamic view live in `systemPatterns.md` section "Grouped Root-Context Execution". *(Attribute names below were superseded by the `SpecReporting` API above.)*
 
 | Layer | What was added |
 |-------|----------------|
@@ -39,7 +63,7 @@ A root `[Context]` can collapse into one VSTest `TestCase` / `TestResult`. Full 
 
 Side effects of the change:
 
-- `specs.core.UnitTests.Framework.Adapters.TestContextAdapter` now runs `[Context(Grouped = true)]`, so the self-hosted count reads **289 results** (27 `It`s became 1).
+- `specs.core.UnitTests.Framework.Adapters.TestContextAdapter` runs grouped, so the self-hosted count reads **289 results** (27 `It`s became 1).
 - `CalculatorSpecs` in the integration project switched from hand-rolled `throw` checks to NFluent (`NFluent 3.1.0` package added).
 - `.vscode/settings.json` pins `dotnet.defaultSolution` to `src/Specs.sln`.
 
@@ -158,15 +182,16 @@ Removed as redundant or superseded:
 
 ### Immediate
 
-- Commit the grouped-execution feature (all 26 files are staged).
+- Fix the `"mentions zerod"` typo in `CalculatorSpecs`, then commit the `SpecReporting` / root-lifecycle change (25 files staged).
 - Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
-- Refresh `glossary.md` / `test-patterns.md` with the grouped-mode vocabulary (`Grouped`, `GroupByRootContext`, `[grouped]` FQN suffix).
+- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix) and a class-level `BeforeAll` example.
+- Update the root `README.md` / user docs for the breaking attribute rename.
 
 ### Short term
 
 - Migrate `specs.BDD.UnitTests` to self-hosting as well (only 5 tests remain there).
-- Extend `IntegrationTests` to cover the once-per-node contract explicitly (partial selection, failing `BeforeAll`, cancellation mid-run) and flip `GroupedCalculatorSpecs` to `Grouped = true` once the desired end-to-end grouped assertions are settled.
+- Extend `IntegrationTests` to cover the once-per-node contract explicitly (partial selection, failing `BeforeAll`, cancellation mid-run) and add an individually-reported suite back alongside the class-grouped `CalculatorSpecs`.
 - Decide whether grouped results should expose a per-`It` count to VSTest (currently one grouped context = one test in the totals).
 - Document a `dotnet new` template once one exists.
 
@@ -205,10 +230,15 @@ Removed as redundant or superseded:
 - Its failure policy differs from per-`It` mode (keep running after a failed test; aggregate into one result) and its output channel differs (tree in `StandardOutCategory`), so a dedicated `GroupedContextRunner` is clearer than threading a mode flag through `SelectionTreeWalker` and `TestCaseExecutor`.
 - `specs.core` stays unaware of VSTest granularity; `specs.BDD` only carries pure metadata attributes.
 
-### 📌 Why `ContextAttribute.Grouped` is tri-state under the hood
+### 📌 UPDATED — Why `ContextAttribute.Reporting` has a nullable backing
 
-- An assembly or `.runsettings` opt-in needs a per-context escape hatch; a plain `bool` default of `false` cannot distinguish "author said no" from "author said nothing".
-- `GroupedSetting` (`bool?`) feeds `GroupingSettings.Resolve`; the public `Grouped` property keeps attribute syntax simple.
+- A class, assembly, or `.runsettings` opt-in needs a per-context escape hatch; a non-nullable default of `Individual` cannot distinguish "author said Individual" from "author said nothing".
+- `ReportingSetting` (`SpecReporting?`) feeds `GroupingSettings.Resolve`; the public `Reporting` property keeps attribute syntax simple.
+
+### 📌 Why the root once-lifecycle lives in `TestInvoker`
+
+- Both runners (`SelectionTreeWalker`, `GroupedContextRunner`) start *below* the suite root, so neither could own it without double-firing when a class mixes grouped and per-`It` contexts.
+- `TestInvoker.InvokeSuite` already owns the per-class tree instance, making it the one place that sees the whole selection.
 
 ## Patterns & Preferences
 
@@ -224,7 +254,8 @@ Removed as redundant or superseded:
 | Describe | `Describe["..."] = () => { }` | `Describe["..."] = () => { }` |
 | Context (block) | `Context["..."] = () => { }` | `Context["..."] = () => { }` |
 | Context (feature set) | `[Context("...")] public void M()` | n/a |
-| Grouped feature set 📌 | `[Context("...", Grouped = true)] public void M()` | n/a |
+| Grouped feature set 📌 | `[Context("...", Reporting = SpecReporting.GroupedByRootContext)] public void M()` | n/a |
+| Grouped suite / assembly 📌 | `[SpecReporting(SpecReporting.GroupedByRootContext)]` on class or `[assembly: ...]` | n/a |
 | Assertion | `It["..."] = () => { }` / `ItAsync[...] = async () => { }` | `It["..."] = () => { }` |
 
 ### Style
@@ -245,14 +276,17 @@ Removed as redundant or superseded:
 7. **The two API styles really are the same paradigm** — they only differ syntactically. Documentation that frames them as alternatives invites confusion.
 8. 📌 **Granularity is a discovery-time contract** — VSTest counts whatever discovery emitted. Grouping a context silently changes headline test totals (315 → 289 in the core suite), so grouped mode must stay opt-in and visible in the display name.
 9. 📌 **VS Code and Visual Studio disagree on `Hierarchy`** — only VS honours RFC-0033; anything that must be visible in both IDEs has to live in `DisplayName`.
+10. 📌 **"Never ran" is worse than "failed"** — constructor-level `BeforeAll` / `AfterAll` were silently skipped because the walker excluded the root node and nothing else picked it up. A fixture that logs lifecycle order (`SpecWithRootLifecycle`) caught it.
+11. 📌 **Closures hide the user's lambda** — wrapping a `Func<Task>` in a lambda makes `Action.Method` a compiler-generated closure; binding an extension method keeps the original delegate reachable through `Action.Target`.
+12. 📌 **Visual Studio's Test Explorer does not render ANSI** — output formatting must detect the host (`VSAPPIDNAME`) rather than assume a terminal.
 
 ## Health Indicators
 
-- **Builds**: clean across all 9 projects — 0 warnings, 0 errors.
-- **Tests**: 471 passing, 0 failing.
+- **Builds**: clean across all 9 projects — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture).
+- **Tests**: 527 passing, 0 failing.
   - `specs.core.UnitTests` — 289 results (run by the Specs adapter; one grouped suite)
-  - `specs.BDD.VSTestAdapter.Tests` — 149
-  - `specs.BDD.VSTestAdapter.IntegrationTests` — 28
+  - `specs.BDD.VSTestAdapter.Tests` — 213
+  - `specs.BDD.VSTestAdapter.IntegrationTests` — 20 (`CalculatorSpecs` reports one result per root context)
   - `specs.BDD.UnitTests` — 5
 - **Open bugs**: none known.
 - **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
@@ -266,3 +300,4 @@ Removed as redundant or superseded:
 5. Can `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` also move to self-hosting, or does the adapter need an independent NUnit safety net?
 6. 📌 Should a grouped `[Context]` be allowed below the root (nested `Describe`/`Context` blocks), or stay root-only as today?
 7. 📌 Should grouped results report the inner pass/fail tally to VSTest somehow (e.g. via `TestResult.Messages` only, as now, or via additional synthetic results)?
+8. 📌 Should `MarkerStyle` detection cover other non-ANSI hosts (e.g. Rider) beyond `VSAPPIDNAME=devenv.exe`?

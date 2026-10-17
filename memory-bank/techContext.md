@@ -25,7 +25,7 @@ flowchart TD
         SELF["Specs itself<br/>(specs.core.UnitTests)"]:::app
         NU["NUnit 3.14<br/>+ NUnit3TestAdapter<br/>(adapter + BDD tests)"]:::external
         NF["NFluent 3.x"]:::external
-        MQ["Autofac.Extras.Moq 7.0"]:::external
+        MQ["Autofac.Extras.Moq 7.0<br/>Moq 4.20 (adapter tests)"]:::external
         TS["Microsoft.NET.Test.Sdk 17.8"]:::external
     end
 
@@ -120,7 +120,7 @@ flowchart LR
 |---------|---------------|------------|---------|-----|
 | `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Context]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | NUnit 3.14 / NUnit3TestAdapter 5.0 | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
-| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | — | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
 > 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Context]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
@@ -129,21 +129,29 @@ flowchart LR
 
 ## 📌 Adapter Configuration (`.runsettings`)
 
-The adapter reads one optional setting from the VSTest run settings, under a `SpecsBDD` element directly beneath `RunSettings`:
+The adapter reads optional settings from the VSTest run settings, under a `SpecsBDD` element directly beneath `RunSettings`:
 
 ```xml
 <RunSettings>
   <SpecsBDD>
-    <GroupByRootContext>true</GroupByRootContext>
+    <SpecReporting>GroupedByRootContext</SpecReporting>
+    <ShowSourceLocations>true</ShowSourceLocations>
+    <ColorOutput>false</ColorOutput>
   </SpecsBDD>
 </RunSettings>
 ```
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
-| `SpecsBDD/GroupByRootContext` | `bool` | unset (→ `false`) | Runs every root `[Context]` in the run as a single grouped result unless overridden by `[assembly: GroupSpecsByRootContext(...)]` or `[Context(Grouped = ...)]` |
+| `SpecsBDD/SpecReporting` 📌 UPDATED | `SpecReporting` name (`Individual` / `GroupedByRootContext`, case-insensitive) | unset (→ `Individual`) | Lowest-priority reporting layer; overridden by assembly `[SpecReporting]`, class `[SpecReporting]`, or `[Context(Reporting = ...)]`. Replaces the former `GroupByRootContext` bool |
+| `SpecsBDD/ShowSourceLocations` 📌 NEW | `bool` | `false` | Grouped reports add `at <file>:line <n>` under each `It` |
+| `SpecsBDD/ColorOutput` 📌 NEW | `bool` | `true` | `false` forces plain `✓` / `✗` markers in grouped reports |
 
-`GroupingSettings.ReadRunSettings` parses the XML defensively — missing, malformed, or non-boolean values yield `null` and fall through to the next layer. The setting is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded).
+| Environment variable | Effect |
+|----------------------|--------|
+| `VSAPPIDNAME` 📌 NEW | When `devenv.exe` (Visual Studio host) and color is enabled, grouped reports use emoji markers (`✅` / `❌`) instead of ANSI escapes |
+
+`GroupingSettings` parses the XML defensively — missing or malformed XML falls back to the defaults above. For `SpecReporting`, numeric strings and undefined names yield `null` and fall through to the default. `SpecReporting` is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded); `ShowSourceLocations` / `ColorOutput` are read at execution time.
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution" for the full precedence chain.
 
@@ -196,14 +204,14 @@ Specs/
 │   │   ├── AssertBuilder.cs
 │   │   ├── AssertBuilderAsync.cs
 │   │   ├── IAssertProvider.cs
-│   │   └── Attributes/ContextAttribute.cs, GroupSpecsByRootContextAttribute.cs
+│   │   └── Attributes/ContextAttribute.cs, SpecReporting.cs, SpecReportingAttribute.cs
 │   │
 │   ├── specs.BDD.VSTestAdapter/            # DELIVERABLE
 │   │   ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
 │   │   │                                   #   GroupingSettings, TestStructureExtractor, SourceLocationReader
 │   │   ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties
 │   │   ├── Execution/                      # SpecsTestExecutor, TestInvoker, SelectionTreeWalker,
-│   │   │                                   #   GroupedContextRunner, TestFinder, ResultReporter,
+│   │   │                                   #   GroupedContextRunner, MarkerStyle, TestFinder, ResultReporter,
 │   │   │                                   #   VSTestLoggingAdapter, VSTestTestProvider
 │   │   └── Properties/AssemblyInfo.cs
 │   │
@@ -273,7 +281,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 
 - 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Context]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
 - **NUnit still covers the outer rings.** `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` remain NUnit fixtures; the adapter cannot credibly test itself.
-- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs`, `StringSpecs`, `AsyncAndExceptionSpecs`).
+- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[SpecReporting(GroupedByRootContext)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`).
 - **TestHarness** provides an nspec-based scaffold from the era before the framework could test itself. It is *internal infrastructure only* and is now a retirement candidate.
 - Test layout mirrors source layout (`Framework/Processors/TestCases/...` → `specs.core.UnitTests/Framework/Processors/TestCases/...`).
 - Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in the NUnit projects.
@@ -298,3 +306,6 @@ The adapter behaves like any other VSTest extension:
 | 📌 Test Explorer shows a flat list instead of a tree | The `TestCase.Hierarchy` (RFC-0033) property is missing or not exactly 4 elements | `TestCaseConverter.BuildHierarchy` must emit `[null, Namespace, Class, ContextPath]` |
 | 📌 `"Test '...' no longer exists in the current build."` | Stale `TestCase` objects from a previous discovery no longer match the rebuilt suite tree | Re-run discovery (rebuild / refresh Test Explorer) |
 | 📌 `BeforeAll` runs more than once for a partial selection | A code path bypassed `SelectionTreeWalker` and used the cascaded single-test lifecycle | Route suite runs through `TestInvoker.InvokeSuite` |
+| 📌 Grouped output shows raw `ESC[32m` escape sequences | Host does not render ANSI escapes and was not detected as Visual Studio | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` in `.runsettings` |
+| 📌 `ItAsync[...]` "Go to Source" lands on the `[Context]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
+| 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `SpecReporting` API | Use `Reporting = SpecReporting.GroupedByRootContext` / `[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]` |

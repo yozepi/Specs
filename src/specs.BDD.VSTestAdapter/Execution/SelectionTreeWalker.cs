@@ -99,8 +99,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             if (_cancellationToken.IsCancellationRequested) return;
             if (!_livePaths.Contains(nodePath)) return;
 
-            // The root node (empty path) has no own BeforeAll — skip the once-lifecycle call.
-            // Every named context node fires its own OwnSetupOnce.
+            // The root's once-lifecycle is run by TestInvoker.InvokeSuite, not the walker.
             bool isRoot = string.IsNullOrEmpty(nodePath);
 
             if (!isRoot)

@@ -70,7 +70,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
             // [Context] method when the lambda has no PDB sequence points (e.g. empty body).
             var location =
                 (specTest.ItAction != null
-                    ? SourceLocationReader.TryGetLocation(source, specTest.ItAction.Method)
+                    ? SourceLocationReader.TryGetLocation(source, SourceLocationReader.GetTestMethod(specTest.ItAction))
                     : null)
                 ?? (specTest.ContextMethod != null
                     ? SourceLocationReader.TryGetLocation(source, specTest.ContextMethod)

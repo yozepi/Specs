@@ -5,6 +5,7 @@ using System.Reflection;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
+using specs.BDD.Attributes;
 using specs.BDD.VSTestAdapter.Conversion;
 
 namespace specs.BDD.VSTestAdapter.Discovery
@@ -56,7 +57,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             string source,
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink,
-            bool? runSettingsGrouping)
+            SpecReporting? runSettingsGrouping)
         {
             Assembly assembly;
             try
@@ -98,7 +99,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             string source,
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink,
-            bool? runSettingsGrouping)
+            SpecReporting? runSettingsGrouping)
         {
             // Validate: every Specification class must have at least one [Context] method.
             ContextMethodScanner.ValidateHasContextMethods(specClass);
