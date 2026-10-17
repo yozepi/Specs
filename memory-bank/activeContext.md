@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**📌 `SpecReporting` API + root lifecycle (October 2026)** — the grouped-execution feature was reshaped and hardened:
+**📌 `dotnet test --filter` support** — `SpecsTestExecutor.RunTests(sources)` now applies the VSTest filter expression to re-discovered test cases instead of running the whole assembly. Follows the committed `SpecReporting` / root-lifecycle work below.
+
+**📌 `SpecReporting` API + root lifecycle (October 2026, committed `124ba8c`)** — the grouped-execution feature was reshaped and hardened:
 
 - The `bool` grouping switches became a `SpecReporting` enum (`Individual` / `GroupedByRootContext`) configurable at **method, class, assembly, or `.runsettings`** level.
 - Constructor-registered `BeforeAll` / `AfterAll` now actually run (once per class) — previously they were silently skipped.
@@ -24,7 +26,7 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 |------|-------|
 | `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate |
 | `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class) |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 213 adapter unit tests + 20 integration results passing |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 217 adapter unit tests + 20 integration results passing |
 | `specs.core.UnitTests` | Self-hosted; 289 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | Maintained for backward compatibility |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
@@ -32,7 +34,18 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 ## Recent Architectural Changes
 
-### 📌 NEW — `SpecReporting` API, root lifecycle, report polish (staged, 25 files)
+### 📌 NEW — `--filter` support in `RunTests(sources)`
+
+Flow diagram, BEFORE/AFTER behaviour, and supported property table live in `systemPatterns.md` section "Test Case Filtering (`dotnet test --filter`)".
+
+| File | What changed |
+|------|--------------|
+| `Execution/SpecsTestExecutor.cs` | New static `FilterProperties` map (case-insensitive: `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`). `RunTests(sources)` calls `runContext.GetTestCaseFilter(...)` after re-discovery, filters with `MatchTestCase`, and on `TestPlatformFormatException` sends an `Error` message and returns without running anything. A `null` filter (or `null` run context) runs everything as before |
+| `Tests/Execution/SpecsTestExecutor_Tests.cs` 📌 NEW | 4 NUnit + Moq tests: filter limits results to `MultiContextSpec`; property-value provider returns the same values as the `TestCase` (case-insensitive, unknown → `null`); supported names are passed to `GetTestCaseFilter`; invalid filter reports the error and runs nothing |
+
+Verified end-to-end: `--filter "FullyQualifiedName~Calculator"` on the integration project runs 4 results instead of 20.
+
+### 📌 `SpecReporting` API, root lifecycle, report polish (committed `124ba8c`, 25 files)
 
 BEFORE/AFTER diagrams live in `systemPatterns.md` sections "Root (class-level) Lifecycle" and "Grouped Root-Context Execution → Configuration API"; `.runsettings` keys in `techContext.md` section "Adapter Configuration".
 
@@ -46,8 +59,6 @@ BEFORE/AFTER diagrams live in `systemPatterns.md` sections "Root (class-level) L
 | Tests | +64 adapter tests (runsettings parsing, marker styles, source locations incl. async, root lifecycle order/failure, class-level + non-inherited precedence); fixtures `GroupedAsyncSpec`, `ClassGroupedSpec`, `DerivedFromClassGroupedSpec`, `SpecWithRootLifecycle`, `SpecWithFailingRootBeforeAll`; Moq 4.20.72 added to adapter tests |
 | Integration | `GroupedCalculatorSpecs` deleted; `CalculatorSpecs` is class-level grouped, shares a constructor `BeforeAll` / `BeforeEach`, names its contexts, and adds a `Subtraction (grouped)` context using `Calculator.Subtract` |
 | Self-hosted core | `TestContextAdapter` suite migrated to `[Context(Reporting = SpecReporting.GroupedByRootContext)]` |
-
-> ⚠️ Staged `CalculatorSpecs.cs` renames `It["exception message mentions zero"]` to `"...mentions zerod"` — looks like an accidental typo; worth reverting before commit.
 
 ### 📌 Grouped root-context execution (Phase 9)
 
@@ -182,7 +193,8 @@ Removed as redundant or superseded:
 
 ### Immediate
 
-- Fix the `"mentions zerod"` typo in `CalculatorSpecs`, then commit the `SpecReporting` / root-lifecycle change (25 files staged).
+- Commit the `--filter` support.
+- Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` filters through the real VSTest pipeline).
 - Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
 - Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix) and a class-level `BeforeAll` example.
@@ -279,13 +291,14 @@ Removed as redundant or superseded:
 10. 📌 **"Never ran" is worse than "failed"** — constructor-level `BeforeAll` / `AfterAll` were silently skipped because the walker excluded the root node and nothing else picked it up. A fixture that logs lifecycle order (`SpecWithRootLifecycle`) caught it.
 11. 📌 **Closures hide the user's lambda** — wrapping a `Func<Task>` in a lambda makes `Action.Method` a compiler-generated closure; binding an extension method keeps the original delegate reachable through `Action.Target`.
 12. 📌 **Visual Studio's Test Explorer does not render ANSI** — output formatting must detect the host (`VSAPPIDNAME`) rather than assume a terminal.
+13. 📌 **Source-based runs arrive unfiltered** — VSTest only hands the `--filter` expression to the adapter through `IRunContext.GetTestCaseFilter`; an adapter that re-discovers without applying it silently runs the whole assembly.
 
 ## Health Indicators
 
 - **Builds**: clean across all 9 projects — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture).
-- **Tests**: 527 passing, 0 failing.
+- **Tests**: 531 passing, 0 failing.
   - `specs.core.UnitTests` — 289 results (run by the Specs adapter; one grouped suite)
-  - `specs.BDD.VSTestAdapter.Tests` — 213
+  - `specs.BDD.VSTestAdapter.Tests` — 217
   - `specs.BDD.VSTestAdapter.IntegrationTests` — 20 (`CalculatorSpecs` reports one result per root context)
   - `specs.BDD.UnitTests` — 5
 - **Open bugs**: none known.

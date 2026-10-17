@@ -42,6 +42,7 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property; display names embed `ContextPath` for VS Code 📌.
 - ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`), falling back to the `[Context]` method.
 - ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
+- ✅ 📌 `dotnet test --filter` honoured in `RunTests(sources)` on `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`; invalid expressions reported as errors.
 - ✅ Cancellation flowing from `ITestExecutor.Cancel()` into `TestCaseExecutor`.
 - ✅ `InvalidSpecificationException` surfaced when a suite has no `[Context]` methods.
 - ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
@@ -58,9 +59,9 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 
 - ✅ `specs.core.UnitTests` — **289 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result).
 - ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface.
-- ✅ `specs.BDD.VSTestAdapter.Tests` — 213 NUnit tests across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests` using Moq).
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 217 NUnit tests across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, 📌 `SpecsTestExecutor_Tests` filter coverage, using Moq).
 - ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 20 end-to-end results (`CalculatorSpecs` grouped at class level with a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`) through the real VSTest pipeline, asserting with NFluent.
-- ✅ All 527 results passing across the solution; build is clean.
+- ✅ All 531 results passing across the solution; build is clean.
 
 ## Evolution Timeline
 
@@ -125,7 +126,7 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution".
 
-### 📌 Phase 10 — `SpecReporting` API + root lifecycle (Oct 2026, current)
+### 📌 Phase 10 — `SpecReporting` API + root lifecycle (Oct 2026)
 
 - **API rename (breaking)**: `ContextAttribute.Grouped` → `Reporting` (`SpecReporting` enum); `GroupSpecsByRootContextAttribute` → `SpecReportingAttribute`, now valid on assemblies **and** classes (class level not inherited); `.runsettings` `GroupByRootContext` → `SpecReporting`.
 - **Root lifecycle fix**: constructor-registered `BeforeAll` / `AfterAll` previously never ran; `TestInvoker` now runs them once per class and propagates a root setup failure to both runners.
@@ -134,6 +135,12 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 - **Tests**: adapter tests 149 → 213 (Moq added); `GroupedCalculatorSpecs` folded into `CalculatorSpecs`, which is now class-level grouped with shared constructor setup (integration 28 → 20 results).
 
 > **📌 See**: `systemPatterns.md` sections "Root (class-level) Lifecycle" and "Grouped Root-Context Execution → Configuration API".
+
+#### 📌 Follow-up — `--filter` support (Oct 2026, current)
+
+`SpecsTestExecutor.RunTests(sources)` previously ignored `dotnet test --filter` and ran every re-discovered spec. It now obtains `IRunContext.GetTestCaseFilter` over five supported properties and runs only matching cases; an invalid filter is reported via `SendMessage(Error)` and nothing runs. New `SpecsTestExecutor_Tests` (4 tests) bring adapter tests to 217.
+
+> **📌 See**: `systemPatterns.md` section "Test Case Filtering (`dotnet test --filter`)".
 
 ## Known Limitations
 
@@ -164,9 +171,9 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 | Metric | Status |
 |--------|--------|
 | Build cleanliness across all 9 projects | ✅ Clean — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture) |
-| Test pass rate | ✅ 100% (527 / 527) |
+| Test pass rate | ✅ 100% (531 / 531) |
 | Self-hosted core tests | ✅ 289 results passing via the Specs adapter |
-| Adapter unit tests | ✅ 213 passing |
+| Adapter unit tests | ✅ 217 passing |
 | Adapter integration tests | ✅ 20 passing |
 | `specs.core` external dependencies | ✅ Zero |
 | Known open bugs | ✅ None |

@@ -20,6 +20,16 @@ namespace specs.BDD.VSTestAdapter.Execution
     [ExtensionUri("executor://SpecsTestExecutor/v1")]
     public class SpecsTestExecutor : ITestExecutor
     {
+        private static readonly Dictionary<string, TestProperty> FilterProperties =
+            new Dictionary<string, TestProperty>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["FullyQualifiedName"] = TestCaseProperties.FullyQualifiedName,
+                ["DisplayName"] = TestCaseProperties.DisplayName,
+                ["ContextMethod"] = TestProperties.ContextMethod,
+                ["ContextPath"] = TestProperties.ContextPath,
+                ["TestDescription"] = TestProperties.TestDescription,
+            };
+
         private CancellationTokenSource? _cancellationTokenSource = default;
 
         /// <inheritdoc/>
@@ -78,9 +88,9 @@ namespace specs.BDD.VSTestAdapter.Execution
         /// <inheritdoc/>
         /// <remarks>
         /// This overload is called when VSTest is asked to run all tests from a set of source
-        /// assemblies (e.g., <c>dotnet test</c> without a filter).
-        /// It re-runs discovery internally to obtain the <see cref="TestCase"/> list, then
-        /// delegates to the <see cref="RunTests(IEnumerable{TestCase},IRunContext,IFrameworkHandle)"/>
+        /// assemblies (e.g., <c>dotnet test</c>).
+        /// It re-runs discovery internally to obtain the <see cref="TestCase"/> list, applies any
+        /// <c>--filter</c> expression, then delegates to the <see cref="RunTests(IEnumerable{TestCase},IRunContext,IFrameworkHandle)"/>
         /// overload.
         /// </remarks>
         public void RunTests(
@@ -92,6 +102,28 @@ namespace specs.BDD.VSTestAdapter.Execution
                 return;
 
             var testCases = DiscoverFromSources(sources, runContext, frameworkHandle);
+
+            ITestCaseFilterExpression? filter;
+            try
+            {
+                filter = runContext?.GetTestCaseFilter(
+                    FilterProperties.Keys,
+                    name => FilterProperties.TryGetValue(name, out var prop) ? prop : null);
+            }
+            catch (TestPlatformFormatException ex)
+            {
+                frameworkHandle.SendMessage(TestMessageLevel.Error, ex.Message);
+                return;
+            }
+
+            if (filter != null)
+            {
+                testCases = testCases
+                    .Where(tc => filter.MatchTestCase(tc, name =>
+                        FilterProperties.TryGetValue(name, out var prop) ? tc.GetPropertyValue(prop) : null))
+                    .ToList();
+            }
+
             RunTests(testCases, runContext, frameworkHandle);
         }
 

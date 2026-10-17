@@ -274,7 +274,7 @@ flowchart TD
 | Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌 |
 | Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` that embeds `ContextPath` (VS Code ignores `Hierarchy`) 📌, the RFC-0033 `TestCase.Hierarchy` property, and source location |
 | Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌) preserving metadata across VSTest serialization |
-| Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)`; 📌 resolves `ShowSourceLocations` and `MarkerStyle` once per run |
+| Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)`; 📌 resolves `ShowSourceLocations` and `MarkerStyle` once per run; 📌 NEW applies the `dotnet test --filter` expression to re-discovered cases in `RunTests(sources)` (see "Test Case Filtering") |
 | Execution | `TestInvoker` | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, 📌 runs the **root** (class-constructor) `OwnSetupOnce` / `OwnTeardownOnce` once per class, splits the selection on `IsGrouped`, and hands grouped cases to `GroupedContextRunner` and the rest to `SelectionTreeWalker` (both share one tree instance). A root `BeforeAll` failure fails every selected test and skips the root `AfterAll` |
 | Execution | **`SelectionTreeWalker`** | Depth-first walk of the suite tree firing `OwnSetupOnce` / `OwnTeardownOnce` **exactly once per live non-root node** (the root is owned by `TestInvoker`); delegates per-test loops to `TestCaseExecutor` |
 | Execution | **`GroupedContextRunner`** 📌 | Runs an entire root `[Context]` subtree as **one** `TestResult`; mirrors the walker's once-per-node lifecycle but keeps running after per-test failures so the report is complete; emits an NSpec-style tree + failure list to `StandardOutCategory` using the run's `MarkerStyle`, optional per-`It` `at file:line N` locations, and a fully failed tree when the root `BeforeAll` failed |
@@ -645,6 +645,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 18 | 📌 NEW **`TestInvoker` owns the root once-lifecycle** | Constructor-registered `BeforeAll` / `AfterAll` must run exactly once per class regardless of how the selection splits between runners | Walker still skips the root; `GroupedContextRunner` receives `rootSetupFailure` |
 | 19 | 📌 NEW **Async test wrapper is bound to the original `Func<Task>`** | Source location needs the user's lambda, not a compiler closure | `AsyncTestExtensions.RunSync` in `specs.core`; `SourceLocationReader.GetTestMethod` unwraps `Action.Target` |
 | 20 | 📌 NEW **Marker style depends on the host** | Visual Studio's Test Explorer shows raw ANSI escapes; VS Code / CLI render them | `VSAPPIDNAME=devenv.exe` → emoji; `ColorOutput=false` → plain |
+| 21 | 📌 NEW **The adapter applies `--filter` itself in `RunTests(sources)`** | VSTest hands source-based runs to the adapter unfiltered; an adapter that ignores `IRunContext.GetTestCaseFilter` runs every test | `SpecsTestExecutor.FilterProperties` maps case-insensitive names to `TestProperty`s; an invalid expression is reported as an error and nothing runs |
 
 ## Critical Execution Paths
 
@@ -701,6 +702,64 @@ sequenceDiagram
         INV->>INV: root.OwnTeardownOnce() (finally, best-effort)
     end
 ```
+
+### 📌 NEW — Test Case Filtering (`dotnet test --filter`)
+
+When VSTest calls `RunTests(sources, …)` (CLI runs, `dotnet test --filter …`), the adapter re-discovers every `TestCase` and must apply the filter itself. Selection-based runs (`RunTests(testCases, …)`, e.g. Test Explorer) are already filtered by the host and are unaffected.
+
+**BEFORE**: re-discovered cases were passed straight to `RunTests(testCases, …)`, so `--filter` was silently ignored and every spec in the assembly ran.
+
+**AFTER**:
+
+```mermaid
+---
+title: "Dynamic — RunTests(sources) with a --filter expression"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    VST(["<b>VSTest Platform</b><br/>[Software System: Microsoft]<br/>dotnet test --filter"]):::external
+    EXR["<b>SpecsTestExecutor</b><br/>[Component: ITestExecutor]<br/>RunTests(sources)"]:::app
+    DISC["<b>SpecsTestDiscoverer</b><br/>[Component: ITestDiscoverer]<br/>Re-discovers TestCases"]:::app
+    PARSE{"GetTestCaseFilter<br/>throws?"}
+    ERR(["Error message<br/>nothing runs"]):::highlight
+    HAS{"Filter<br/>present?"}
+    MATCH("MatchTestCase per case<br/>via FilterProperties")
+    RUN["<b>RunTests(testCases)</b><br/>[Component: C# method]<br/>Grouped by spec class"]:::app
+
+    VST -->|"1. RunTests [VSTest contract]"| EXR
+    EXR -->|"2. Discover [in-process]"| DISC
+    DISC -->|"3. TestCase list [in-process]"| PARSE
+    PARSE -->|"TestPlatformFormatException"| ERR
+    PARSE -->|"no"| HAS
+    HAS -->|"yes"| MATCH
+    HAS -->|"no (null)"| RUN
+    MATCH -->|"4. Matching cases [in-process]"| RUN
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned component"]:::app
+        L2["External system"]:::external
+        L3["Error path"]:::highlight
+    end
+
+    RUN ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef highlight fill:#E74C3C,stroke:#C0392B,color:#fff
+```
+
+Supported filter properties (names matched case-insensitively by `SpecsTestExecutor.FilterProperties`):
+
+| Filter name | Backing `TestProperty` |
+|-------------|------------------------|
+| `FullyQualifiedName` | `TestCaseProperties.FullyQualifiedName` |
+| `DisplayName` | `TestCaseProperties.DisplayName` |
+| `ContextMethod` | `TestProperties.ContextMethod` |
+| `ContextPath` | `TestProperties.ContextPath` |
+| `TestDescription` | `TestProperties.TestDescription` |
+
+Unknown names resolve to `null` in the property-value provider, so they never match. Grouped records are filtered like any other case (by their `Class::Method::[grouped]` FQN).
 
 ## Pattern Summary
 

@@ -120,7 +120,7 @@ flowchart LR
 |---------|---------------|------------|---------|-----|
 | `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Context]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | NUnit 3.14 / NUnit3TestAdapter 5.0 | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
-| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
 > 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Context]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
@@ -253,6 +253,9 @@ dotnet test src\specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.cspr
 # Run integration tests (exercises the Specs VSTest adapter end-to-end)
 dotnet test src\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj
 
+# 📌 Run a subset of Specs tests (FullyQualifiedName, DisplayName, ContextMethod, ContextPath, TestDescription)
+dotnet test src\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter "FullyQualifiedName~Calculator"
+
 # Pack deliverables
 dotnet pack src\specs.core\specs.core.csproj -c Release
 dotnet pack src\specs.specification\specs.BDD.csproj -c Release
@@ -274,6 +277,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 | All async hooks ultimately reduce to a synchronous `Action` | Uniform public surface; lifecycle ordering would otherwise be non-deterministic |
 | Discovery must not execute user `BeforeAll`/`Act`/etc. | Safety; discovery may happen in IDE without setting up resources |
 | Test FullyQualifiedName must be stable across runs | VSTest expects stable IDs for re-runs / filtering |
+| 📌 `RunTests(sources)` must apply the VSTest filter itself | VSTest passes `--filter` to source-based runs only via `IRunContext.GetTestCaseFilter`; ignoring it runs the whole assembly |
 | 📌 Discovery and execution must build the suite tree through `SuiteTreeBuilder` | Any divergence in node descriptions or ordering makes `TestFinder` / `SelectionTreeWalker` unable to match discovered `ContextPath` values |
 | 📌 `TestStructureExtractor.PathSeparator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
 
@@ -308,4 +312,5 @@ The adapter behaves like any other VSTest extension:
 | 📌 `BeforeAll` runs more than once for a partial selection | A code path bypassed `SelectionTreeWalker` and used the cascaded single-test lifecycle | Route suite runs through `TestInvoker.InvokeSuite` |
 | 📌 Grouped output shows raw `ESC[32m` escape sequences | Host does not render ANSI escapes and was not detected as Visual Studio | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` in `.runsettings` |
 | 📌 `ItAsync[...]` "Go to Source" lands on the `[Context]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
+| 📌 `dotnet test --filter` runs every Specs test | Adapter versions before the filtering fix ignored `IRunContext.GetTestCaseFilter` in `RunTests(sources)` | Fixed: `SpecsTestExecutor` applies the filter; an invalid expression is logged as an error and runs nothing |
 | 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `SpecReporting` API | Use `Reporting = SpecReporting.GroupedByRootContext` / `[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]` |
