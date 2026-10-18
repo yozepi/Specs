@@ -1,4 +1,4 @@
-namespace specs.BDD.Attributes
+﻿namespace specs.BDD.Attributes
 {
     /// <summary>
     /// How spec results are reported to the test runner.
@@ -8,7 +8,7 @@ namespace specs.BDD.Attributes
         /// <summary>One test result per It[...].</summary>
         Individual,
 
-        /// <summary>One test result per root [Context], with the full contextual output published to the result's output.</summary>
+        /// <summary>One test result per root [Describe], with the full contextual output published to the result's output.</summary>
         GroupedByRootContext
     }
 }

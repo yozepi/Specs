@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -13,7 +13,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
     /// <summary>
     /// VSTest test discoverer for the Specs BDD framework.
     /// Finds all <see cref="specs.BDD.Specifications"/> subclasses in the scanned assemblies,
-    /// validates that each has at least one [Context] method, and reports a <see cref="TestCase"/>
+    /// validates that each has at least one [Describe] method, and reports a <see cref="TestCase"/>
     /// for every It[...] assertion found in the test hierarchy.
     /// </summary>
     [FileExtension(".dll")]
@@ -101,7 +101,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             ITestCaseDiscoverySink discoverySink,
             SpecReporting? runSettingsGrouping)
         {
-            // Validate: every Specification class must have at least one [Context] method.
+            // Validate: every Specification class must have at least one [Describe] method.
             ContextMethodScanner.ValidateHasContextMethods(specClass);
 
             IEnumerable<SpecTest> specTests;

@@ -83,7 +83,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             try
             {
                 specType = ResolveSpecType(source, className);
-                rootPath = ""; // root node has no path; [Context] children are the first level
+                rootPath = ""; // root node has no path; [Describe] children are the first level
                 root = SuiteTreeBuilder.BuildSuite(specType);
             }
             catch (Exception buildEx)

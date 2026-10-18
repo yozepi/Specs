@@ -1,4 +1,4 @@
-# Specs
+﻿# Specs
 
 A .NET BDD testing framework with two coexisting API styles over a framework-agnostic core, plus a VSTest adapter for native IDE integration.
 
@@ -50,7 +50,7 @@ public class MySpecs : Spec
 ```csharp
 public class MySpecs : Specifications
 {
-    [Context("My feature")]
+    [Describe("My feature")]
     public void my_feature()
     {
         BeforeEach(() => { /* setup */ });
@@ -62,7 +62,7 @@ public class MySpecs : Specifications
 }
 ```
 
-> A `[Context]`-decorated method is required for the VSTest adapter to discover tests in a suite.
+> A `[Describe]`-decorated method is required for the VSTest adapter to discover tests in a suite.
 
 ### Pending specs
 ```csharp

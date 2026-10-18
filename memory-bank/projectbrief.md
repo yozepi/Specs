@@ -16,7 +16,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Primary Goals
 
-1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Context]` methods.
+1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Describe]` methods.
 2. **Hierarchical organization** — nested contexts inherit setup/act behavior from their parents.
 3. **Sophisticated lifecycle** — `SetupOnce`, `SetupEach`, `Act`, `TeardownEach`, `TeardownOnce` with correct ordering.
 4. **First-class async** — every lifecycle hook has a `Func<Task>` overload.
@@ -68,7 +68,7 @@ public class CalculatorSpecs : Specifications      // Suite
     private Calculator _calc = null!;
     private int _result;
 
-    [Context("Addition")]                          // Feature set
+    [Describe("Addition")]                          // Feature set
     public void addition()
     {
         BeforeEach(() => _calc = new Calculator());
@@ -99,7 +99,7 @@ public class CalculatorSpecs : Spec
 | Term | Code element |
 |------|--------------|
 | **Suite** | Class inheriting `Specifications` or `Spec` (one subject) |
-| **Feature Set** | `[Context("...")]`-decorated method (one feature of the subject) |
+| **Feature Set** | `[Describe("...")]`-decorated method (one feature of the subject) |
 | **Scenario** | `Context[...]` / `Describe[...]` block (when/given) |
 | **Specification** | `It[...]` (single assertion) |
 | 📌 **Pending specification** | `It[...] = TODO`, `xIt[...]`, or any spec inside `xContext[...]` / `xDescribe[...]` (discovered, never executed) |
@@ -126,7 +126,7 @@ public class CalculatorSpecs : Spec
 - Two coexisting BDD API styles.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting + 📌 `dotnet test --filter` support.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
-- 📌 Opt-in **grouped execution** — a root `[Context]` runs as one test result with an NSpec-style tree report in its output, selected via the `SpecReporting` enum at method (`[Context(Reporting = ...)]`), class or assembly (`[SpecReporting(...)]`), or `.runsettings` level.
+- 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the `SpecReporting` enum at method (`[Describe(Reporting = ...)]`), class or assembly (`[SpecReporting(...)]`), or `.runsettings` level.
 - 📌 Class-level (constructor-registered) `BeforeAll` / `AfterAll` running once per suite.
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
@@ -149,14 +149,14 @@ public class CalculatorSpecs : Spec
 
 ## Success Criteria
 
-- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Context]` methods.
-- ✅ Test Explorer renders the full `Class → [Context] → Describe → It` hierarchy.
+- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Describe]` methods.
+- ✅ Test Explorer renders the full `Class → [Describe] → Describe → It` hierarchy.
 - ✅ Source location ("Go to source") navigates to the `It[...]` line for every discovered test.
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Both API styles produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
 - ✅ **The framework tests its own core with itself** — 📌 333 self-hosted test results, plus 272 adapter and 28 integration results.
-- ✅ A root `[Context]` can opt into grouped execution and still honour the full once-per-node lifecycle.
+- ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).
 - ✅ 📌 An exception thrown by `Act` is verifiable from `It` via `ShouldThrow<T>`, and otherwise fails only that spec while `AfterEach` / `AfterAll` still run — identically in `TestCaseExecutor`, per-`It`, and grouped execution.

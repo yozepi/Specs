@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using specs.core.Framework.Processors.TestCases;
 using specs.BDD;
 using specs.BDD.Attributes;
@@ -19,7 +19,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
         List<ITestCaseContext> childContexts = [];
 
 
-        [Context]
+        [Describe]
         public void ContextualTestCase_Specs()
         {
 

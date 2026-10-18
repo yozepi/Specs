@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace specs.BDD.Attributes
 {
@@ -8,18 +8,18 @@ namespace specs.BDD.Attributes
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The ContextAttribute can be applied to methods to designate them as context builders
+    /// The DescribeAttribute can be applied to methods to designate them as context builders
     /// within the Specs testing framework. Only one context attribute can be applied to a method.
     /// </para>
     /// <example>
     /// <code>
-    /// [Context("User authentication")]
+    /// [Describe("User authentication")]
     /// public void describe_login()
     /// {
     ///     // Test context setup
     /// }
     /// 
-    /// [Context("Valid credentials")]
+    /// [Describe("Valid credentials")]
     /// public void when_user_attempts_login()
     /// {
     ///     // Test context with description
@@ -28,7 +28,7 @@ namespace specs.BDD.Attributes
     /// </example>
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-    public class ContextAttribute : Attribute
+    public class DescribeAttribute : Attribute
     {
         // Nullable backing distinguishes "not specified" from an explicit value.
         private SpecReporting? _reporting;
@@ -61,13 +61,13 @@ namespace specs.BDD.Attributes
         public SpecReporting? ReportingSetting => _reporting;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ContextAttribute"/> class
+        /// Initializes a new instance of the <see cref="DescribeAttribute"/> class
         /// with an optional description.
         /// </summary>
         /// <param name="description">
         /// Optional description for the context. If not provided, defaults to null.
         /// </param>
-        public ContextAttribute(string? description = null)
+        public DescribeAttribute(string? description = null)
         {
             Description = description;
         }

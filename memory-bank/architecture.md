@@ -5,10 +5,10 @@
 The Specs framework organizes tests in a **Suite → Feature Set → Specification** hierarchy:
 
 - **Suite** = A specification class (one per subject under test)
-- **Feature Set** = A `[Context]` decorated method (one per feature/aspect)  
+- **Feature Set** = A `[Describe]` decorated method (one per feature/aspect)  
 - **Specification** = An `It[...]` assertion (one per expected behavior)
 
-The `[Context]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Context]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
+The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Describe]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
 
 The framework has TWO API styles that both follow this hierarchy:
 
@@ -215,8 +215,8 @@ dotnet test / VS Test Explorer
 specs.BDD.VSTestAdapter
     ↓ Discovery
     ├─ SpecificationClassScanner  → finds Specifications subclasses
-    ├─ ContextMethodScanner       → finds [Context]-decorated methods, validates presence
-    ├─ SuiteTreeBuilder           → registers each [Context] method as a named child context,
+    ├─ ContextMethodScanner       → finds [Describe]-decorated methods, validates presence
+    ├─ SuiteTreeBuilder           → registers each [Describe] method as a named child context,
     │                               reads Specifications.CoreBuilder (no reflection),
     │                               calls Build() → IContextualTestCase
     ├─ TestStructureExtractor     → recursively flattens the tree → SpecTest list
@@ -232,7 +232,7 @@ specs.BDD.VSTestAdapter
     ├─ TestFinder                 → navigates IContextualTestCase hierarchy by context path
     └─ ResultReporter             → creates Passed/Failed TestResult with timing
 
-Key constraint: every Specifications class MUST have at least one [Context] method.
+Key constraint: every Specifications class MUST have at least one [Describe] method.
   → Discovery throws InvalidSpecificationException otherwise.
 ```
 

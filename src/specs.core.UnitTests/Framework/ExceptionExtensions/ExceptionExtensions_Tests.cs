@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.ParameterValidation;
 using specs.BDD;
@@ -9,7 +9,7 @@ namespace specs.core.UnitTests.Framework.ExceptionExtensions
     public class ExceptionExtensions_Tests : Specifications
     {
 
-        [Context]
+        [Describe]
         public void ExceptionExtensions_Specs()
         {
             Describe["SetValueOrThrowIfParameterIsNull extension method"] = () =>

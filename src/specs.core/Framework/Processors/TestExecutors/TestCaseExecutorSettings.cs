@@ -1,6 +1,4 @@
-﻿ using System;
-
-namespace specs.core.Framework.Processors.TestExecutors
+﻿namespace specs.core.Framework.Processors.TestExecutors
 {
     /// <summary>
     /// Configuration settings for test case execution behavior.

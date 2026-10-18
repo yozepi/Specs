@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 
 namespace specs.BDD.Attributes
 {
     /// <summary>
-    /// Assembly- or class-level setting for how the results of every root [Context] method
+    /// Assembly- or class-level setting for how the results of every root [Describe] method
     /// in the test assembly or specification class are reported.
     /// </summary>
     /// <remarks>
-    /// Precedence: an explicit <see cref="ContextAttribute.Reporting"/> value on a [Context]
+    /// Precedence: an explicit <see cref="DescribeAttribute.Reporting"/> value on a [Describe]
     /// method overrides the class-level attribute; the class-level attribute overrides the
     /// assembly-level attribute; the assembly-level attribute overrides the
     /// <c>&lt;SpecsBDD&gt;&lt;SpecReporting&gt;</c> .runsettings value.

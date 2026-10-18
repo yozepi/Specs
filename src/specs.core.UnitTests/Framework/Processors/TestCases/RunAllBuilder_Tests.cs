@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using NUnit.Framework;
 using specs.core.Framework.Processors.TestCases;
 using specs.BDD;
@@ -9,7 +9,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
     public class RunAllBuilder_Tests : Specifications
     {
 
-        [Context]
+        [Describe]
         public void RunAllBuilder_Specs()
         {
             RunAllBuilder subject = null!;

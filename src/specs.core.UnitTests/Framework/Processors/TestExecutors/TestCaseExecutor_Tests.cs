@@ -1,4 +1,4 @@
-using Autofac.Extras.Moq;
+﻿using Autofac.Extras.Moq;
 using Moq;
 using NFluent;
 using NUnit.Framework.Internal;
@@ -13,7 +13,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
     public class TestCaseExecutor_Tests : Specifications
     {
 
-        [Context]
+        [Describe]
         public void TestCaseExecutor_Specs()
         {
             TestCaseExecutor subject = null!;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using System.Xml.Linq;
 using specs.BDD.Attributes;
@@ -7,13 +7,13 @@ using specs.BDD.VSTestAdapter.Execution;
 namespace specs.BDD.VSTestAdapter.Discovery
 {
     /// <summary>
-    /// Resolves whether a root [Context] method runs in grouped mode (one test result for the
+    /// Resolves whether a root [Describe] method runs in grouped mode (one test result for the
     /// whole context subtree) from the layered configuration sources.
     /// </summary>
     /// <remarks>
     /// Precedence (highest wins):
     /// <list type="number">
-    /// <item><see cref="ContextAttribute.Reporting"/> explicitly set on the [Context] method</item>
+    /// <item><see cref="DescribeAttribute.Reporting"/> explicitly set on the [Describe] method</item>
     /// <item><see cref="SpecReportingAttribute"/> on the specification class (not inherited)</item>
     /// <item><see cref="SpecReportingAttribute"/> on the test assembly</item>
     /// <item><c>&lt;RunSettings&gt;&lt;SpecsBDD&gt;&lt;SpecReporting&gt;</c> in .runsettings</item>
@@ -130,15 +130,15 @@ namespace specs.BDD.VSTestAdapter.Discovery
                 == SpecReporting.GroupedByRootContext;
 
         /// <summary>
-        /// Resolves whether grouped execution applies to a [Context] method by reading its
-        /// <see cref="ContextAttribute"/> and the <see cref="SpecReportingAttribute"/>
+        /// Resolves whether grouped execution applies to a [Describe] method by reading its
+        /// <see cref="DescribeAttribute"/> and the <see cref="SpecReportingAttribute"/>
         /// on its reflected (concrete) specification class and assembly.
         /// </summary>
         public static bool Resolve(MethodInfo contextMethod, SpecReporting? runSettingsSetting)
         {
             if (contextMethod == null) throw new ArgumentNullException(nameof(contextMethod));
 
-            var contextSetting = contextMethod.GetCustomAttribute<ContextAttribute>()?.ReportingSetting;
+            var contextSetting = contextMethod.GetCustomAttribute<DescribeAttribute>()?.ReportingSetting;
             var classSetting = contextMethod.ReflectedType?
                 .GetCustomAttribute<SpecReportingAttribute>(inherit: false)?.Reporting;
             var assemblySetting = contextMethod.DeclaringType?.Assembly

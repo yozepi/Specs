@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 using specs.core.Framework.Adapters;
@@ -7,7 +7,7 @@ namespace specs.core.UnitTests.Framework.Adapters
 {
     public class TestInstance_Tests : Specifications
     {
-        [Context]
+        [Describe]
         public void TestInstance_Specs()
         {
             TestInstance subject = null!;

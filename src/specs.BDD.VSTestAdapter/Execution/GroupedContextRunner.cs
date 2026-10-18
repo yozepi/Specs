@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,7 +14,7 @@ using specs.core.Framework.Processors.TestExecutors;
 namespace specs.BDD.VSTestAdapter.Execution
 {
     /// <summary>
-    /// Executes an entire root [Context] subtree as a single grouped test result.
+    /// Executes an entire root [Describe] subtree as a single grouped test result.
     /// All It[...] tests under the context run together; the full contextual tree
     /// (contexts, tests, pass/fail markers, failure details) is published to the
     /// result's standard output, in the style of NSpec's console formatter.

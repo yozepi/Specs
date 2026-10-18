@@ -1,11 +1,11 @@
-using NFluent;
+﻿using NFluent;
 using specs.BDD.Attributes;
 using System.Reflection;
 using yozepi;
 
 namespace specs.BDD.UnitTests.Attributes
 {
-    public class ContextAttribute_Tests : nSpecTestHarness
+    public class DescribeAttribute_Tests : nSpecTestHarness
     {
         [Test]
         public void Specs()
@@ -13,17 +13,17 @@ namespace specs.BDD.UnitTests.Attributes
             RunMySpecs();
         }
 
-        private void ContextAttribute_Specs()
+        private void DescribeAttribute_Specs()
         {
-            ContextAttribute subject = null!;
+            DescribeAttribute subject = null!;
 
-            describe["ContextAttribute constructor"] = () =>
+            describe["DescribeAttribute constructor"] = () =>
             {
                 context["when created with no description"] = () =>
                 {
                     act = () =>
                     {
-                        subject = new ContextAttribute();
+                        subject = new DescribeAttribute();
                     };
 
                     it["should create instance successfully"] = () =>
@@ -48,7 +48,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                     act = () =>
                     {
-                        subject = new ContextAttribute(description);
+                        subject = new DescribeAttribute(description);
                     };
 
                     it["should create instance successfully"] = () =>
@@ -66,7 +66,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     act = () =>
                     {
-                        subject = new ContextAttribute(null);
+                        subject = new DescribeAttribute(null);
                     };
 
                     it["should create instance successfully"] = () =>
@@ -84,7 +84,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     act = () =>
                     {
-                        subject = new ContextAttribute("");
+                        subject = new DescribeAttribute("");
                     };
 
                     it["should create instance successfully"] = () =>
@@ -102,7 +102,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     act = () =>
                     {
-                        subject = new ContextAttribute("   ");
+                        subject = new DescribeAttribute("   ");
                     };
 
                     it["should preserve whitespace in Description"] = () =>
@@ -116,7 +116,7 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 beforeEach = () =>
                 {
-                    subject = new ContextAttribute("Test description");
+                    subject = new DescribeAttribute("Test description");
                 };
 
                 it["should return the value provided in constructor"] = () =>
@@ -126,7 +126,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                 it["should be read-only (no setter)"] = () =>
                 {
-                    var propertyInfo = typeof(ContextAttribute).GetProperty("Description");
+                    var propertyInfo = typeof(DescribeAttribute).GetProperty("Description");
                     Check.That(propertyInfo).IsNotNull();
                     Check.That(propertyInfo!.CanWrite).IsFalse();
                 };
@@ -149,7 +149,7 @@ namespace specs.BDD.UnitTests.Attributes
                     {
                         it[$"should preserve description: '{testDescription}'"] = () =>
                         {
-                            var attr = new ContextAttribute(testDescription);
+                            var attr = new DescribeAttribute(testDescription);
                             Check.That(attr.Description).IsEqualTo(testDescription);
                         };
                     }
@@ -162,7 +162,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                 beforeEach = () =>
                 {
-                    var attributes = typeof(ContextAttribute)
+                    var attributes = typeof(DescribeAttribute)
                         .GetCustomAttributes(typeof(AttributeUsageAttribute), false);
                     attributeUsage = (AttributeUsageAttribute)attributes[0];
                 };
@@ -192,12 +192,12 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 it["should inherit from System.Attribute"] = () =>
                 {
-                    Check.That(typeof(ContextAttribute).IsSubclassOf(typeof(Attribute))).IsTrue();
+                    Check.That(typeof(DescribeAttribute).IsSubclassOf(typeof(Attribute))).IsTrue();
                 };
 
                 it["should be an Attribute type"] = () =>
                 {
-                    var attr = new ContextAttribute("test");
+                    var attr = new DescribeAttribute("test");
                     Check.That(attr is Attribute).IsTrue();
                 };
             };
@@ -215,13 +215,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     it["should retrieve attribute from method"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<ContextAttribute>();
+                        var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
                     it["should have correct description"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<ContextAttribute>();
+                        var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr!.Description).IsEqualTo("Single context");
                     };
                 };
@@ -237,13 +237,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     it["should return null when no attribute present"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<ContextAttribute>();
+                        var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNull();
                     };
 
                     it["should return empty collection when using GetCustomAttributes"] = () =>
                     {
-                        var attrs = method.GetCustomAttributes<ContextAttribute>();
+                        var attrs = method.GetCustomAttributes<DescribeAttribute>();
                         Check.That(attrs).IsEmpty();
                     };
                 };
@@ -259,13 +259,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     it["should retrieve attribute"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<ContextAttribute>();
+                        var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
                     it["should have null description"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<ContextAttribute>();
+                        var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr!.Description).IsNull();
                     };
                 };
@@ -285,7 +285,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                     foreach (var desc in testDescriptions)
                     {
-                        var attr = new ContextAttribute(desc);
+                        var attr = new DescribeAttribute(desc);
                         Check.That(attr.Description).IsEqualTo(desc);
                     }
                 };
@@ -293,7 +293,7 @@ namespace specs.BDD.UnitTests.Attributes
                 it["should allow discovery of all context methods in class"] = () =>
                 {
                     var methods = typeof(TestClass).GetMethods()
-                        .Where(m => m.GetCustomAttributes<ContextAttribute>().Any())
+                        .Where(m => m.GetCustomAttributes<DescribeAttribute>().Any())
                         .ToList();
 
                     Check.That(methods).HasSize(2);
@@ -304,7 +304,7 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 beforeEach = () =>
                 {
-                    subject = new ContextAttribute("Original description");
+                    subject = new DescribeAttribute("Original description");
                 };
 
                 it["should not allow Description to be modified after construction"] = () =>
@@ -326,8 +326,8 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 it["should create independent instances with same description"] = () =>
                 {
-                    var attr1 = new ContextAttribute("same description");
-                    var attr2 = new ContextAttribute("same description");
+                    var attr1 = new DescribeAttribute("same description");
+                    var attr2 = new DescribeAttribute("same description");
 
                     Check.That(attr1).IsNotNull();
                     Check.That(attr2).IsNotNull();
@@ -337,8 +337,8 @@ namespace specs.BDD.UnitTests.Attributes
 
                 it["should create independent instances with different descriptions"] = () =>
                 {
-                    var attr1 = new ContextAttribute("first");
-                    var attr2 = new ContextAttribute("second");
+                    var attr1 = new DescribeAttribute("first");
+                    var attr2 = new DescribeAttribute("second");
 
                     Check.That(attr1.Description).IsEqualTo("first");
                     Check.That(attr2.Description).IsEqualTo("second");
@@ -349,12 +349,12 @@ namespace specs.BDD.UnitTests.Attributes
         // Test helper class with Context attributes for reflection tests
         private class TestClass
         {
-            [Context("Single context")]
+            [Describe("Single context")]
             public void MethodWithSingleContext() { }
 
             public void MethodWithoutContext() { }
 
-            [Context]
+            [Describe]
             public void MethodWithNullDescription() { }
         }
     }

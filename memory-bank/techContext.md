@@ -118,12 +118,12 @@ flowchart LR
 
 | Project | Test framework | Assertions | Mocking | SDK |
 |---------|---------------|------------|---------|-----|
-| `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Context]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Describe]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | NUnit 3.14 / NUnit3TestAdapter 5.0 | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
-> 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Context]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
+> 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Describe]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
 >
 > **📌 See**: `activeContext.md` section "Self-hosting migration".
 
@@ -143,7 +143,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
-| `SpecsBDD/SpecReporting` 📌 UPDATED | `SpecReporting` name (`Individual` / `GroupedByRootContext`, case-insensitive) | unset (→ `Individual`) | Lowest-priority reporting layer; overridden by assembly `[SpecReporting]`, class `[SpecReporting]`, or `[Context(Reporting = ...)]`. Replaces the former `GroupByRootContext` bool |
+| `SpecsBDD/SpecReporting` 📌 UPDATED | `SpecReporting` name (`Individual` / `GroupedByRootContext`, case-insensitive) | unset (→ `Individual`) | Lowest-priority reporting layer; overridden by assembly `[SpecReporting]`, class `[SpecReporting]`, or `[Describe(Reporting = ...)]`. Replaces the former `GroupByRootContext` bool |
 | `SpecsBDD/ShowSourceLocations` 📌 NEW | `bool` | `false` | Grouped reports add `at <file>:line <n>` under each `It` |
 | `SpecsBDD/ColorOutput` 📌 NEW | `bool` | `true` | `false` forces plain `✓` / `✗` markers in grouped reports |
 
@@ -204,7 +204,7 @@ Specs/
 │   │   ├── AssertBuilder.cs
 │   │   ├── AssertBuilderAsync.cs
 │   │   ├── IAssertProvider.cs
-│   │   └── Attributes/ContextAttribute.cs, SpecReporting.cs, SpecReportingAttribute.cs
+│   │   └── Attributes/DescribeAttribute.cs, SpecReporting.cs, SpecReportingAttribute.cs
 │   │
 │   ├── specs.BDD.VSTestAdapter/            # DELIVERABLE
 │   │   ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
@@ -215,7 +215,7 @@ Specs/
 │   │   │                                   #   VSTestLoggingAdapter, VSTestTestProvider
 │   │   └── Properties/AssemblyInfo.cs
 │   │
-│   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Context])
+│   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Describe])
 │   ├── specs.specification.UnitTests/      # NUnit (asm: specs.BDD.UnitTests)
 │   ├── specs.BDD.VSTestAdapter.Tests/      # NUnit
 │   ├── specs.BDD.VSTestAdapter.IntegrationTests/  # VSTest via Specs adapter
@@ -290,7 +290,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 
 ## Testing Strategy
 
-- 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Context]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
+- 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Describe]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
 - **NUnit still covers the outer rings.** `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` remain NUnit fixtures; the adapter cannot credibly test itself.
 - **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[SpecReporting(GroupedByRootContext)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
 - **TestHarness** provides an nspec-based scaffold from the era before the framework could test itself. It is *internal infrastructure only* and is now a retirement candidate.
@@ -310,7 +310,7 @@ The adapter behaves like any other VSTest extension:
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| `InvalidSpecificationException: Specifications subclass has no [Context] methods` at discovery | The suite class doesn't declare any `[Context]` method | Add at least one `[Context("...")]`-decorated `public void` method |
+| `InvalidSpecificationException: Specifications subclass has no [Describe] methods` at discovery | The suite class doesn't declare any `[Describe]` method | Add at least one `[Describe("...")]`-decorated `public void` method |
 | Async hangs during a test | User code calls `.Result` / `.Wait()` on captured contexts without `ConfigureAwait(false)` | Use `ConfigureAwait(false)` in libraries under test, or use the `Func<Task>` overloads |
 | "Go to source" navigates only to class | Source PDB missing or non-portable | Build with `<DebugType>portable</DebugType>` (default for SDK-style projects) |
 | Test result missing from Test Explorer | The adapter assembly wasn't copied to the output directory | Ensure the test project references `specs.BDD.VSTestAdapter` directly or via a package |
@@ -318,7 +318,7 @@ The adapter behaves like any other VSTest extension:
 | 📌 `"Test '...' no longer exists in the current build."` | Stale `TestCase` objects from a previous discovery no longer match the rebuilt suite tree | Re-run discovery (rebuild / refresh Test Explorer) |
 | 📌 `BeforeAll` runs more than once for a partial selection | A code path bypassed `SelectionTreeWalker` and used the cascaded single-test lifecycle | Route suite runs through `TestInvoker.InvokeSuite` |
 | 📌 Grouped output shows raw `ESC[32m` escape sequences | Host does not render ANSI escapes and was not detected as Visual Studio | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` in `.runsettings` |
-| 📌 `ItAsync[...]` "Go to Source" lands on the `[Context]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
+| 📌 `ItAsync[...]` "Go to Source" lands on the `[Describe]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
 | 📌 `dotnet test --filter` runs every Specs test | Adapter versions before the filtering fix ignored `IRunContext.GetTestCaseFilter` in `RunTests(sources)` | Fixed: `SpecsTestExecutor` applies the filter; an invalid expression is logged as an error and runs nothing |
 | 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `SpecReporting` API | Use `Reporting = SpecReporting.GroupedByRootContext` / `[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]` |
 | 📌 A spec fails with the `Act` exception instead of its own assertion message | `Act` threw and the `It` did not verify it; the unverified `Act` exception replaces any `It` failure | Assert it with `It[...] = ShouldThrow<T>(...)`, or fix the `Act` |

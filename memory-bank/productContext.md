@@ -55,7 +55,7 @@ public class Auth_Controller : Specifications        // Suite
 {
     BeforeAll(() => _db = SeedDatabase());           // Runs once for the whole suite
 
-    [Context("User authentication")]                 // Feature set
+    [Describe("User authentication")]                 // Feature set
     public void user_authentication()
     {
         BeforeEach(() => _user = NewUser());
@@ -68,12 +68,12 @@ public class Auth_Controller : Specifications        // Suite
         };
     }
 
-    [Context("Token management")]                    // Different feature set
+    [Describe("Token management")]                    // Different feature set
     public void token_management() { /* its own BeforeEach + specs */ }
 }
 ```
 
-Parent-level lifecycle (class scope) applies to every feature set. Feature-level lifecycle (inside a `[Context]` method) applies only to that feature's scenarios.
+Parent-level lifecycle (class scope) applies to every feature set. Feature-level lifecycle (inside a `[Describe]` method) applies only to that feature's scenarios.
 
 ### Problem 2 — Five-phase lifecycle
 
@@ -118,13 +118,13 @@ Without an adapter, Specs tests were invisible to Test Explorer and `dotnet test
 The adapter also preserves the shape of the specification in the IDE:
 
 - Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
-- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Context]` method.
+- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Describe]` method.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
 - 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
 
 ### 📌 Problem 5 — One result per `It[...]` is sometimes too noisy
 
-Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Context]` collapse into a single test result whose output is an NSpec-style tree:
+Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Describe]` collapse into a single test result whose output is an NSpec-style tree:
 
 ```text
 Specs
@@ -136,7 +136,7 @@ Specs
 1 passed, 1 failed, 2 total
 ```
 
-It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedByRootContext`): `[Context(Reporting = ...)]` on a method wins over `[SpecReporting(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: SpecReporting(...)]`, which wins over `<SpecsBDD><SpecReporting>` in `.runsettings`. The default remains one result per `It[...]`.
+It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedByRootContext`): `[Describe(Reporting = ...)]` on a method wins over `[SpecReporting(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: SpecReporting(...)]`, which wins over `<SpecsBDD><SpecReporting>` in `.runsettings`. The default remains one result per `It[...]`.
 
 📌 The report adapts to its host: green/red ANSI markers in VS Code and the CLI, emoji markers in Visual Studio (which cannot render ANSI), plain markers when `<ColorOutput>false</ColorOutput>`. `<ShowSourceLocations>true</ShowSourceLocations>` adds an `at <file>:line <n>` line under every spec, including `ItAsync[...]` specs.
 
@@ -181,7 +181,7 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **Choose your style** | Method-based (`Specifications`) or property-based (`Spec`) |
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
-| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
+| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Describe]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |

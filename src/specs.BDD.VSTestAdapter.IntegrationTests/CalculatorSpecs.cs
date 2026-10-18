@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 using System.Diagnostics;
@@ -30,7 +30,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 1: Addition ──────────────────────────────────────────────────
 
-    [Context("Addition")]
+    [Describe("Addition")]
     public void describe_addition()
     {
         Act(() => { result = calculator.Add(num1, num2); });
@@ -66,7 +66,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 2: Division ─────────────────────────────────────────────────
 
-    [Context("Division")]
+    [Describe("Division")]
     public void describe_division()
     {
         Act(() => { result = calculator.Divide(num1, num2); });
@@ -94,7 +94,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 3: Multiply (nested contexts) ────────────────────────────────
 
-    [Context("Multiplication")]
+    [Describe("Multiplication")]
     public void describe_multiplication()
     { 
         Act(() => { result = calculator.Multiply(num1, num2); });
@@ -133,7 +133,7 @@ public class CalculatorSpecs : Specifications
         };
     }
     
-    [Context("Subtraction (grouped)", Reporting = SpecReporting.GroupedByRootContext)]
+    [Describe("Subtraction (grouped)", Reporting = SpecReporting.GroupedByRootContext)]
     public void describe_subtraction()
     {
         Act(() => { result = calculator.Subtract(num1, num2); });

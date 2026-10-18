@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,12 +7,12 @@ using specs.BDD.Attributes;
 namespace specs.BDD.VSTestAdapter.Discovery
 {
     /// <summary>
-    /// Scans a specification class for methods decorated with <see cref="ContextAttribute"/>.
+    /// Scans a specification class for methods decorated with <see cref="DescribeAttribute"/>.
     /// </summary>
     public static class ContextMethodScanner
     {
         /// <summary>
-        /// Returns all methods on the given type that are decorated with <see cref="ContextAttribute"/>.
+        /// Returns all methods on the given type that are decorated with <see cref="DescribeAttribute"/>.
         /// Searches public, non-public, and instance methods.
         /// </summary>
         /// <param name="specificationClass">The specification class to scan.</param>
@@ -21,16 +21,16 @@ namespace specs.BDD.VSTestAdapter.Discovery
         {
             return specificationClass
                 .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(m => m.GetCustomAttribute<ContextAttribute>() != null);
+                .Where(m => m.GetCustomAttribute<DescribeAttribute>() != null);
         }
 
         /// <summary>
-        /// Validates that the given specification class has at least one <see cref="ContextAttribute"/>-decorated
+        /// Validates that the given specification class has at least one <see cref="DescribeAttribute"/>-decorated
         /// method. Throws <see cref="InvalidSpecificationException"/> if none are found.
         /// </summary>
         /// <param name="specificationClass">The class to validate.</param>
         /// <exception cref="InvalidSpecificationException">
-        /// Thrown when no [Context] methods are found on the class.
+        /// Thrown when no [Describe] methods are found on the class.
         /// </exception>
         public static void ValidateHasContextMethods(Type specificationClass)
         {
@@ -38,7 +38,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             {
                 throw new InvalidSpecificationException(
                     $"Specification class '{specificationClass.FullName}' has no methods decorated with " +
-                    $"[Context] attribute. All Specification classes must have at least one [Context] method.");
+                    $"[Describe] attribute. All Specification classes must have at least one [Describe] method.");
             }
         }
     }

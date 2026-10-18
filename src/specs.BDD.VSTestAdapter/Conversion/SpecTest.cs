@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 
 namespace specs.BDD.VSTestAdapter.Conversion
@@ -15,8 +15,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
         public Type SpecificationClass { get; set; } = null!;
 
         /// <summary>
-        /// The [Context]-decorated method that builds this test's context scope.
-        /// <c>null</c> for tests registered directly at the class root (outside any [Context] method).
+        /// The [Describe]-decorated method that builds this test's context scope.
+        /// <c>null</c> for tests registered directly at the class root (outside any [Describe] method).
         /// Used as a fallback for source-location lookup in Test Explorer via PDB.
         /// </summary>
         public System.Reflection.MethodInfo? ContextMethod { get; set; }
@@ -31,7 +31,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
 
         /// <summary>
         /// The display path through the context hierarchy to this test's parent context.
-        /// Built from the [Context] method name/description and any nested Context/Describe block names,
+        /// Built from the [Describe] method name/description and any nested Context/Describe block names,
         /// separated by " → " (e.g., "describe_addition → when adding positive numbers").
         /// </summary>
         public string ContextPath { get; set; } = string.Empty;
@@ -42,7 +42,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
         public string TestDescription { get; set; } = string.Empty;
 
         /// <summary>
-        /// When <c>true</c>, this entry represents an entire root [Context] subtree that runs
+        /// When <c>true</c>, this entry represents an entire root [Describe] subtree that runs
         /// as a single test result (grouped mode) rather than an individual It[...] assertion.
         /// <see cref="ContextPath"/> holds the root context description;
         /// <see cref="TestDescription"/> and <see cref="ItAction"/> are unused.

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace specs.BDD.VSTestAdapter.Execution
     /// <summary>
     /// VSTest test executor for the Specs BDD framework.
     /// Executes tests discovered by <see cref="SpecsTestDiscoverer"/> by re-instantiating
-    /// the specification class, re-invoking the [Context] method to rebuild the test hierarchy,
+    /// the specification class, re-invoking the [Describe] method to rebuild the test hierarchy,
     /// navigating to the specific test, and running the full lifecycle.
     /// </summary>
     [ExtensionUri("executor://SpecsTestExecutor/v1")]

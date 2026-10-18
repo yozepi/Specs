@@ -1,4 +1,4 @@
-using specs.BDD;
+﻿using specs.BDD;
 using specs.BDD.Attributes;
 
 namespace specs.BDD.VSTestAdapter.IntegrationTests;
@@ -41,7 +41,7 @@ public class AsyncAndExceptionSpecs : Specifications
 {
     // ─── Async Act + ItAsync ─────────────────────────────────────────────────
 
-    [Context]
+    [Describe]
     public void describe_async_fetch()
     {
         AsyncDataService service = null!;
@@ -82,7 +82,7 @@ public class AsyncAndExceptionSpecs : Specifications
 
     // ─── Exception handling in Act ───────────────────────────────────────────
 
-    [Context]
+    [Describe]
     public void describe_async_exception_handling()
     {
         AsyncDataService service = null!;
@@ -118,7 +118,7 @@ public class AsyncAndExceptionSpecs : Specifications
 
     // ─── Async BeforeAll / AfterAll ──────────────────────────────────────────
 
-    [Context]
+    [Describe]
     public void describe_async_lifecycle()
     {
         AsyncDataService service = null!;

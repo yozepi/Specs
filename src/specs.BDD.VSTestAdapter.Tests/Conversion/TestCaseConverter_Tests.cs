@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NFluent;
 using NUnit.Framework;
 using specs.BDD.VSTestAdapter.Conversion;
@@ -365,7 +365,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         /// <summary>Minimal Specifications subclass used as a test double.</summary>
         private class FakeSpecClass : specs.BDD.Specifications
         {
-            [specs.BDD.Attributes.Context("fake context")]
+            [specs.BDD.Attributes.Describe("fake context")]
             public void describe_something()
             {
                 It["a test"] = () => { };

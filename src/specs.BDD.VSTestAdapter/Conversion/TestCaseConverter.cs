@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using specs.BDD.VSTestAdapter.Discovery;
 
@@ -64,12 +64,12 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 specTest.IsPending);
 
             // Set the VSTest RFC-0033 Hierarchy property so Test Explorer renders the
-            // [Context] method name and Describe[...] blocks as tree nodes above the It[...] leaf.
+            // [Describe] method name and Describe[...] blocks as tree nodes above the It[...] leaf.
             testCase.SetPropertyValue(HierarchyProperty, BuildHierarchy(specTest));
 
             // Prefer the It[...] lambda's source line so Test Explorer navigates to the test
-            // definition rather than the top of the [Context] method.  Fall back to the
-            // [Context] method when the lambda has no PDB sequence points (e.g. empty body).
+            // definition rather than the top of the [Describe] method.  Fall back to the
+            // [Describe] method when the lambda has no PDB sequence points (e.g. empty body).
             var location =
                 (specTest.ItAction != null
                     ? SourceLocationReader.TryGetLocation(source, SourceLocationReader.GetTestMethod(specTest.ItAction))
@@ -143,7 +143,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 null!,                                             // [0] Container  — VS fills from assembly
                 specTest.SpecificationClass.Namespace ?? "",      // [1] Namespace
                 specTest.SpecificationClass.Name,                 // [2] Class
-                specTest.ContextPath                              // [3] TestGroup — [Context] + Describe chain
+                specTest.ContextPath                              // [3] TestGroup — [Describe] + Describe chain
             };
         }
     }

@@ -33,7 +33,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         }
 
         [Test]
-        public void UsesContextAttributeDescriptionAsRootContextPath()
+        public void UsesDescribeAttributeDescriptionAsRootContextPath()
         {
             var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)

@@ -1,4 +1,4 @@
-using specs.BDD;
+﻿using specs.BDD;
 using specs.BDD.Attributes;
 
 namespace specs.BDD.VSTestAdapter.IntegrationTests;
@@ -9,7 +9,7 @@ namespace specs.BDD.VSTestAdapter.IntegrationTests;
 /// </summary>
 public class StringSpecs : Specifications
 {
-    [Context]
+    [Describe]
     public void describe_string_operations()
     {
         string input = string.Empty;

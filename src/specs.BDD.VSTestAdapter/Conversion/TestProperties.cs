@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+﻿using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
 namespace specs.BDD.VSTestAdapter.Conversion
 {
@@ -20,7 +20,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 owner: typeof(TestProperties));
 
         /// <summary>
-        /// The name of the [Context]-decorated method that builds the test structure.
+        /// The name of the [Describe]-decorated method that builds the test structure.
         /// Stored as a string. Used during execution to invoke the correct method.
         /// </summary>
         public static readonly TestProperty ContextMethod =
@@ -55,7 +55,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 owner: typeof(TestProperties));
 
         /// <summary>
-        /// Whether this test case represents an entire root [Context] subtree executed as a
+        /// Whether this test case represents an entire root [Describe] subtree executed as a
         /// single grouped result. Stored as a bool. Used during execution to route the test
         /// case to the grouped-context runner instead of the per-test selection walker.
         /// </summary>

@@ -1,4 +1,4 @@
-using NFluent;
+﻿using NFluent;
 using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
 
@@ -6,7 +6,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
     partial class ContextualTestCaseBuilder_Tests
     {
-        [Context("AllMethodsInteraction Specs")]
+        [Describe("AllMethodsInteraction Specs")]
         public void AllMethodsInteraction_Specs()
         {
             ContextualTestCaseBuilder subject = null!;

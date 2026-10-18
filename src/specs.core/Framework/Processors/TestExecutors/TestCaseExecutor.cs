@@ -1,4 +1,4 @@
-﻿           using specs.core.Framework.Adapters;
+﻿using specs.core.Framework.Adapters;
 using specs.core.Framework.ParameterValidation;
 using System;
 using System.Linq;
