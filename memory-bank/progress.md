@@ -19,7 +19,7 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ 📌 Pending metadata: `AddPendingTest` (sync + async), `ChildTestCase(..., isPending)` with descendant propagation, `ITestCase.PendingTests`.
 - ✅ 📌 `ActExceptionContext.Run(act, test)` — captures the `Act` exception per test, exposes it via `Current` / `MarkHandled`, and fails only that test when unverified (teardown still runs).
 - ✅ 📌 `ActExceptionAssertions.VerifyActException<T>` + `ExpectedExceptionNotThrownException` (public, reusable by custom front-ends).
-- ✅ Adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`).
+- ✅ Adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) — 📌 now public alongside `TestCaseExecutor`, `TestContextAdapter` (5-phase ctor + `FromTestCase`), and `TestInstance`, so custom runners can host the canonical lifecycle.
 - ✅ `RunAllBuilder` / `RunAllRunner` action aggregation.
 - ✅ Zero external NuGet dependencies.
 
@@ -64,11 +64,11 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 
 ### Testing
 
-- ✅ `specs.core.UnitTests` — **332 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result). 📌 Includes `ActExceptionContext_Tests` and `ActExceptionAssertions_Tests`.
+- ✅ `specs.core.UnitTests` — **📌 333 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result). 📌 Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs.
 - ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface (📌 harness specs now include the pending syntax and `ShouldThrow`).
 - ✅ `specs.BDD.VSTestAdapter.Tests` — 272 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
 - ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 28 end-to-end results (`CalculatorSpecs` grouped at class level with a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, 📌 `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and 📌 `ShouldThrow`; 5 pending specs Skipped.
-- ✅ All 637 results green (624 passed, 13 pending skipped); build is clean.
+- ✅ All 📌 638 results green (625 passed, 13 pending skipped); build is clean.
 
 ## Evolution Timeline
 
@@ -161,7 +161,7 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 
 > **📌 See**: `systemPatterns.md` section "Pending Specs".
 
-### 📌 Phase 12 — `ShouldThrow<T>` + `Act` exception capture (Oct 2026)
+### 📌 Phase 12 — `ShouldThrow<T>` + `Act` exception capture (Oct 2026, committed `61c96ea`)
 
 - **Authoring**: `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` replaces hand-rolled `try/catch` in `Act`.
 - **Core**: new public `ActExceptionContext` (`AsyncLocal` outcome, `Run`, `Current`, `MarkHandled`), `ActExceptionAssertions.VerifyActException<T>`, `ExpectedExceptionNotThrownException`. `TestCaseExecutor` runs `Act` + test through `Run`.
@@ -171,6 +171,15 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 - **Docs**: root `README.md` gained an "Expected exceptions" section.
 
 > **📌 See**: `systemPatterns.md` section "Act Exception Capture (`ShouldThrow<T>`)".
+
+#### 📌 NEW — Follow-up — public execution surface (Oct 2026)
+
+- `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, `TestInstance` made `public`; `specs.core`'s `InternalsVisibleTo("specs.BDD.VSTestAdapter")` removed.
+- `TestContextAdapter` ctor trimmed to five lifecycle delegates (unused `test` arg dropped, `*Action` suffixes removed); new `FromTestCase(ITestCase)`.
+- `TestCaseExecutor` now rejects a `null` `testProvider`; unused `Settings/TestSettings` deleted.
+- **Tests**: core 332 → 333; `TestContextAdapter` suite rewritten with `Check.ThatCode(...).WithProperty("ParamName", ...)` and Moq-backed `FromTestCase` specs.
+
+> **📌 See**: `systemPatterns.md` section "Adapter Pattern — Framework independence" and decision #29.
 
 ## Known Limitations
 
@@ -203,9 +212,9 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 
 | Metric | Status |
 |--------|--------|
-| Build cleanliness across all 9 projects | ✅ Clean — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture) |
-| Test pass rate | ✅ 100% of runnable results (624 passed, 13 pending skipped, 0 failed of 637) |
-| Self-hosted core tests | ✅ 332 results passing via the Specs adapter |
+| Build cleanliness across all 9 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
+| Test pass rate | ✅ 100% of runnable results (625 passed, 13 pending skipped, 0 failed of 638) |
+| Self-hosted core tests | ✅ 333 results passing via the Specs adapter |
 | Adapter unit tests | ✅ 272 results (264 passed, 8 pending fixtures skipped) |
 | Adapter integration tests | ✅ 28 results (23 passed, 5 pending skipped) |
 | `specs.core` external dependencies | ✅ Zero |

@@ -186,12 +186,11 @@ namespace specs.BDD.VSTestAdapter.Execution
             // OwnSetupOnce / OwnTeardownOnce are already handled by the walker.
             // Cascaded SetupEach, Act, TeardownEach still run correctly around every test.
             var contextAdapter = new TestContextAdapter(
-                setupOnceAction:    () => { },
-                setupEachAction:    node.SetupEach,
-                actAction:          node.Act,
-                teardownEachAction: node.TeardownEach,
-                teardownOnceAction: () => { },
-                test:               () => { });
+                setupOnce:    () => { },
+                setupEach:    node.SetupEach,
+                act:          node.Act,
+                teardownEach: node.TeardownEach,
+                teardownOnce: () => { });
 
             var settings = new TestCaseExecutorSettings { StopOnAssertFailure = false };
             var executor = new TestCaseExecutor(settings, logger, contextAdapter, testProvider);

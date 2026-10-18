@@ -184,6 +184,7 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
+| **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |
 | **Migration path** | Both API styles can live side by side; no forced rewrite |
 
 ## What Makes Specs Different

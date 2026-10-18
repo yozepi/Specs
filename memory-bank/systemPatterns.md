@@ -42,7 +42,7 @@ flowchart TD
 
 | Container | Key components |
 |-----------|---------------|
-| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor`, 📌 `ActExceptionContext`, 📌 `ActExceptionAssertions` / `ExpectedExceptionNotThrownException`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
+| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor` (📌 public), 📌 `ActExceptionContext`, 📌 `ActExceptionAssertions` / `ExpectedExceptionNotThrownException`, `TestContextAdapter` (📌 public, `FromTestCase`), adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter` — 📌 all public) |
 | `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`, 📌 `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T>)`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
 | `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, 📌 `PendingSpecs`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
 
@@ -104,6 +104,83 @@ flowchart TD
 | `ILoggingAdapter` | Reports pass/fail/exception | `VSTestLoggingAdapter` → `IFrameworkHandle` |
 
 The core has **zero** reference to `Microsoft.TestPlatform.*`.
+
+📌 `TestContextAdapter` takes five lifecycle delegates `(setupOnce, setupEach, act, teardownEach, teardownOnce)`; `TestContextAdapter.FromTestCase(ITestCase)` builds one from a node's **cascaded** actions (whole-tree hosts). Hosts that own once-actions themselves (`SelectionTreeWalker`) use the constructor with no-op `setupOnce` / `teardownOnce`.
+
+#### 📌 BEFORE (internal surface + `InternalsVisibleTo`)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: specs.core execution surface (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    ADP["<b>SelectionTreeWalker</b><br/>[Component: adapter]<br/>Uses internals via IVT"]:::deprecated
+    EXE["<b>TestCaseExecutor</b><br/>[Component: internal class]<br/>Provider not null-checked"]:::deprecated
+    TCA["<b>TestContextAdapter</b><br/>[Component: internal class]<br/>6 args, unused test arg"]:::deprecated
+    EXT["<b>Third-party runner</b><br/>[Software System: custom]<br/>Cannot reach executor"]:::deprecated
+
+    ADP -->|"Constructs [InternalsVisibleTo]"| EXE
+    ADP -->|"Constructs [InternalsVisibleTo]"| TCA
+    EXT -.->|"No access [internal]"| EXE
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Deprecated element"]:::deprecated
+    end
+
+    TCA ~~~ LEGEND
+
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Only the in-repo adapter could run the canonical lifecycle; custom front-ends had to re-implement it.
+- Dead API baggage: an unvalidated `test` ctor argument and an unused public `Settings/TestSettings` class duplicating `TestCaseExecutorSettings`.
+- `TestCaseExecutor` accepted a `null` provider and failed later with a `NullReferenceException`.
+
+#### 📌 AFTER (public surface, no adapter IVT)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: specs.core execution surface (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    subgraph HOSTS["Hosts"]
+        direction TB
+        ADP["<b>SelectionTreeWalker</b><br/>[Component: adapter]<br/>Public API only"]:::app
+        EXT["<b>Third-party runner</b><br/>[Software System: custom]<br/>Same public API"]:::external
+    end
+
+    TCA["<b>TestContextAdapter</b><br/>[Component: public class]<br/>5 phases; FromTestCase"]:::app
+    EXE["<b>TestCaseExecutor</b><br/>[Component: public class]<br/>All ctor args validated"]:::app
+    IFC["<b>ITestProviderAdapter /<br/>ILoggingAdapter</b><br/>[Component: public interfaces]<br/>Host-supplied tests + logging"]:::app
+
+    HOSTS -->|"Builds context [public API]"| TCA
+    HOSTS -->|"Implements [public API]"| IFC
+    HOSTS -->|"ProcessTestCase [public API]"| EXE
+    EXE -->|"Drives phases [interface]"| TCA
+    EXE -->|"Pulls tests, logs [interface]"| IFC
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned component"]:::app
+        L2["External system"]:::external
+    end
+
+    IFC ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+Benefits:
+
+- Any runner gets identical lifecycle semantics (including `ActExceptionContext` capture) by supplying only tests, context, and logging.
+- The adapter consumes exactly the surface third parties see, so the public contract is exercised on every run.
+- `specs.core` keeps `InternalsVisibleTo` only for its own test assemblies (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `DynamicProxyGenAssembly2`).
 
 ### 4. Strategy Pattern — Executor configuration
 
@@ -636,7 +713,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 5 | Two coexisting API styles | Backward compatibility + modern design | Some code duplication; documentation must cover both |
 | 6 | Hierarchical (composite) context model | Matches BDD `describe → context → it` thinking | More complex builder + executor |
 | 7 | **Consolidate execution in `TestCaseExecutor`** (Feb 2026 refactor) | Eliminates duplicate execution logic in the adapter; single source of truth for lifecycle semantics | `TestInvoker` delegates to `TestCaseExecutor` rather than re-implementing the lifecycle |
-| 8 | Discovery reads `Specifications.CoreBuilder` directly (no reflection) | Cleaner contract; testable; faster | `CoreBuilder` exposed via `InternalsVisibleTo("specs.BDD.VSTestAdapter")` |
+| 8 | Discovery reads `Specifications.CoreBuilder` directly (no reflection) | Cleaner contract; testable; faster | `CoreBuilder` exposed via `InternalsVisibleTo("specs.BDD.VSTestAdapter")` on `specs.BDD` only (📌 `specs.core` no longer grants it — see #29) |
 | 9 | 📌 **`SuiteTreeBuilder` is the single source of truth for tree construction** | Discovery and execution must agree on paths, descriptions, and ordering, or `TestFinder` silently misses tests | `[Context]` methods are registered as named child contexts rather than invoked directly |
 | 10 | 📌 **Cancellation is a `CancellationToken` parameter, not an executor setting** | Matches BCL conventions; the token flows straight from `ITestExecutor.Cancel()` through `SpecsTestExecutor`'s `CancellationTokenSource` | `TestCaseExecutorSettings.IsCancelled` was removed; `ProcessTestCase(CancellationToken)` checks the token before each test |
 | 11 | 📌 **Once-actions exposed separately as `OwnSetupOnce` / `OwnTeardownOnce`** | The walker needs a node's *own* once-actions without the ancestor cascade that `SetupOnce` / `TeardownOnce` provide | Two extra members on `ITestCase`; `TestCaseExecutor` behaviour unchanged |
@@ -657,6 +734,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 26 | 📌 NEW **An unverified `Act` exception fails only its spec and wins over the `It` exception** | The `Act` failure is the root cause; an `It` that then trips over missing state would report a misleading symptom | Behaviour change: `Act` exceptions no longer abort the node via `LogException` or skip `TeardownEach` / `TeardownOnce`; rethrown with `ExceptionDispatchInfo` to keep the stack |
 | 27 | 📌 NEW **`ShouldThrow<T>` matches by assignability and returns a bound delegate** | Base-type expectations (`ArithmeticException`) are idiomatic; a bound delegate keeps "Go to Source" on the verifier lambda | `GetTestMethod` walks the full `Target` chain; wrong type / no exception → `ExpectedExceptionNotThrownException` (wrong type kept as `InnerException`) |
 | 28 | 📌 NEW **No `ShouldThrowAsync`** | The `Act` exception (sync or async `Act`) is already captured before `It` runs; an async verifier adds nothing | `ShouldThrow` returns `Action` and is used with `It[...]`, not `ItAsync[...]` |
+| 29 | 📌 NEW **`specs.core`'s execution surface is public; the adapter gets no `InternalsVisibleTo`** | `specs.core` is an extensibility library; custom runners need the canonical executor, and the in-repo adapter should prove the public surface is sufficient | `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, `TestInstance` public; `TestContextAdapter` ctor trimmed to 5 args + `FromTestCase`; `TestSettings` deleted. Decision #8 still applies to `specs.BDD` (`CoreBuilder`) |
 
 ## Critical Execution Paths
 
@@ -966,7 +1044,7 @@ Benefits:
 |---------|---------|---------|
 | Builder | `ContextualTestCaseBuilder`, `SuiteTreeBuilder` | Fluent construction, immutability, one construction path |
 | Composite | `ContextualTestCase` tree | Inherited lifecycle, hierarchy |
-| Adapter | `I*Adapter` interfaces | Framework independence |
+| Adapter | `I*Adapter` interfaces (📌 public) | Framework independence; third-party runners |
 | Strategy | `TestCaseExecutorSettings` | Configurable execution behavior |
 | Template Method | `TestCaseExecutor` | Fixed, predictable lifecycle order |
 | Pipeline | VSTest adapter (Discovery → Conversion → Execution) | Cleanly separated responsibilities |

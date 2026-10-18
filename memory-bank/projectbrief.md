@@ -21,7 +21,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 3. **Sophisticated lifecycle** — `SetupOnce`, `SetupEach`, `Act`, `TeardownEach`, `TeardownOnce` with correct ordering.
 4. **First-class async** — every lifecycle hook has a `Func<Task>` overload.
 5. **Two coexisting API styles** — modern method-based `Specifications` and legacy property-based `Spec`.
-6. **Framework-agnostic core** — the core has zero test-framework dependencies; everything plugs in through adapters.
+6. **Framework-agnostic core** — the core has zero test-framework dependencies; everything plugs in through adapters. 📌 Its executor and adapter interfaces are public, so third-party runners can host the same lifecycle.
 7. **Native IDE integration** — VSTest adapter delivers Test Explorer discovery and execution with source navigation.
 
 ## Solution Structure
@@ -40,7 +40,7 @@ The solution contains **9 projects** plus a separate example.
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 📌 332 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
+| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 📌 333 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
 | **specs.BDD.UnitTests** | `src/specs.specification.UnitTests/` | BDD API unit tests (NUnit) |
 | **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 📌 272 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
 | **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 28 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs class-level grouped |
@@ -154,8 +154,8 @@ public class CalculatorSpecs : Spec
 - ✅ Source location ("Go to source") navigates to the `It[...]` line for every discovered test.
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Both API styles produce identical lifecycle semantics.
-- ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter).
-- ✅ **The framework tests its own core with itself** — 📌 332 self-hosted test results, plus 272 adapter and 28 integration results.
+- ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
+- ✅ **The framework tests its own core with itself** — 📌 333 self-hosted test results, plus 272 adapter and 28 integration results.
 - ✅ A root `[Context]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).

@@ -112,7 +112,7 @@ flowchart LR
 | `specs.specification` (specs.BDD) | **None** | `specs.core` |
 | `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` | `specs.core`, `specs.specification` |
 
-`InternalsVisibleTo("specs.BDD.VSTestAdapter")` is declared on both `specs.core` and `specs.specification` so the adapter can access `Specifications.CoreBuilder` and other internals without breaking the public surface.
+📌 UPDATED — `InternalsVisibleTo("specs.BDD.VSTestAdapter")` is declared **only** on `specs.specification` (for `Specifications.CoreBuilder`). `specs.core` dropped it: the adapter uses the public `TestCaseExecutor` / adapter-interface surface, and `specs.core` grants internals only to its test assemblies (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `DynamicProxyGenAssembly2`) via `GlobalAttributes.cs`.
 
 ### Test projects
 
@@ -197,7 +197,6 @@ Specs/
 │   │       ├── Processors/
 │   │       │   ├── TestCases/              # IContextualTestCase, builders, RunAll*
 │   │       │   └── TestExecutors/          # TestCaseExecutor, TestCaseExecutorSettings, 📌 ActExceptionContext
-│   │       └── Settings/
 │   │
 │   ├── specs.specification/                # DELIVERABLE (asm: specs.BDD)
 │   │   ├── Specifications.cs
@@ -287,7 +286,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 | 📌 Pending specs must never invoke any lifecycle action | A parked `xContext` may contain deliberately broken setup; execution derives pending state from the rebuilt tree, not the serialized `IsPending` flag |
 | 📌 Pending state is keyed by spec description within a node | `ContextualTestCase.PendingTests` is an ordinal `HashSet<string>`; sibling specs must keep unique descriptions (already required by `TestFinder`) |
 | 📌 Every execution path must run `Act` + test via `ActExceptionContext.Run(act, test)` | `ShouldThrow<T>` reads the ambient `Act` exception; a path that calls `Act()` directly makes exception specs fail and lets an `Act` throw skip teardown |
-| 📌 Types that custom front-ends / runners need from `specs.core` must be `public` | `specs.core` is an extensibility library — `ActExceptionContext` and `ActExceptionAssertions` are public rather than `internal` + `InternalsVisibleTo` |
+| 📌 Types that custom front-ends / runners need from `specs.core` must be `public` | `specs.core` is an extensibility library — `ActExceptionContext`, `ActExceptionAssertions`, 📌 `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, and `TestInstance` are public rather than `internal` + `InternalsVisibleTo`; the adapter must not regain an IVT grant on `specs.core` |
 
 ## Testing Strategy
 

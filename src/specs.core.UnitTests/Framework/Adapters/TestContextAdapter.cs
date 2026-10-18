@@ -1,5 +1,7 @@
+using Moq;
 using NFluent;
 using specs.core.Framework.Adapters;
+using specs.core.Framework.Processors.TestCases;
 using specs.BDD;
 using specs.BDD.Attributes;
 
@@ -7,8 +9,6 @@ namespace specs.core.UnitTests.Framework.Adapters
 {
     public class TestContextAdapter : Specifications
     {
-
-        
         [Context(Reporting = SpecReporting.GroupedByRootContext)]
         public void Specs()
         {
@@ -19,9 +19,16 @@ namespace specs.core.UnitTests.Framework.Adapters
             Action actAction = null!;
             Action teardownEachAction = null!;
             Action teardownOnceAction = null!;
-            Action testAction = null!;
 
             List<string> callOrder = null!;
+
+            core.Framework.Adapters.TestContextAdapter Create() =>
+                new core.Framework.Adapters.TestContextAdapter(
+                    setupOnceAction,
+                    setupEachAction,
+                    actAction,
+                    teardownEachAction,
+                    teardownOnceAction);
 
             BeforeEach(() =>
             {
@@ -31,7 +38,6 @@ namespace specs.core.UnitTests.Framework.Adapters
                 actAction = () => callOrder.Add("Act");
                 teardownEachAction = () => callOrder.Add("TeardownEach");
                 teardownOnceAction = () => callOrder.Add("TeardownOnce");
-                testAction = () => callOrder.Add("Test");
             });
 
             Describe["TestContextAdapter constructor"] = () =>
@@ -40,13 +46,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                 {
                     Act(() =>
                     {
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
                     });
 
                     It["should create instance successfully"] = () =>
@@ -56,189 +56,129 @@ namespace specs.core.UnitTests.Framework.Adapters
 
                     It["should implement ITestContextAdapter interface"] = () =>
                     {
-                        Check.That(subject).IsNotNull();
                         Check.That(subject is ITestContextAdapter).IsTrue();
                     };
                 };
 
-                Context["when setupOnceAction is null"] = () =>
+                Context["when setupOnce is null"] = () =>
                 {
-                    It["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException naming the parameter"] = () =>
                     {
-                        ArgumentNullException exception = null!;
-                        try
-                        {
-                            new core.Framework.Adapters.TestContextAdapter(
-                                null!,
-                                setupEachAction,
-                                actAction,
-                                teardownEachAction,
-                                teardownOnceAction,
-                                testAction);
-                        }
-                        catch (ArgumentNullException ex)
-                        {
-                            exception = ex;
-                        }
-                        Check.That(exception).IsNotNull();
-                        Check.That(exception.Message).Contains("setupOnceAction");
+                        Check.ThatCode(() => new core.Framework.Adapters.TestContextAdapter(
+                                null!, setupEachAction, actAction, teardownEachAction, teardownOnceAction))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "setupOnce");
                     };
                 };
 
-                Context["when setupEachAction is null"] = () =>
+                Context["when setupEach is null"] = () =>
                 {
-                    It["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException naming the parameter"] = () =>
                     {
-                        ArgumentNullException exception = null!;
-                        try
-                        {
-                            new core.Framework.Adapters.TestContextAdapter(
-                                setupOnceAction,
-                                null!,
-                                actAction,
-                                teardownEachAction,
-                                teardownOnceAction,
-                                testAction);
-                        }
-                        catch (ArgumentNullException ex)
-                        {
-                            exception = ex;
-                        }
-                        Check.That(exception).IsNotNull();
-                        Check.That(exception.Message).Contains("setupEachAction");
+                        Check.ThatCode(() => new core.Framework.Adapters.TestContextAdapter(
+                                setupOnceAction, null!, actAction, teardownEachAction, teardownOnceAction))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "setupEach");
                     };
                 };
 
-                Context["when actAction is null"] = () =>
+                Context["when act is null"] = () =>
                 {
-                    It["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException naming the parameter"] = () =>
                     {
-                        ArgumentNullException exception = null!;
-                        try
-                        {
-                            new core.Framework.Adapters.TestContextAdapter(
-                                setupOnceAction,
-                                setupEachAction,
-                                null!,
-                                teardownEachAction,
-                                teardownOnceAction,
-                                testAction);
-                        }
-                        catch (ArgumentNullException ex)
-                        {
-                            exception = ex;
-                        }
-                        Check.That(exception).IsNotNull();
-                        Check.That(exception.Message).Contains("actAction");
+                        Check.ThatCode(() => new core.Framework.Adapters.TestContextAdapter(
+                                setupOnceAction, setupEachAction, null!, teardownEachAction, teardownOnceAction))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "act");
                     };
                 };
 
-                Context["when teardownEachAction is null"] = () =>
+                Context["when teardownEach is null"] = () =>
                 {
-                    It["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException naming the parameter"] = () =>
                     {
-                        ArgumentNullException exception = null!;
-                        try
-                        {
-                            new core.Framework.Adapters.TestContextAdapter(
-                                setupOnceAction,
-                                setupEachAction,
-                                actAction,
-                                null!,
-                                teardownOnceAction,
-                                testAction);
-                        }
-                        catch (ArgumentNullException ex)
-                        {
-                            exception = ex;
-                        }
-                        Check.That(exception).IsNotNull();
-                        Check.That(exception.Message).Contains("teardownEachAction");
+                        Check.ThatCode(() => new core.Framework.Adapters.TestContextAdapter(
+                                setupOnceAction, setupEachAction, actAction, null!, teardownOnceAction))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "teardownEach");
                     };
                 };
 
-                Context["when teardownOnceAction is null"] = () =>
+                Context["when teardownOnce is null"] = () =>
+                {
+                    It["should throw ArgumentNullException naming the parameter"] = () =>
+                    {
+                        Check.ThatCode(() => new core.Framework.Adapters.TestContextAdapter(
+                                setupOnceAction, setupEachAction, actAction, teardownEachAction, null!))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "teardownOnce");
+                    };
+                };
+            };
+
+            Describe["FromTestCase"] = () =>
+            {
+                Context["when the test case is null"] = () =>
                 {
                     It["should throw ArgumentNullException"] = () =>
                     {
-                        ArgumentNullException exception = null!;
-                        try
-                        {
-                            new core.Framework.Adapters.TestContextAdapter(
-                                setupOnceAction,
-                                setupEachAction,
-                                actAction,
-                                teardownEachAction,
-                                null!,
-                                testAction);
-                        }
-                        catch (ArgumentNullException ex)
-                        {
-                            exception = ex;
-                        }
-                        Check.That(exception).IsNotNull();
-                        Check.That(exception.Message).Contains("teardownOnceAction");
+                        Check.ThatCode(() => core.Framework.Adapters.TestContextAdapter.FromTestCase(null!))
+                            .Throws<ArgumentNullException>()
+                            .WithProperty("ParamName", "testCase");
                     };
                 };
 
-                Context["when test parameter is null"] = () =>
+                Context["when the test case is valid"] = () =>
                 {
-                    It["should create instance successfully (test parameter is not validated)"] = () =>
+                    It["should run the test case's cascaded lifecycle actions"] = () =>
                     {
-                        Check.ThatCode(() => new specs.core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            null!))
-                        .DoesNotThrow();
+                        var testCase = new Mock<ITestCase>();
+                        testCase.SetupGet(t => t.SetupOnce).Returns(setupOnceAction);
+                        testCase.SetupGet(t => t.SetupEach).Returns(setupEachAction);
+                        testCase.SetupGet(t => t.Act).Returns(actAction);
+                        testCase.SetupGet(t => t.TeardownEach).Returns(teardownEachAction);
+                        testCase.SetupGet(t => t.TeardownOnce).Returns(teardownOnceAction);
+
+                        var adapter = core.Framework.Adapters.TestContextAdapter.FromTestCase(testCase.Object);
+                        adapter.SetupOnce();
+                        adapter.SetupEach();
+                        adapter.Act();
+                        adapter.TeardownEach();
+                        adapter.TeardownOnce();
+
+                        Check.That(callOrder).ContainsExactly(
+                            "SetupOnce", "SetupEach", "Act", "TeardownEach", "TeardownOnce");
                     };
                 };
             };
 
             Describe["SetupOnce method"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 Act(() =>
                 {
                     subject.SetupOnce();
                 });
 
-                It["should invoke the setupOnceAction"] = () =>
+                It["should invoke the setupOnce action"] = () =>
                 {
                     Check.That(callOrder).ContainsExactly("SetupOnce");
                 };
 
-                It["should invoke setupOnceAction each time SetupOnce is called"] = () =>
+                It["should invoke the action each time SetupOnce is called"] = () =>
                 {
                     subject.SetupOnce();
                     subject.SetupOnce();
                     Check.That(callOrder).ContainsExactly("SetupOnce", "SetupOnce", "SetupOnce");
                 };
 
-                Context["when setupOnceAction throws exception"] = () =>
+                Context["when the action throws"] = () =>
                 {
                     It["should propagate the exception"] = () =>
                     {
                         setupOnceAction = () => throw new InvalidOperationException("Setup failed");
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
 
                         Check.ThatCode(() => subject.SetupOnce())
                             .Throws<InvalidOperationException>()
@@ -249,46 +189,31 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["SetupEach method"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 Act(() =>
                 {
                     subject.SetupEach();
                 });
 
-                It["should invoke the setupEachAction"] = () =>
+                It["should invoke the setupEach action"] = () =>
                 {
                     Check.That(callOrder).ContainsExactly("SetupEach");
                 };
 
-                It["should invoke setupEachAction each time SetupEach is called"] = () =>
+                It["should invoke the action each time SetupEach is called"] = () =>
                 {
                     subject.SetupEach();
                     subject.SetupEach();
                     Check.That(callOrder).ContainsExactly("SetupEach", "SetupEach", "SetupEach");
                 };
 
-                Context["when setupEachAction throws exception"] = () =>
+                Context["when the action throws"] = () =>
                 {
                     It["should propagate the exception"] = () =>
                     {
                         setupEachAction = () => throw new ArgumentException("SetupEach failed");
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
 
                         Check.ThatCode(() => subject.SetupEach())
                             .Throws<ArgumentException>()
@@ -299,46 +224,31 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["Act method"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 Act(() =>
                 {
                     subject.Act();
                 });
 
-                It["should invoke the actAction"] = () =>
+                It["should invoke the act action"] = () =>
                 {
                     Check.That(callOrder).ContainsExactly("Act");
                 };
 
-                It["should invoke actAction each time Act is called"] = () =>
+                It["should invoke the action each time Act is called"] = () =>
                 {
                     subject.Act();
                     subject.Act();
                     Check.That(callOrder).ContainsExactly("Act", "Act", "Act");
                 };
 
-                Context["when actAction throws exception"] = () =>
+                Context["when the action throws"] = () =>
                 {
                     It["should propagate the exception"] = () =>
                     {
                         actAction = () => throw new NotImplementedException("Act not implemented");
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
 
                         Check.ThatCode(() => subject.Act())
                             .Throws<NotImplementedException>()
@@ -349,46 +259,31 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["TeardownEach method"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 Act(() =>
                 {
                     subject.TeardownEach();
                 });
 
-                It["should invoke the teardownEachAction"] = () =>
+                It["should invoke the teardownEach action"] = () =>
                 {
                     Check.That(callOrder).ContainsExactly("TeardownEach");
                 };
 
-                It["should invoke teardownEachAction each time TeardownEach is called"] = () =>
+                It["should invoke the action each time TeardownEach is called"] = () =>
                 {
                     subject.TeardownEach();
                     subject.TeardownEach();
                     Check.That(callOrder).ContainsExactly("TeardownEach", "TeardownEach", "TeardownEach");
                 };
 
-                Context["when teardownEachAction throws exception"] = () =>
+                Context["when the action throws"] = () =>
                 {
                     It["should propagate the exception"] = () =>
                     {
                         teardownEachAction = () => throw new InvalidCastException("TeardownEach failed");
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
 
                         Check.ThatCode(() => subject.TeardownEach())
                             .Throws<InvalidCastException>()
@@ -399,46 +294,31 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["TeardownOnce method"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 Act(() =>
                 {
                     subject.TeardownOnce();
                 });
 
-                It["should invoke the teardownOnceAction"] = () =>
+                It["should invoke the teardownOnce action"] = () =>
                 {
                     Check.That(callOrder).ContainsExactly("TeardownOnce");
                 };
 
-                It["should invoke teardownOnceAction each time TeardownOnce is called"] = () =>
+                It["should invoke the action each time TeardownOnce is called"] = () =>
                 {
                     subject.TeardownOnce();
                     subject.TeardownOnce();
                     Check.That(callOrder).ContainsExactly("TeardownOnce", "TeardownOnce", "TeardownOnce");
                 };
 
-                Context["when teardownOnceAction throws exception"] = () =>
+                Context["when the action throws"] = () =>
                 {
                     It["should propagate the exception"] = () =>
                     {
                         teardownOnceAction = () => throw new ObjectDisposedException("TeardownOnce failed");
-                        subject = new core.Framework.Adapters.TestContextAdapter(
-                            setupOnceAction,
-                            setupEachAction,
-                            actAction,
-                            teardownEachAction,
-                            teardownOnceAction,
-                            testAction);
+                        subject = Create();
 
                         Check.ThatCode(() => subject.TeardownOnce())
                             .Throws<ObjectDisposedException>();
@@ -448,16 +328,7 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["method interaction and independence"] = () =>
             {
-                BeforeEach(() =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-                });
+                BeforeEach(() => subject = Create());
 
                 It["should allow calling methods in any order"] = () =>
                 {
@@ -478,13 +349,7 @@ namespace specs.core.UnitTests.Framework.Adapters
                 It["should not affect other methods when one throws"] = () =>
                 {
                     setupEachAction = () => throw new Exception("SetupEach throws");
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
+                    subject = Create();
 
                     subject.SetupOnce();
                     try { subject.SetupEach(); } catch { }
@@ -496,42 +361,9 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             Describe["real-world usage scenario"] = () =>
             {
-                It["should support typical test lifecycle execution"] = () =>
-                {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
-
-                    // Typical test lifecycle
-                    subject.SetupOnce();
-                    subject.SetupEach();
-                    subject.Act();
-                    testAction(); // Test would be invoked externally
-                    subject.TeardownEach();
-                    subject.TeardownOnce();
-
-                    Check.That(callOrder).ContainsExactly(
-                        "SetupOnce",
-                        "SetupEach",
-                        "Act",
-                        "Test",
-                        "TeardownEach",
-                        "TeardownOnce");
-                };
-
                 It["should support multiple test executions with same setup/teardown"] = () =>
                 {
-                    subject = new core.Framework.Adapters.TestContextAdapter(
-                        setupOnceAction,
-                        setupEachAction,
-                        actAction,
-                        teardownEachAction,
-                        teardownOnceAction,
-                        testAction);
+                    subject = Create();
 
                     // First test
                     subject.SetupOnce();

@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 
 namespace specs.core.Framework.Processors.TestExecutors
 {
@@ -9,8 +9,7 @@ namespace specs.core.Framework.Processors.TestExecutors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TestCaseExecutorSettings"/> class
-        /// with default values. Sets <see cref="StopOnAssertFailure"/> to false
-        /// and <see cref="IsCancelled"/> to null.
+        /// with default values. Sets <see cref="StopOnAssertFailure"/> to false.
         /// </summary>
         public TestCaseExecutorSettings()
         {

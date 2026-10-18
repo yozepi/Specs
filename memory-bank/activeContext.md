@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**📌 `ShouldThrow<T>` + `Act` exception capture** — `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` verifies the exception thrown by `Act`. `Act` + `It` now run through `specs.core`'s public `ActExceptionContext.Run` in every execution path, so an unexpected `Act` exception fails only its own spec (with teardown still running) instead of aborting the context.
+**📌 NEW — Public execution surface in `specs.core`** — `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, and `TestInstance` are now `public`, so custom runners can drive the canonical lifecycle without `InternalsVisibleTo`. `specs.core` no longer grants the adapter internals access; `TestContextAdapter` gained `FromTestCase(ITestCase)` and lost its unused `test` parameter; the dead `Settings/TestSettings` class was deleted.
+
+**📌 `ShouldThrow<T>` + `Act` exception capture (committed `61c96ea`)** — `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` verifies the exception thrown by `Act`. `Act` + `It` now run through `specs.core`'s public `ActExceptionContext.Run` in every execution path, so an unexpected `Act` exception fails only its own spec (with teardown still running) instead of aborting the context.
 
 **📌 Pending specs (committed `5c5d942`)** — specs can be marked pending with `TODO` / `TODOAsync` placeholders or `xIt` / `xItAsync` / `xContext` / `xDescribe`. They are discovered, reported as **Skipped**, never run any lifecycle, render as `○ ... - PENDING` in grouped reports, and are filterable via `--filter IsPending=true|false`.
 
@@ -28,17 +30,33 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 | Area | State |
 |------|-------|
-| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException` |
+| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException`; 📌 public `TestCaseExecutor` + adapter types, `TestContextAdapter.FromTestCase`, no `InternalsVisibleTo` for the adapter |
 | `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
 | `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 28 integration results passing (13 Skipped = pending) |
-| `specs.core.UnitTests` | Self-hosted; 332 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
+| `specs.core.UnitTests` | Self-hosted; 📌 333 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | Maintained for backward compatibility |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — `ShouldThrow<T>` + `Act` exception capture 19 files)
+### 📌 NEW — Public execution surface in `specs.core`
+
+BEFORE/AFTER diagrams live in `systemPatterns.md` section "Adapter Pattern — Framework independence"; decision #29 records the rationale.
+
+| Layer | File(s) | What changed |
+|-------|---------|--------------|
+| `specs.core` | `Processors/TestExecutors/TestCaseExecutor.cs` | `internal` → `public`; ctor parameter `tests` renamed `testProvider` and now null-guarded (`ArgumentNullException`); XML docs added |
+| `specs.core` | `Adapters/ITestContextAdapter.cs`, `ITestProviderAdapter.cs`, `TestInstance.cs` | `internal` → `public` with XML docs (`ILoggingAdapter` was already public) |
+| `specs.core` | `Adapters/TestContextAdapter.cs` | `internal` → `public`. **Signature change**: ctor is now `(setupOnce, setupEach, act, teardownEach, teardownOnce)` — the unused, unvalidated `test` parameter was dropped and parameters lost their `Action` suffix (`ParamName` values changed accordingly). New `static FromTestCase(ITestCase)` adopts a built node's **cascaded** `SetupOnce` / `SetupEach` / `Act` / `TeardownEach` / `TeardownOnce` |
+| `specs.core` | `Settings/TestSettings.cs` 📌 DELETED | Unused public class duplicating `TestCaseExecutorSettings.StopOnAssertFailure` |
+| `specs.core` | `Processors/TestExecutors/TestCaseExecutorSettings.cs` | Stale `IsCancelled` reference removed from the ctor XML doc |
+| `specs.core` | `specs.core.csproj` | `<InternalsVisibleTo Include="specs.BDD.VSTestAdapter" />` removed — the adapter now compiles against the public surface only |
+| Adapter / Execution | `SelectionTreeWalker.cs` | Uses the new 5-argument `TestContextAdapter` ctor |
+| Tests | `specs.core.UnitTests/Framework/Adapters/TestContextAdapter.cs` | Suite rewritten: local `Create()` helper, `Check.ThatCode(...).Throws<ArgumentNullException>().WithProperty("ParamName", ...)` instead of `try/catch`, new `FromTestCase` specs (null arg; mocked `ITestCase` via Moq runs all five phases in order); still 27 `It`s in one grouped result |
+| Tests | `TestCaseExecutor_Tests.cs` | New "Constructor validation..." spec — null `testProvider` throws (core 332 → 333) |
+
+### 📌 `ShouldThrow<T>` + `Act` exception capture (committed `61c96ea`, 19 files)
 
 BEFORE/AFTER diagrams and the outcome contract live in `systemPatterns.md` section "Act Exception Capture (`ShouldThrow<T>`)"; decisions #25–28 record the rationale.
 
@@ -306,6 +324,12 @@ Removed as redundant or superseded:
 - Exposing the captured exception through `ActExceptionContext` (an `AsyncLocal`) keeps `It` an `Action` and needs no new builder API — `ShouldThrow<T>` is just a pre-built `It` body.
 - The capture lives in `specs.core` (public) so `TestCaseExecutor`, both adapter runners, and third-party runners share one implementation.
 
+### 📌 NEW — Why the executor surface is public instead of `InternalsVisibleTo`
+
+- `specs.core` is an extensibility library: a custom runner needs `TestCaseExecutor` plus the adapter interfaces to get the canonical lifecycle, and `InternalsVisibleTo` only ever helped the in-repo adapter.
+- Making the adapter compile against the public surface proves that surface is sufficient — the same contract third parties get.
+- Going public forced an API tidy-up first: the dead `test` ctor parameter and the duplicate `TestSettings` class would otherwise have become permanent public baggage.
+
 ## Patterns & Preferences
 
 ### Naming
@@ -340,7 +364,7 @@ Removed as redundant or superseded:
 2. **One tree builder, too** — discovery and execution must produce *byte-identical* context paths, or `TestFinder` silently fails to locate tests. `SuiteTreeBuilder` makes that structural rather than a convention.
 3. **`BeforeAll` only means something if the tree knows about contexts** — invoking `[Context]` methods directly flattened them out of the tree, which made once-per-context semantics impossible. Registering them as named child contexts fixed the semantics *and* gave Test Explorer its tree nodes for free.
 4. **Discovery must be side-effect free** — instantiating a `Specifications` class and invoking its `[Context]` methods is enough to enumerate tests, *provided* no setup actually executes. The builder API enforces this naturally because hooks accumulate `Action`s rather than running them.
-5. **Internal visibility is a feature** — using `InternalsVisibleTo` between the deliverables let us delete reflection-based shims and gave the adapter a clean, typed contract.
+5. 📌 UPDATED **Internal visibility is a stepping stone** — `InternalsVisibleTo` let us delete reflection-based shims and gave the adapter a typed contract; once that contract stabilised in `specs.core` it was promoted to `public` and the grant removed. Only `specs.BDD` still grants the adapter internals (`Specifications.CoreBuilder`).
 6. **Self-hosting is the best integration test** — running 315 core tests through the adapter surfaced lifecycle and path-matching bugs that the adapter's own unit tests could not.
 7. **The two API styles really are the same paradigm** — they only differ syntactically. Documentation that frames them as alternatives invites confusion.
 8. 📌 **Granularity is a discovery-time contract** — VSTest counts whatever discovery emitted. Grouping a context silently changes headline test totals (315 → 289 in the core suite), so grouped mode must stay opt-in and visible in the display name.
@@ -352,12 +376,13 @@ Removed as redundant or superseded:
 14. 📌 **"Pending" must reach the once-actions too** — skipping a pending spec's body is not enough; if its context's `BeforeAll` still runs, a parked `xContext` can fail the run. Liveness has to be computed from *runnable* specs, for both the root and every node.
 15. 📌 **An `Act` exception is a spec outcome, not a run fault** — calling `Act()` outside the per-test `try` let one throwing `Act` skip its siblings and every teardown. Moving it inside the failure boundary is what made `ShouldThrow` possible *and* fixed the teardown leak.
 16. 📌 **Report the root cause** — when `Act` throws and the `It` then trips over the missing result, the `It` exception is a symptom; the unverified `Act` exception must win.
+17. 📌 **Publishing an API is when dead parameters get noticed** — `TestContextAdapter`'s unvalidated `test` argument and `TestCaseExecutor`'s unchecked provider survived while internal; reviewing them as public API surfaced both.
 
 ## Health Indicators
 
-- **Builds**: clean across all 9 projects — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture).
-- **Tests**: 637 results — 624 passed, 13 skipped (all pending specs), 0 failed.
-  - `specs.core.UnitTests` — 332 results (run by the Specs adapter; one grouped suite)
+- **Builds**: clean across all 9 projects — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time).
+- **Tests**: 📌 638 results — 625 passed, 13 skipped (all pending specs), 0 failed.
+  - `specs.core.UnitTests` — 📌 333 results (run by the Specs adapter; one grouped suite)
   - `specs.BDD.VSTestAdapter.Tests` — 272 results (264 passed, 8 pending fixture specs skipped)
   - `specs.BDD.VSTestAdapter.IntegrationTests` — 28 results (23 passed, 5 pending skipped; `CalculatorSpecs` reports one result per root context)
   - `specs.BDD.UnitTests` — 5
@@ -378,3 +403,4 @@ Removed as redundant or superseded:
 10. 📌 Should the legacy `Spec` API gain `TODO` / `xIt` equivalents?
 11. 📌 Should the parameterless `ShouldThrow<T>()` navigate to the `It[...]` line (e.g. by capturing a caller location), rather than falling back to the `[Context]` method?
 12. 📌 Should the legacy `Spec.ShouldThrow<T>()` / `ShouldThrowAsync<T>()` helpers converge on `ActExceptionContext`?
+13. 📌 Should the rest of the builder/runner surface (`ContextualTestCase`, `RunAllBuilder`, `RunAllRunner`) stay `internal`, now that the executor and adapter types are public?

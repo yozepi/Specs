@@ -526,6 +526,16 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     };
                 };
             };
+
+            Describe["Constructor validation..."] = () =>
+            {
+                It["should throw when the test provider is null"] = () =>
+                {
+                    Check.ThatCode(() => new TestCaseExecutor(settings, logger, testContext, null!))
+                        .Throws<ArgumentNullException>()
+                        .WithProperty("ParamName", "testProvider");
+                };
+            };
         }
     }
 
