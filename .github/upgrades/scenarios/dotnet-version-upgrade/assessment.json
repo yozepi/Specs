@@ -1,0 +1,925 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "net10.0",
+    "targetDisplayName": ".NETCoreApp,Version=v10.0"
+  },
+  "analysisStartTime": "2026-10-18T22:54:30.28232Z",
+  "analysisEndTime": "2026-10-18T22:54:31.0562575Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 8,
+      "issues": 4,
+      "incidents": 22,
+      "effort": 22
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 4,
+        "Optional": 0,
+        "Potential": 18,
+        "Information": 0
+      },
+      "category": {
+        "NuGet": 4,
+        "Project": 4,
+        "Api": 14
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "specs.specification\\specs.BDD.csproj",
+      "startingProject": true,
+      "issues": 0,
+      "storyPoints": 0,
+      "properties": {
+        "appName": "specs.BDD",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "netstandard2.1"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 9,
+        "numberOfCodeFiles": 9,
+        "linesTotal": 546,
+        "linesOfCode": 546,
+        "totalApiScanned": 139,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [],
+      "features": []
+    },
+    {
+      "path": "specs.specification.UnitTests\\specs.BDD.UnitTests.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "specs.BDD.UnitTests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 8,
+        "numberOfCodeFiles": 6,
+        "linesTotal": 3100,
+        "linesOfCode": 1325,
+        "totalApiScanned": 2043,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "0e9f6732-c189-4cd9-8aa9-3a68bf8800a3",
+          "ruleId": "NuGet.0002",
+          "projectPath": "specs.specification.UnitTests\\specs.BDD.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+              "protected": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13"
+            },
+            "kind": "File",
+            "path": "specs.specification.UnitTests\\specs.BDD.UnitTests.csproj",
+            "snippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "protectedSnippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "label": "System.Text.Encodings.Web 9.0.11",
+            "properties": {
+              "PackageId": "System.Text.Encodings.Web",
+              "PackageVersion": "9.0.11",
+              "PackageNewVersion": "10.0.13",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "658d0730-8ce9-4125-9715-7ffec5bd80dd",
+          "ruleId": "Project.0002",
+          "projectPath": "specs.specification.UnitTests\\specs.BDD.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "specs.specification.UnitTests\\specs.BDD.UnitTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "specs.BDD.VSTestAdapter\\specs.BDD.VSTestAdapter.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 3,
+      "properties": {
+        "appName": "specs.BDD.VSTestAdapter",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "netstandard2.1"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 22,
+        "numberOfCodeFiles": 22,
+        "linesTotal": 2481,
+        "linesOfCode": 2481,
+        "totalApiScanned": 1737,
+        "minLinesOfCodeToChange": 2,
+        "maxLinesOfCodeToChange": 2
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "ca21177e-e9f3-4f45-846b-c2c7606b623f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "specs.BDD.VSTestAdapter\\specs.BDD.VSTestAdapter.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Reflection.Metadata, 6.0.0\n\nRecommendation:\n\nRemove System.Reflection.Metadata, and replace with new package System.Reflection.Metadata 10.0.13",
+              "protected": "System.Reflection.Metadata, 6.0.0\n\nRecommendation:\n\nRemove System.Reflection.Metadata, and replace with new package System.Reflection.Metadata 10.0.13"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter\\specs.BDD.VSTestAdapter.csproj",
+            "snippet": "System.Reflection.Metadata, 6.0.0\n\nRecommendation:\n\nRemove System.Reflection.Metadata, and replace with new package System.Reflection.Metadata 10.0.13",
+            "protectedSnippet": "System.Reflection.Metadata, 6.0.0\n\nRecommendation:\n\nRemove System.Reflection.Metadata, and replace with new package System.Reflection.Metadata 10.0.13",
+            "label": "System.Reflection.Metadata 6.0.0",
+            "properties": {
+              "PackageId": "System.Reflection.Metadata",
+              "PackageVersion": "6.0.0",
+              "PackageNewVersion": "10.0.13",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "37626aad-ee5d-4417-b100-51d7f469abab",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter\\specs.BDD.VSTestAdapter.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var testCase = new TestCase(fullyQualifiedName, ExecutorUri, source)\r\n            {\r\n                DisplayName = displayName\r\n            };",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter\\Conversion\\TestCaseConverter.cs",
+            "snippet": "var testCase = new TestCase(fullyQualifiedName, ExecutorUri, source)\r\n            {\r\n                DisplayName = displayName\r\n            };",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "7229"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 46,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "f27102eb-ca93-4278-908e-d158002776be",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter\\specs.BDD.VSTestAdapter.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "ExecutorUri = new Uri(\u0022executor://SpecsTestExecutor/v1\u0022)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter\\Conversion\\TestCaseConverter.cs",
+            "snippet": "ExecutorUri = new Uri(\u0022executor://SpecsTestExecutor/v1\u0022)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "7229"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 16,
+            "column": 35
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "specs.BDD.VSTestAdapter.IntegrationTests\\specs.BDD.VSTestAdapter.IntegrationTests.csproj",
+      "startingProject": true,
+      "issues": 1,
+      "storyPoints": 1,
+      "properties": {
+        "appName": "specs.BDD.VSTestAdapter.IntegrationTests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 7,
+        "numberOfCodeFiles": 5,
+        "linesTotal": 2258,
+        "linesOfCode": 483,
+        "totalApiScanned": 630,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "ab479bbb-e7cd-45be-87c3-99900441471f",
+          "ruleId": "Project.0002",
+          "projectPath": "specs.BDD.VSTestAdapter.IntegrationTests\\specs.BDD.VSTestAdapter.IntegrationTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.IntegrationTests\\specs.BDD.VSTestAdapter.IntegrationTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 13,
+      "properties": {
+        "appName": "specs.BDD.VSTestAdapter.Tests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 15,
+        "numberOfCodeFiles": 13,
+        "linesTotal": 4887,
+        "linesOfCode": 3112,
+        "totalApiScanned": 4560,
+        "minLinesOfCodeToChange": 12,
+        "maxLinesOfCodeToChange": 12
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "60e6d5ca-c191-4f4b-bc48-c190e5585e21",
+          "ruleId": "Project.0002",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "6029f1f4-eda2-48e0-af40-d2d1ffde4f2c",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Conversion\\TestCaseConverter_Tests.cs",
+            "snippet": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "15256"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 202,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "4c99edcf-d4c7-4a09-9060-7072ebcdcfc4",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Conversion\\TestCaseConverter_Tests.cs",
+            "snippet": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "properties": {
+              "CharCount": "15256"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 202,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "5331a5fd-4800-4de4-ab8e-05543e4fd86a",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Conversion\\TestCaseConverter_Tests.cs",
+            "snippet": "Check.That(TestCaseConverter.ExecutorUri)\r\n                .IsEqualTo(new Uri(\u0022executor://SpecsTestExecutor/v1\u0022));",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "15256"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 202,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "c06647de-cdc8-46a7-a6e3-485b536513f1",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Check.That(testCase.ExecutorUri).IsEqualTo(TestCaseConverter.ExecutorUri);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Conversion\\TestCaseConverter_Tests.cs",
+            "snippet": "Check.That(testCase.ExecutorUri).IsEqualTo(TestCaseConverter.ExecutorUri);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "15256"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 195,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "e7a0e4ef-804a-497a-8a48-a4af882bcea1",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Check.That(testCase.ExecutorUri).IsEqualTo(TestCaseConverter.ExecutorUri);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Conversion\\TestCaseConverter_Tests.cs",
+            "snippet": "Check.That(testCase.ExecutorUri).IsEqualTo(TestCaseConverter.ExecutorUri);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "15256"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 195,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "914d5e75-050c-40cd-9b70-8426458a6410",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duration = TimeSpan.FromMilliseconds(5);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "var duration = TimeSpan.FromMilliseconds(5);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 120,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "fe20a78f-d921-4a62-bdd9-a5fa22c5675a",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duration = TimeSpan.FromMilliseconds(99);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "var duration = TimeSpan.FromMilliseconds(99);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 81,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "da3197e7-056b-4e96-a7a3-c0fc9a45668f",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duration = TimeSpan.FromSeconds(2);",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "var duration = TimeSpan.FromSeconds(2);",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 42,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "f23b59ef-3f10-4248-a4e9-4e8fa93780e2",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var duration = TimeSpan.FromMilliseconds(123);",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "var duration = TimeSpan.FromMilliseconds(123);",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 32,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "d19f7ad5-fa29-4280-a05c-7f68c3132d58",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var result = ResultReporter.Success(MakeTestCase(), DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(42));",
+              "protected": "M:System.TimeSpan.FromMilliseconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "var result = ResultReporter.Success(MakeTestCase(), DateTimeOffset.UtcNow, TimeSpan.FromMilliseconds(42));",
+            "protectedSnippet": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "label": "M:System.TimeSpan.FromMilliseconds(System.Double)",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 24,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "7ae062a8-6360-439a-9b0a-adcc44eb69f6",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "FakeExecutorUri",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "FakeExecutorUri",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 17,
+            "column": 75
+          }
+        },
+        {
+          "incidentId": "4ddada0e-5d0d-47e5-9f7e-5237a57c0991",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "specs.BDD.VSTestAdapter.Tests\\specs.BDD.VSTestAdapter.Tests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "FakeExecutorUri = new Uri(\u0022executor://SpecsTestExecutor/v1\u0022)",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "specs.BDD.VSTestAdapter.Tests\\Execution\\ResultReporter_Tests.cs",
+            "snippet": "FakeExecutorUri = new Uri(\u0022executor://SpecsTestExecutor/v1\u0022)",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "properties": {
+              "CharCount": "6235"
+            },
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 36
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "specs.core\\specs.core.csproj",
+      "startingProject": true,
+      "issues": 0,
+      "storyPoints": 0,
+      "properties": {
+        "appName": "specs.core",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "netstandard2.1"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 20,
+        "numberOfCodeFiles": 20,
+        "linesTotal": 1248,
+        "linesOfCode": 1248,
+        "totalApiScanned": 654,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [],
+      "features": []
+    },
+    {
+      "path": "specs.core.UnitTests\\specs.core.UnitTests.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "specs.core.UnitTests",
+        "projectKind": "DotNetCoreApp",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 20,
+        "numberOfCodeFiles": 18,
+        "linesTotal": 7979,
+        "linesOfCode": 6204,
+        "totalApiScanned": 5357,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "039df5c2-f428-4b40-aba6-c345e6c04965",
+          "ruleId": "NuGet.0002",
+          "projectPath": "specs.core.UnitTests\\specs.core.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+              "protected": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13"
+            },
+            "kind": "File",
+            "path": "specs.core.UnitTests\\specs.core.UnitTests.csproj",
+            "snippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "protectedSnippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "label": "System.Text.Encodings.Web 9.0.11",
+            "properties": {
+              "PackageId": "System.Text.Encodings.Web",
+              "PackageVersion": "9.0.11",
+              "PackageNewVersion": "10.0.13",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d1bcce27-6738-44fc-9c22-4ae4bbb70cf7",
+          "ruleId": "Project.0002",
+          "projectPath": "specs.core.UnitTests\\specs.core.UnitTests.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "specs.core.UnitTests\\specs.core.UnitTests.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "TestHarness\\TestHarness.csproj",
+      "startingProject": true,
+      "issues": 1,
+      "storyPoints": 1,
+      "properties": {
+        "appName": "TestHarness",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "netstandard2.1"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 1,
+        "numberOfCodeFiles": 1,
+        "linesTotal": 145,
+        "linesOfCode": 145,
+        "totalApiScanned": 121,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "68e0d790-9707-410a-8119-6cc6ef992be7",
+          "ruleId": "NuGet.0002",
+          "projectPath": "TestHarness\\TestHarness.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+              "protected": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13"
+            },
+            "kind": "File",
+            "path": "TestHarness\\TestHarness.csproj",
+            "snippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "protectedSnippet": "System.Text.Encodings.Web, 9.0.11\n\nRecommendation:\n\nRemove System.Text.Encodings.Web, and replace with new package System.Text.Encodings.Web 10.0.13",
+            "label": "System.Text.Encodings.Web 9.0.11",
+            "properties": {
+              "PackageId": "System.Text.Encodings.Web",
+              "PackageVersion": "9.0.11",
+              "PackageNewVersion": "10.0.13",
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    }
+  ],
+  "rules": {
+    "NuGet.0002": {
+      "id": "NuGet.0002",
+      "isFeature": false,
+      "description": "NuGet package upgrade is recommended for selected target framework.\n\nStandard .NET packages are recommended to have versions matching version of .NET that project targets.\n\nSome other packages also are known to work better for selected target frameworks.",
+      "label": "NuGet package upgrade is recommended",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262530",
+          "isCustom": false
+        }
+      ]
+    },
+    "Project.0002": {
+      "id": "Project.0002",
+      "isFeature": false,
+      "description": "Project\u0027s target framework(s) needs to be changed to the new target framework that you selected for this upgrade.\n\nDuring upgrade target framework will be adjusted to corresponding platform when applicable. In some cases project would result in multiple target frameworks after the upgrade if it was using features that now have their own platforms in modern .NET frameworks (windows, iOS, Android etc).",
+      "label": "Project\u0027s target framework(s) needs to be changed",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Overview of porting from .NET Framework to .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": ".NET project SDKs",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0003": {
+      "id": "Api.0003",
+      "isFeature": false,
+      "description": "API has a behavioral change in selected .NET version: code and binaries may behave differently at runtime without needing recompilation, but the new behavior might be undesirable and require updates.",
+      "label": "Behavioral change in selected .NET version",
+      "severity": "Potential",
+      "effort": 1
+    },
+    "Api.0002": {
+      "id": "Api.0002",
+      "isFeature": false,
+      "description": "API is source incompatible for selected .NET version: requires code changes to compile successfully when targeting a new version, such as removing obsolete APIs or changing method signatures.",
+      "label": "Source incompatible for selected .NET version",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Breaking changes in .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    }
+  }
+}
