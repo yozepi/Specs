@@ -48,5 +48,11 @@ namespace specs.BDD.VSTestAdapter.Conversion
         /// <see cref="TestDescription"/> and <see cref="ItAction"/> are unused.
         /// </summary>
         public bool IsGrouped { get; set; }
+
+        /// <summary>
+        /// When <c>true</c>, the spec is pending and is reported as skipped without executing.
+        /// For a grouped entry, <c>true</c> only when the subtree has specs and all of them are pending.
+        /// </summary>
+        public bool IsPending { get; set; }
     }
 }

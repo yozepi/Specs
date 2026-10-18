@@ -95,6 +95,37 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             Check.That(result.TestCase).IsSameReferenceAs(testCase);
         }
 
+        // ── Skipped ───────────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Skipped_OutcomeIsSkipped_WithPendingMessage()
+        {
+            var result = ResultReporter.Skipped(MakeTestCase(), DateTimeOffset.UtcNow, TimeSpan.Zero);
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Skipped);
+            Check.That(result.ErrorMessage).IsEqualTo("Pending");
+        }
+
+        [Test]
+        public void Skipped_UsesCustomMessage()
+        {
+            var result = ResultReporter.Skipped(MakeTestCase(), DateTimeOffset.UtcNow, TimeSpan.Zero, "not yet");
+
+            Check.That(result.ErrorMessage).IsEqualTo("not yet");
+        }
+
+        [Test]
+        public void Skipped_StartTimeAndEndTimeAreConsistent()
+        {
+            var start = DateTimeOffset.UtcNow;
+            var duration = TimeSpan.FromMilliseconds(5);
+            var result = ResultReporter.Skipped(MakeTestCase(), start, duration);
+
+            Check.That(result.StartTime).IsEqualTo(start);
+            Check.That(result.EndTime).IsEqualTo(start + duration);
+            Check.That(result.Duration).IsEqualTo(duration);
+        }
+
         // ── TargetInvocationException unwrapping ──────────────────────────────────────────────
 
         [Test]

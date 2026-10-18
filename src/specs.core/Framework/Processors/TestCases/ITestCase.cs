@@ -56,5 +56,10 @@ namespace specs.core.Framework.Processors.TestCases
         /// Gets the collection of test methods with their descriptions.
         /// </summary>
         IReadOnlyList<(string description, Action test)> Tests { get; }
+
+        /// <summary>
+        /// Gets the descriptions of the <see cref="Tests"/> that are pending and must not be executed.
+        /// </summary>
+        IReadOnlyCollection<string> PendingTests { get; }
     }
 }

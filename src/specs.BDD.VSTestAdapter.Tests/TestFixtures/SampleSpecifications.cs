@@ -350,6 +350,117 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         }
     }
 
+    // ── Pending fixtures ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// One runnable spec plus every flavour of pending spec. Pending bodies throw so that
+    /// accidentally executing one is a visible failure.
+    /// </summary>
+    public class SpecWithPending : Specifications
+    {
+        public static readonly System.Collections.Generic.List<string> Log =
+            new System.Collections.Generic.List<string>();
+
+        public static void ClearLog() => Log.Clear();
+
+        [Context("pending feature")]
+        public void describe_pending()
+        {
+            BeforeEach(() => Log.Add("BeforeEach"));
+            Act(() => Log.Add("Act"));
+            AfterEach(() => Log.Add("AfterEach"));
+
+            It["runnable"] = () => Log.Add("test:runnable");
+            It["todo"] = TODO;
+            ItAsync["todo async"] = TODOAsync;
+            xIt["excluded"] = () => throw new InvalidOperationException("pending body must not run");
+
+            xContext["pending context"] = () =>
+            {
+                BeforeAll(() => Log.Add("pending-BeforeAll"));
+                AfterAll(() => Log.Add("pending-AfterAll"));
+
+                It["inside pending context"] = () => throw new InvalidOperationException("pending body must not run");
+            };
+        }
+    }
+
+    /// <summary>A spec whose only selected specs are pending; the root BeforeAll must not run.</summary>
+    public class AllPendingSpec : Specifications
+    {
+        public static bool RootBeforeAllRan { get; set; }
+
+        public AllPendingSpec()
+        {
+            BeforeAll(() => RootBeforeAllRan = true);
+        }
+
+        [Context("all pending")]
+        public void describe_all_pending()
+        {
+            It["todo one"] = TODO;
+
+            xDescribe["later"] = () =>
+            {
+                It["todo two"] = () => throw new InvalidOperationException("pending body must not run");
+            };
+        }
+    }
+
+    /// <summary>A spec with a gated failing root BeforeAll alongside a pending spec.</summary>
+    public class PendingWithFailingRootBeforeAll : Specifications
+    {
+        /// <summary>When <c>true</c>, the root BeforeAll throws. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; } = false;
+
+        public PendingWithFailingRootBeforeAll()
+        {
+            BeforeAll(() =>
+            {
+                if (TriggerFailure)
+                    throw new InvalidOperationException("root setup failure");
+            });
+        }
+
+        [Context("flat part")]
+        public void flat_part()
+        {
+            It["runnable"] = () => { };
+            It["todo"] = TODO;
+        }
+    }
+
+    /// <summary>Grouped contexts mixing runnable and pending specs, and one that is entirely pending.</summary>
+    public class GroupedSpecWithPending : Specifications
+    {
+        public static readonly System.Collections.Generic.List<string> Log =
+            new System.Collections.Generic.List<string>();
+
+        public static void ClearLog() => Log.Clear();
+
+        [Context("grouped with pending", Reporting = SpecReporting.GroupedByRootContext)]
+        public void describe_grouped_pending()
+        {
+            It["a passing spec"] = () => { };
+            It["a todo spec"] = TODO;
+
+            xContext["pending inner"] = () =>
+            {
+                BeforeAll(() => Log.Add("pending-BeforeAll"));
+                It["inner spec"] = () => throw new InvalidOperationException("pending body must not run");
+            };
+        }
+
+        [Context("grouped all pending", Reporting = SpecReporting.GroupedByRootContext)]
+        public void describe_grouped_all_pending()
+        {
+            BeforeAll(() => Log.Add("all-pending-BeforeAll"));
+
+            It["a todo spec"] = TODO;
+            xIt["an excluded spec"] = () => throw new InvalidOperationException("pending body must not run");
+        }
+    }
+
     // ── Non-specification types ───────────────────────────────────────────────────────────────
 
     /// <summary>Non-abstract class that does NOT inherit from Specifications.</summary>

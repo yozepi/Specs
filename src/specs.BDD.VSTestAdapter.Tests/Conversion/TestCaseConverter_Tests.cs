@@ -158,6 +158,26 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
             Check.That(testCase.GetPropertyValue(TestProperties.IsGrouped, false)).IsFalse();
         }
 
+        // ── Pending ───────────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Pending_IsPendingProperty_IsTrue()
+        {
+            var specTest = BuildSpecTest();
+            specTest.IsPending = true;
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
+
+            Check.That(testCase.GetPropertyValue(TestProperties.IsPending, false)).IsTrue();
+        }
+
+        [Test]
+        public void NonPending_IsPendingProperty_IsFalse()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            Check.That(testCase.GetPropertyValue(TestProperties.IsPending, true)).IsFalse();
+        }
+
         // ── Source ────────────────────────────────────────────────────────────────────────────
 
         [Test]

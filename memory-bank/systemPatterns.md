@@ -42,9 +42,9 @@ flowchart TD
 
 | Container | Key components |
 |-----------|---------------|
-| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder`, immutable `ContextualTestCase`, `TestCaseExecutor`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
-| `specs.BDD` | `Specifications` base class, `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
-| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
+| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
+| `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
+| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, 📌 `PendingSpecs`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
 
 ## Core Design Patterns
 
@@ -269,18 +269,19 @@ flowchart TD
 | Discovery | `ContextMethodScanner` | Finds `[Context]`-decorated methods; throws `InvalidSpecificationException` if none |
 | Discovery | **`SuiteTreeBuilder`** | Instantiates the suite once and registers every `[Context]` method as a **named child context** via `instance.Context[name] = () => method.Invoke(...)`, then returns `CoreBuilder.Build()`. Shared by discovery *and* execution |
 | Discovery | **`GroupingSettings`** 📌 UPDATED | Resolves the effective `SpecReporting` per root `[Context]`: `ContextAttribute.ReportingSetting` → class `[SpecReporting]` (not inherited) → assembly `[SpecReporting]` → `.runsettings` `<SpecsBDD><SpecReporting>` → `Individual`. Also reads `ShowSourceLocations` / `ColorOutput` and picks the grouped-report `MarkerStyle` |
-| Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`); emits a single `IsGrouped` record for grouped root contexts 📌 |
+| Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`); emits a single `IsGrouped` record for grouped root contexts 📌; 📌 sets `IsPending` per spec (grouped record: pending only when the subtree has specs and all are pending) |
+| Discovery | `PendingSpecs` 📌 NEW | Internal static helpers over a built tree: `IsPending(node, description)`, `HasRunnableTests(node)` (any non-pending spec at or below), `HasAnyTests(node)`. Shared by discovery, `TestInvoker`, and `GroupedContextRunner` |
 | Discovery | `SourceLocationReader` | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Context]` method). 📌 `GetTestMethod(Action)` unwraps async `It` wrappers to the user's `Func<Task>`; async bodies resolve via the state machine's `MoveNext`; methods from a different assembly than the PDB return `null` |
-| Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌 |
+| Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW |
 | Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` that embeds `ContextPath` (VS Code ignores `Hierarchy`) 📌, the RFC-0033 `TestCase.Hierarchy` property, and source location |
-| Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌) preserving metadata across VSTest serialization |
+| Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW — `SpecsBDD.IsPending`, `bool`) preserving metadata across VSTest serialization |
 | Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)`; 📌 resolves `ShowSourceLocations` and `MarkerStyle` once per run; 📌 NEW applies the `dotnet test --filter` expression to re-discovered cases in `RunTests(sources)` (see "Test Case Filtering") |
-| Execution | `TestInvoker` | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, 📌 runs the **root** (class-constructor) `OwnSetupOnce` / `OwnTeardownOnce` once per class, splits the selection on `IsGrouped`, and hands grouped cases to `GroupedContextRunner` and the rest to `SelectionTreeWalker` (both share one tree instance). A root `BeforeAll` failure fails every selected test and skips the root `AfterAll` |
+| Execution | `TestInvoker` | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, 📌 runs the **root** (class-constructor) `OwnSetupOnce` / `OwnTeardownOnce` once per class, splits the selection three ways (grouped / 📌 pending / regular), records pending cases as Skipped up front, and hands grouped cases to `GroupedContextRunner` and the rest to `SelectionTreeWalker` (both share one tree instance). A root `BeforeAll` failure fails every selected runnable test and skips the root `AfterAll`; 📌 the root lifecycle is skipped entirely when nothing selected is runnable |
 | Execution | **`SelectionTreeWalker`** | Depth-first walk of the suite tree firing `OwnSetupOnce` / `OwnTeardownOnce` **exactly once per live non-root node** (the root is owned by `TestInvoker`); delegates per-test loops to `TestCaseExecutor` |
-| Execution | **`GroupedContextRunner`** 📌 | Runs an entire root `[Context]` subtree as **one** `TestResult`; mirrors the walker's once-per-node lifecycle but keeps running after per-test failures so the report is complete; emits an NSpec-style tree + failure list to `StandardOutCategory` using the run's `MarkerStyle`, optional per-`It` `at file:line N` locations, and a fully failed tree when the root `BeforeAll` failed |
+| Execution | **`GroupedContextRunner`** 📌 | Runs an entire root `[Context]` subtree as **one** `TestResult`; mirrors the walker's once-per-node lifecycle but keeps running after per-test failures so the report is complete; emits an NSpec-style tree + failure list to `StandardOutCategory` using the run's `MarkerStyle`, optional per-`It` `at file:line N` locations, and a fully failed tree when the root `BeforeAll` failed. 📌 Renders pending specs as `○ ... - PENDING` without running them, skips the once-actions of any node with no runnable specs, and reports an all-pending context as Skipped |
 | Execution | `MarkerStyle` 📌 NEW | Internal enum (`Plain` / `Ansi` / `Emoji`) selecting grouped-report pass/fail glyphs |
 | Execution | `TestFinder` | Splits `ContextPath` on `" → "` and walks the immutable test tree |
-| Execution | `ResultReporter` | Builds `TestResult` objects for pass/fail/skip outcomes; `Unwrap` (now `internal`) strips `TargetInvocationException` layers for both runners |
+| Execution | `ResultReporter` | Builds `TestResult` objects for pass/fail/skip outcomes (📌 `Skipped(..., message = PendingMessage)` with `PendingMessage = "Pending"`); `Unwrap` (now `internal`) strips `TargetInvocationException` layers for both runners |
 | Execution | `VSTestLoggingAdapter` | `ILoggingAdapter` over `IFrameworkHandle`; tracks `ReportedDescriptions` so unreached tests can be failed explicitly |
 | Execution | `VSTestTestProvider` | `ITestProviderAdapter` wrapping `(TestCase, description, Action)` triples as `TestInstance[]` |
 
@@ -527,14 +528,16 @@ Benefits:
 | 📌 Root (class) `BeforeAll` failure | Every selected test reported failed; root `AfterAll` skipped | Whole tree rendered as failed with the root exception; root `AfterAll` skipped |
 | `AfterAll` failure | Swallowed (best-effort) | Swallowed (best-effort) |
 | Empty subtree | n/a | `TestOutcome.Skipped` with "No specs found" |
-| Output | Per-result messages | NSpec-style tree + `N passed, M failed, T total` + numbered failure list in `StandardOutCategory`; `ErrorMessage` summarises failed paths |
+| 📌 Pending spec | Recorded Skipped (`Pending`) by `TestInvoker` before any lifecycle; never reaches the walker | Rendered `○ ... - PENDING`, counted in `N pending`; never executed |
+| 📌 All specs pending | Node not live → its once-actions never run | Node once-actions skipped; result `Skipped` with "All specs are pending." |
+| Output | Per-result messages | NSpec-style tree + `N passed, M failed, [P pending, ]T total` + numbered failure list in `StandardOutCategory`; `ErrorMessage` summarises failed paths |
 
 ### 📌 NEW — Report formatting
 
 | Setting | Source | Effect |
 |---------|--------|--------|
-| Pass/fail markers | `GroupingSettings.ResolveMarkerStyle(colorOutput, VSAPPIDNAME)` | `ColorOutput=false` → `Plain` (`✓` / `✗`); host is Visual Studio (`VSAPPIDNAME=devenv.exe`, which cannot render ANSI) → `Emoji` (`✅` / `❌`); otherwise → `Ansi` (green `✓` / red `✗`) |
-| Source locations | `.runsettings` `SpecsBDD/ShowSourceLocations` (default `false`) | Adds an indented `at <file>:line <n>` under each passing, failing, or root-setup-failed `It` |
+| Pass/fail markers | `GroupingSettings.ResolveMarkerStyle(colorOutput, VSAPPIDNAME)` | `ColorOutput=false` → `Plain` (`✓` / `✗` / 📌 `○`); host is Visual Studio (`VSAPPIDNAME=devenv.exe`, which cannot render ANSI) → `Emoji` (`✅` / `❌` / 📌 `⏸️`); otherwise → `Ansi` (green `✓` / red `✗` / 📌 yellow `○`) |
+| Source locations | `.runsettings` `SpecsBDD/ShowSourceLocations` (default `false`) | Adds an indented `at <file>:line <n>` under each passing, failing, root-setup-failed, or 📌 pending `It` |
 
 Both values are resolved once per run in `SpecsTestExecutor` and threaded through `TestInvoker.InvokeSuite` → `GroupedContextRunner.Run` → `Execute`.
 
@@ -619,7 +622,7 @@ sequenceDiagram
     X->>X: 5. Match ContextPath + TestDescription to a node
 ```
 
-The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`) are the **address** that lets execution find the node discovery found. This is why `SuiteTreeBuilder` must be the only construction path: if the two phases disagreed on a single context description, the address would no longer resolve. A fifth property, `IsGrouped`, tells `TestInvoker` which runner the address belongs to.
+The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`) are the **address** that lets execution find the node discovery found. This is why `SuiteTreeBuilder` must be the only construction path: if the two phases disagreed on a single context description, the address would no longer resolve. A fifth property, `IsGrouped`, tells `TestInvoker` which runner the address belongs to. 📌 A sixth, `IsPending`, exists for `--filter` only — execution re-derives pending state from the rebuilt tree (`PendingSpecs.IsPending`) rather than trusting the serialized flag.
 
 ## Key Technical Decisions
 
@@ -646,6 +649,9 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 19 | 📌 NEW **Async test wrapper is bound to the original `Func<Task>`** | Source location needs the user's lambda, not a compiler closure | `AsyncTestExtensions.RunSync` in `specs.core`; `SourceLocationReader.GetTestMethod` unwraps `Action.Target` |
 | 20 | 📌 NEW **Marker style depends on the host** | Visual Studio's Test Explorer shows raw ANSI escapes; VS Code / CLI render them | `VSAPPIDNAME=devenv.exe` → emoji; `ColorOutput=false` → plain |
 | 21 | 📌 NEW **The adapter applies `--filter` itself in `RunTests(sources)`** | VSTest hands source-based runs to the adapter unfiltered; an adapter that ignores `IRunContext.GetTestCaseFilter` runs every test | `SpecsTestExecutor.FilterProperties` maps case-insensitive names to `TestProperty`s; an invalid expression is reported as an error and nothing runs |
+| 22 | 📌 NEW **Pending is tree metadata in the core; skipping is adapter policy** | The core builder is where `xContext` inheritance is known, but *how* a pending spec is reported is host-specific | `ITestCase.PendingTests` (ordinal set of descriptions) in `specs.core`; `TestCaseExecutor` is unchanged and does not consult it |
+| 23 | 📌 NEW **Pending specs keep their body in `Tests`** | Pending specs must still be discovered, addressed by `TestFinder`, and navigable via "Go to Source" | `AddPendingTest` calls `AddTest` then records the description; `TODO` / `TODOAsync` are recognised by reference identity |
+| 24 | 📌 NEW **No lifecycle for pending-only selections** | A half-written `xContext` (e.g. a throwing `BeforeAll`) must not fail the run | Pending cases bypass the walker; root and node once-actions run only when `PendingSpecs.HasRunnableTests` is true |
 
 ## Critical Execution Paths
 
@@ -758,8 +764,95 @@ Supported filter properties (names matched case-insensitively by `SpecsTestExecu
 | `ContextMethod` | `TestProperties.ContextMethod` |
 | `ContextPath` | `TestProperties.ContextPath` |
 | `TestDescription` | `TestProperties.TestDescription` |
+| 📌 `IsPending` | `TestProperties.IsPending` (`IsPending=true` / `IsPending=false`) |
 
 Unknown names resolve to `null` in the property-value provider, so they never match. Grouped records are filtered like any other case (by their `Class::Method::[grouped]` FQN).
+
+## 📌 NEW — Pending Specs
+
+A **pending** spec is discovered and reported but never executed. Authors mark specs pending three ways in `specs.BDD`:
+
+| Syntax | Mechanism |
+|--------|-----------|
+| `It["..."] = TODO;` / `ItAsync["..."] = TODOAsync;` | `AssertBuilder` / `AssertBuilderAsync` detect the static `Specifications.TODO` / `TODOAsync` delegate by `ReferenceEquals` |
+| `xIt["..."] = ...;` / `xItAsync["..."] = ...;` | Builder constructed with `isPending: true`; body kept for source navigation |
+| `xContext["..."] = ...;` / `xDescribe["..."] = ...;` | `ContextBuilder(isPending: true)` → `ChildTestCase(..., isPending: true)`; the child builder inherits `isPending` from its parent, so every descendant spec is pending |
+
+### 📌 BEFORE (no pending concept)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: Execution routing (BEFORE pending specs)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    INV["<b>TestInvoker</b><br/>[Component: C# static class]<br/>Two-way split; root always runs"]:::deprecated
+    SW["<b>SelectionTreeWalker</b><br/>[Component: C# class]<br/>Runs every selected spec"]:::deprecated
+    GR["<b>GroupedContextRunner</b><br/>[Component: C# static class]<br/>Runs every spec in subtree"]:::deprecated
+
+    INV -->|"Regular tests [in-process]"| SW
+    INV -->|"Grouped tests [in-process]"| GR
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Deprecated element"]:::deprecated
+    end
+
+    SW ~~~ LEGEND
+
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Unwritten specs had to be commented out, disappearing from Test Explorer.
+- No way to park a broken scenario without it failing (or its `BeforeAll` breaking siblings).
+
+### 📌 AFTER (pending metadata + three-way routing)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: Pending specs (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    AB["<b>AssertBuilder / ContextBuilder</b><br/>[Component: specs.BDD]<br/>TODO, xIt, xContext"]:::app
+    CB["<b>ContextualTestCaseBuilder</b><br/>[Component: specs.core]<br/>AddPendingTest, isPending child"]:::app
+    TREE[("<b>ContextualTestCase</b><br/>[Data: immutable tree]<br/>PendingTests per node")]:::data
+    PS["<b>PendingSpecs</b><br/>[Component: adapter static class]<br/>IsPending / HasRunnableTests"]:::app
+    INV["<b>TestInvoker</b><br/>[Component: C# static class]<br/>Grouped / pending / regular"]:::app
+    SKIP(["Skipped result<br/>reason: Pending"]):::data
+    SW["<b>SelectionTreeWalker</b><br/>[Component: C# class]<br/>Runnable specs only"]:::app
+    GR["<b>GroupedContextRunner</b><br/>[Component: C# static class]<br/>Renders PENDING, skips idle nodes"]:::app
+
+    AB -->|"Registers specs [in-process]"| CB
+    CB ==>|"Build() [in-process]"| TREE
+    PS -->|"Queries [in-process]"| TREE
+    INV -->|"Classifies each case [in-process]"| PS
+    INV -->|"Pending [RecordResult]"| SKIP
+    INV -->|"Regular [in-process]"| SW
+    INV -->|"Grouped [in-process]"| GR
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned component"]:::app
+        L2[("Data / outcome")]:::data
+    end
+
+    GR ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Benefits / contract:
+
+- **Discovery**: pending specs are emitted like any other `SpecTest` with `IsPending = true`; a grouped record is pending only when its subtree has specs and none are runnable.
+- **Per-`It` execution**: `TestInvoker.InvokeSuite` records pending cases as `Skipped` (`ResultReporter.PendingMessage`) before any lifecycle; `TestInvoker.Invoke` (single case) returns `Skipped` without running anything.
+- **Once-actions**: pending cases never reach `SelectionTreeWalker`, so a pending-only node is never live. Root `OwnSetupOnce` / `OwnTeardownOnce` run only if a regular case or a grouped context with runnable specs is selected.
+- **Grouped execution**: `RunNode` short-circuits nodes with no runnable specs into `RenderPendingSubtree` (no `BeforeAll` / `AfterAll`); a root-`BeforeAll` failure leaves pending specs rendered as pending, not failed.
+- **Filtering**: `IsPending` is a supported `--filter` property.
+- **Scope**: only the `Specifications` API and the VSTest adapter honour pending; `TestCaseExecutor` and the legacy `Spec` API do not.
 
 ## Pattern Summary
 

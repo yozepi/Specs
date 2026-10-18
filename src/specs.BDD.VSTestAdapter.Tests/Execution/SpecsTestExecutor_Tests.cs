@@ -96,7 +96,23 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             RunSources();
 
             Check.That(supported).Contains(
-                "FullyQualifiedName", "DisplayName", "ContextMethod", "ContextPath", "TestDescription");
+                "FullyQualifiedName", "DisplayName", "ContextMethod", "ContextPath", "TestDescription", "IsPending");
+        }
+
+        [TestCase(true, 4, TestOutcome.Skipped)]
+        [TestCase(false, 1, TestOutcome.Passed)]
+        public void RunTests_FilterOnIsPending_SelectsByPendingState(bool isPending, int expectedCount, TestOutcome expectedOutcome)
+        {
+            var prefix = typeof(SpecWithPending).FullName + "::";
+            _filter
+                .Setup(f => f.MatchTestCase(It.IsAny<TestCase>(), It.IsAny<Func<string, object>>()))
+                .Returns<TestCase, Func<string, object>>((tc, provider) =>
+                    tc.FullyQualifiedName.StartsWith(prefix) && Equals(provider("IsPending"), isPending));
+
+            RunSources();
+
+            Check.That(_results).HasSize(expectedCount);
+            Check.That(_results.Select(r => r.Outcome)).ContainsOnlyElementsThatMatch(o => o == expectedOutcome);
         }
 
         [Test]

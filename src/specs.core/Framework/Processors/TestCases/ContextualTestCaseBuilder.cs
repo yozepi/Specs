@@ -25,6 +25,8 @@ namespace specs.core.Framework.Processors.TestCases
 
         private readonly List<Action> actActions = new List<Action>();
         private readonly List<(string description, Action test)> testActions = new List<(string description, Action test)>();
+        private readonly List<string> pendingTests = new List<string>();
+        private readonly bool isPending;
 
         private readonly List<Action> teardownEachActions = new List<Action>();
         private readonly RunAllBuilder teardownOnceBuilder = new RunAllBuilder();
@@ -34,8 +36,14 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="parentContext">The optional parent context from which this context inherits lifecycle actions.</param>
         public ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext = null)
+            : this(parentContext, isPending: false)
+        {
+        }
+
+        private ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext, bool isPending)
         {
             this.parentContext = parentContext;
+            this.isPending = isPending || (parentContext?.isPending ?? false);
         }
 
         /// <inheritdoc/>
@@ -76,6 +84,8 @@ namespace specs.core.Framework.Processors.TestCases
             testActions.Add((
                 description.ThrowIfNullOrWhiteSpace(nameof(description)),
                 test.ThrowIfNull(nameof(test))));
+            if (isPending)
+                pendingTests.Add(description);
             return this;
         }
 
@@ -88,6 +98,24 @@ namespace specs.core.Framework.Processors.TestCases
                 funcWrapper = test.RunSync;
 
             return AddTest(description, funcWrapper);
+        }
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder AddPendingTest(string description, Action test)
+        {
+            AddTest(description, test);
+            pendingTests.Add(description);
+            return this;
+        }
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder AddPendingTest(string description, Func<Task> test)
+        {
+            Action funcWrapper = null!;
+            if (test != null)
+                funcWrapper = test.RunSync;
+
+            return AddPendingTest(description, funcWrapper);
         }
 
         /// <inheritdoc/>
@@ -134,11 +162,15 @@ namespace specs.core.Framework.Processors.TestCases
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
+            => ChildTestCase(description, configure, isPending: false);
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure, bool isPending)
         {
             description.ThrowIfNullOrWhiteSpace(nameof(description));
             configure.ThrowIfNull(nameof(configure));
 
-            var childBuilder = new ContextualTestCaseBuilder(this)
+            var childBuilder = new ContextualTestCaseBuilder(this, isPending)
             {
                 Description = description
             };
@@ -180,7 +212,8 @@ namespace specs.core.Framework.Processors.TestCases
                 ownSetupOnce: ownSetupOnce,
                 ownTeardownOnce: ownTeardownOnce,
                 tests: new List<(string description, Action test)>(this.testActions),
-                childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder))
+                childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder)),
+                pendingTests: this.pendingTests
             );
 
         }
@@ -199,7 +232,8 @@ namespace specs.core.Framework.Processors.TestCases
                 ownSetupOnce: testCase.OwnSetupOnce,
                 ownTeardownOnce: testCase.OwnTeardownOnce,
                 tests: testCase.Tests.ToList(),
-                childContexts: testCase.ChildContexts.ToList()
+                childContexts: testCase.ChildContexts.ToList(),
+                pendingTests: testCase.PendingTests
             );
         }
 

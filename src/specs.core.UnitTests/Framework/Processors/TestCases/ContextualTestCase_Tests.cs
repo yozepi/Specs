@@ -53,6 +53,36 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
                 {
                     Check.That(subject.ChildContexts).IsEqualTo(childContexts);
                 };
+
+                It["should default PendingTests to empty"] = () =>
+                {
+                    Check.That(subject.PendingTests).IsEmpty();
+                };
+            };
+
+            Describe["CreateTestCase with pending tests"] = () =>
+            {
+                IContextualTestCase subject = null!;
+
+                Act(() =>
+                {
+                    subject = ContextualTestCase.CreateTestCase(
+                        setupOnce: setupOnce,
+                        setupEach: setupEach,
+                        act: actAction,
+                        teardownEach: teardownEach,
+                        teardownOnce: teardownOnce,
+                        ownSetupOnce: () => { },
+                        ownTeardownOnce: () => { },
+                        tests: tests,
+                        childContexts: childContexts,
+                        pendingTests: ["pending", "pending"]);
+                });
+
+                It["should set the PendingTests property without duplicates"] = () =>
+                {
+                    Check.That(subject.PendingTests).ContainsExactly("pending");
+                };
             };
 
             Describe["CreateTestCaseContext static factory method"] = () => 

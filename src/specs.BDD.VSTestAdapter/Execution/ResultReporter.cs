@@ -50,6 +50,28 @@ namespace specs.BDD.VSTestAdapter.Execution
             };
         }
 
+        /// <summary>
+        /// Creates a <see cref="TestOutcome.Skipped"/> result (used for pending specs).
+        /// </summary>
+        public static TestResult Skipped(
+            TestCase testCase,
+            DateTimeOffset startTime,
+            TimeSpan duration,
+            string message = PendingMessage)
+        {
+            return new TestResult(testCase)
+            {
+                Outcome = TestOutcome.Skipped,
+                StartTime = startTime,
+                EndTime = startTime + duration,
+                Duration = duration,
+                ErrorMessage = message
+            };
+        }
+
+        /// <summary>The skip reason reported for pending specs.</summary>
+        public const string PendingMessage = "Pending";
+
         // ── Private helpers ────────────────────────────────────────────────────────────────────
 
         /// <summary>

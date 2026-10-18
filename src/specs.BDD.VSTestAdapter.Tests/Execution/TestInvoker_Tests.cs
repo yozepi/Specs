@@ -269,5 +269,73 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             }
             finally { SpecWithFailingRootBeforeAll.TriggerFailure = false; }
         }
+
+        // ── Pending specs ─────────────────────────────────────────────────────────────────────
+
+        [TestCase("todo")]
+        [TestCase("todo async")]
+        [TestCase("excluded")]
+        public void Invoke_PendingTest_ReturnsSkippedWithoutRunningLifecycle(string description)
+        {
+            SpecWithPending.ClearLog();
+            var testCase = MakeTestCase<SpecWithPending>("describe_pending", "pending feature", description);
+
+            var result = TestInvoker.Invoke(testCase);
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Skipped);
+            Check.That(result.ErrorMessage).IsEqualTo(ResultReporter.PendingMessage);
+            Check.That(SpecWithPending.Log).IsEmpty();
+        }
+
+        [Test]
+        public void InvokeSuite_Pending_ReportsPendingAsSkippedAndRunnableAsPassed()
+        {
+            var results = InvokeSuite<SpecWithPending>()
+                .ToDictionary(r => r.TestCase.GetPropertyValue<string>(TestProperties.TestDescription, null)!, r => r.Outcome);
+
+            Check.That(results).HasSize(5);
+            Check.That(results["runnable"]).IsEqualTo(TestOutcome.Passed);
+            Check.That(results["todo"]).IsEqualTo(TestOutcome.Skipped);
+            Check.That(results["todo async"]).IsEqualTo(TestOutcome.Skipped);
+            Check.That(results["excluded"]).IsEqualTo(TestOutcome.Skipped);
+            Check.That(results["inside pending context"]).IsEqualTo(TestOutcome.Skipped);
+        }
+
+        [Test]
+        public void InvokeSuite_Pending_LifecycleRunsOnlyForRunnableSpecs()
+        {
+            SpecWithPending.ClearLog();
+
+            InvokeSuite<SpecWithPending>();
+
+            Check.That(SpecWithPending.Log).ContainsExactly("BeforeEach", "Act", "test:runnable", "AfterEach");
+        }
+
+        [Test]
+        public void InvokeSuite_AllPending_RootBeforeAllDoesNotRun()
+        {
+            AllPendingSpec.RootBeforeAllRan = false;
+
+            var results = InvokeSuite<AllPendingSpec>();
+
+            Check.That(results).HasSize(2);
+            Check.That(results.Select(r => r.Outcome)).ContainsOnlyElementsThatMatch(o => o == TestOutcome.Skipped);
+            Check.That(AllPendingSpec.RootBeforeAllRan).IsFalse();
+        }
+
+        [Test]
+        public void InvokeSuite_RootBeforeAllFails_PendingSpecIsStillSkipped()
+        {
+            PendingWithFailingRootBeforeAll.TriggerFailure = true;
+            try
+            {
+                var results = InvokeSuite<PendingWithFailingRootBeforeAll>()
+                    .ToDictionary(r => r.TestCase.GetPropertyValue<string>(TestProperties.TestDescription, null)!, r => r.Outcome);
+
+                Check.That(results["runnable"]).IsEqualTo(TestOutcome.Failed);
+                Check.That(results["todo"]).IsEqualTo(TestOutcome.Skipped);
+            }
+            finally { PendingWithFailingRootBeforeAll.TriggerFailure = false; }
+        }
     }
 }

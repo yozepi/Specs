@@ -210,5 +210,39 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
             Check.That(tests[0].IsGrouped).IsTrue();
             Check.That(tests[0].ContextPath).IsEqualTo("simple context");
         }
+
+        // ── Pending ───────────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Pending_SpecsAreStillDiscovered()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(SpecWithPending)).ToList();
+
+            Check.That(tests.Select(t => t.TestDescription)).ContainsExactly(
+                "runnable", "todo", "todo async", "excluded", "inside pending context");
+        }
+
+        [Test]
+        public void Pending_IsPendingSetForTodoXItAndPendingContext()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(SpecWithPending))
+                .ToDictionary(t => t.TestDescription, t => t.IsPending);
+
+            Check.That(tests["runnable"]).IsFalse();
+            Check.That(tests["todo"]).IsTrue();
+            Check.That(tests["todo async"]).IsTrue();
+            Check.That(tests["excluded"]).IsTrue();
+            Check.That(tests["inside pending context"]).IsTrue();
+        }
+
+        [Test]
+        public void Pending_GroupedContext_IsPendingOnlyWhenAllSpecsArePending()
+        {
+            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpecWithPending))
+                .ToDictionary(t => t.ContextPath, t => t.IsPending);
+
+            Check.That(tests["grouped with pending"]).IsFalse();
+            Check.That(tests["grouped all pending"]).IsTrue();
+        }
     }
 }

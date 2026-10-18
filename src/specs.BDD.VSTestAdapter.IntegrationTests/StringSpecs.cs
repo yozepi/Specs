@@ -54,7 +54,10 @@ public class StringSpecs : Specifications
                     if (result != "HELLO WORLD")
                         throw new Exception($"Expected 'HELLO WORLD' but got '{result}'");
                 };
+
+                It["Calls your mother"] = TODO;
             };
+
         };
 
         // ── Contains ─────────────────────────────────────────────────────────

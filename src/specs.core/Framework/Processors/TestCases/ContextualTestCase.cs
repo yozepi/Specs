@@ -6,11 +6,11 @@ namespace specs.core.Framework.Processors.TestCases
 {
     internal class ContextualTestCase : ITestCaseContext, IContextualTestCase
     {
-        public static IContextualTestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts)
+        public static IContextualTestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null)
         {
-            return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, ownSetupOnce, ownTeardownOnce, tests, childContexts);
+            return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, ownSetupOnce, ownTeardownOnce, tests, childContexts, pendingTests);
         }
-        public static ITestCaseContext CreateTestCaseContext(string description, Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts)
+        public static ITestCaseContext CreateTestCaseContext(string description, Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null)
         {
             return new ContextualTestCase(
                 setupOnce,
@@ -22,10 +22,11 @@ namespace specs.core.Framework.Processors.TestCases
                 ownTeardownOnce,
                 tests,
                 childContexts,
+                pendingTests,
                 description.ThrowIfNullOrWhiteSpace(nameof(description)));
         }
 
-        private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, string? description = null)
+        private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests, string? description = null)
         {
             this.SetupOnce = setupOnce.ThrowIfNull(nameof(setupOnce));
             this.SetupEach = setupEach.ThrowIfNull(nameof(setupEach));
@@ -36,6 +37,7 @@ namespace specs.core.Framework.Processors.TestCases
             this.OwnTeardownOnce = ownTeardownOnce.ThrowIfNull(nameof(ownTeardownOnce));
             this.Tests = tests.ThrowIfNull(nameof(tests));
             this.ChildContexts = childContexts.ThrowIfNull(nameof(childContexts));
+            this.PendingTests = new HashSet<string>(pendingTests ?? Array.Empty<string>(), StringComparer.Ordinal);
             this.Description = description;
         }
 
@@ -56,6 +58,8 @@ namespace specs.core.Framework.Processors.TestCases
         public IReadOnlyList<(string description, Action test)> Tests { get; }
 
         public IReadOnlyList<ITestCaseContext> ChildContexts { get; }
+
+        public IReadOnlyCollection<string> PendingTests { get; }
 
         private string? Description { get; } 
 

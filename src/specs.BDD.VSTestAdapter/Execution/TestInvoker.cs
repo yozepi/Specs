@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -43,9 +44,11 @@ namespace specs.BDD.VSTestAdapter.Execution
 
             try
             {
-                InvokeCore(testCase);
+                var ran = InvokeCore(testCase);
                 timer.Stop();
-                return ResultReporter.Success(testCase, startTime, timer.Elapsed);
+                return ran
+                    ? ResultReporter.Success(testCase, startTime, timer.Elapsed)
+                    : ResultReporter.Skipped(testCase, startTime, timer.Elapsed);
             }
             catch (Exception ex)
             {
@@ -90,25 +93,43 @@ namespace specs.BDD.VSTestAdapter.Execution
 
             // Grouped test cases run their whole context subtree as one result; the rest go
             // through the per-test selection walker. Both share the same suite tree instance.
+            // Pending tests are reported up front and never touch any lifecycle.
             var groupedTests = new List<TestCase>();
             var regularTests = new List<TestCase>();
+            var pendingTests = new List<TestCase>();
             foreach (var tc in testList)
             {
                 if (tc.GetPropertyValue(TestProperties.IsGrouped, false))
                     groupedTests.Add(tc);
+                else if (IsPending(root, tc))
+                    pendingTests.Add(tc);
                 else
                     regularTests.Add(tc);
             }
 
-            // Root BeforeAll/AfterAll come from the spec class constructor and run once per class.
-            Exception? rootSetupFailure = null;
-            try
+            var pendingStart = DateTimeOffset.UtcNow;
+            foreach (var tc in pendingTests)
             {
-                root.OwnSetupOnce();
+                frameworkHandle.RecordStart(tc);
+                frameworkHandle.RecordResult(ResultReporter.Skipped(tc, pendingStart, TimeSpan.Zero));
             }
-            catch (Exception ex)
+
+            // Root BeforeAll/AfterAll come from the spec class constructor and run once per class,
+            // but only when at least one selected spec will actually execute.
+            var runRootLifecycle = regularTests.Count > 0
+                || groupedTests.Any(tc => GroupedContextHasRunnableTests(root, tc));
+
+            Exception? rootSetupFailure = null;
+            if (runRootLifecycle)
             {
-                rootSetupFailure = ex;
+                try
+                {
+                    root.OwnSetupOnce();
+                }
+                catch (Exception ex)
+                {
+                    rootSetupFailure = ex;
+                }
             }
 
             try
@@ -132,7 +153,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             }
             finally
             {
-                if (rootSetupFailure == null)
+                if (runRootLifecycle && rootSetupFailure == null)
                 {
                     // Best-effort AfterAll — swallow so we don't mask test failures.
                     try { root.OwnTeardownOnce(); } catch { /* best-effort */ }
@@ -142,7 +163,8 @@ namespace specs.BDD.VSTestAdapter.Execution
 
         // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        private static void InvokeCore(TestCase testCase)
+        /// <summary>Returns <c>false</c> without running anything when the test is pending.</summary>
+        private static bool InvokeCore(TestCase testCase)
         {
             var className = testCase.GetPropertyValue<string>(TestProperties.ClassName, null)
                 ?? throw new InvalidOperationException(
@@ -164,7 +186,27 @@ namespace specs.BDD.VSTestAdapter.Execution
                     $"Cannot locate test '{testDescription}' at path '{contextPath}' " +
                     $"in '{specType.FullName}'.");
 
+            if (PendingSpecs.IsPending(found.Context, testDescription))
+                return false;
+
             RunLifecycle(found.Context, found.TestAction);
+            return true;
+        }
+
+        private static bool IsPending(IContextualTestCase root, TestCase testCase)
+        {
+            var contextPath = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "";
+            var description = testCase.GetPropertyValue<string>(TestProperties.TestDescription, null) ?? "";
+            var found = TestFinder.Find(root, contextPath, description);
+            return found != null && PendingSpecs.IsPending(found.Value.Context, description);
+        }
+
+        private static bool GroupedContextHasRunnableTests(IContextualTestCase root, TestCase testCase)
+        {
+            var contextName = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "";
+            var node = root.ChildContexts
+                .FirstOrDefault(c => string.Equals(c.Description, contextName, StringComparison.Ordinal));
+            return node != null && PendingSpecs.HasRunnableTests(node);
         }
 
         /// <summary>

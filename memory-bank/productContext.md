@@ -120,7 +120,7 @@ The adapter also preserves the shape of the specification in the IDE:
 - Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
 - "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Context]` method.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
-- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, or `TestDescription` (e.g. `--filter "ContextPath~when adding"`).
+- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
 
 ### 📌 Problem 5 — One result per `It[...]` is sometimes too noisy
 
@@ -140,6 +140,21 @@ It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedBy
 
 📌 The report adapts to its host: green/red ANSI markers in VS Code and the CLI, emoji markers in Visual Studio (which cannot render ANSI), plain markers when `<ColorOutput>false</ColorOutput>`. `<ShowSourceLocations>true</ShowSourceLocations>` adds an `at <file>:line <n>` line under every spec, including `ItAsync[...]` specs.
 
+### 📌 NEW — Problem 6 — Specs that are planned or temporarily excluded
+
+Writing the specification before the behaviour exists (or parking a broken scenario) used to mean commenting code out, which hides it from Test Explorer. **Pending specs** keep the intent visible without running anything:
+
+```csharp
+It["rejects expired tokens"] = TODO;                      // ItAsync["..."] = TODOAsync;
+xIt["retries on timeout"] = () => { /* kept, never run */ };   // also xItAsync
+xContext["when the cache is cold"] = () => { /* every spec inside is pending */ };  // also xDescribe
+```
+
+- Pending specs are discovered and appear in Test Explorer as **Skipped** (reason `Pending`).
+- No lifecycle runs for them: no `BeforeEach` / `Act` / `AfterEach`, and a context whose selected specs are all pending skips its `BeforeAll` / `AfterAll` (so a half-built `xContext` cannot break the run).
+- Grouped reports list them with a `○ ... - PENDING` marker and an `N pending` tally; an all-pending grouped context is Skipped.
+- `dotnet test --filter IsPending=true` lists outstanding work; `IsPending=false` excludes it.
+
 ## User-Experience Goals
 
 | Goal | How Specs delivers |
@@ -150,6 +165,7 @@ It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedBy
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
 | **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
+| **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Migration path** | Both API styles can live side by side; no forced rewrite |
 
 ## What Makes Specs Different
@@ -181,6 +197,7 @@ It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedBy
 4. **Async-heavy services** — every hook supports `Func<Task>` natively.
 5. **IDE-driven workflows** — discover, run, and debug individual `It[...]` from Test Explorer.
 6. **NSpec-style reporting** — teams migrating from NSpec can keep a single tree-formatted result per feature set via grouped execution.
+7. 📌 **Spec-first development** — sketch the full behaviour as `TODO` specs, then implement them one by one while the rest show as Skipped.
 
 ## Success Criteria
 

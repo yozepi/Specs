@@ -174,5 +174,37 @@ namespace specs.BDD
         /// </code>
         /// </example>
         public AssertBuilderAsync ItAsync => new AssertBuilderAsync(CoreBuilder);
+
+        /// <summary>
+        /// Placeholder body for a spec that is not yet implemented: <c>It["..."] = TODO;</c>.
+        /// The spec is reported as pending and never executed.
+        /// </summary>
+        public static readonly Action TODO = () => { };
+
+        /// <summary>
+        /// Placeholder body for an async spec that is not yet implemented: <c>ItAsync["..."] = TODOAsync;</c>.
+        /// The spec is reported as pending and never executed.
+        /// </summary>
+        public static readonly Func<Task> TODOAsync = () => Task.CompletedTask;
+
+        /// <summary>
+        /// Defines a pending (excluded) <see cref="It"/> spec. The body is kept but never executed.
+        /// </summary>
+        public AssertBuilder xIt => new AssertBuilder(CoreBuilder, isPending: true);
+
+        /// <summary>
+        /// Defines a pending (excluded) <see cref="ItAsync"/> spec. The body is kept but never executed.
+        /// </summary>
+        public AssertBuilderAsync xItAsync => new AssertBuilderAsync(CoreBuilder, isPending: true);
+
+        /// <summary>
+        /// Defines a pending <see cref="Context"/>. Every spec inside it, including nested contexts, is pending.
+        /// </summary>
+        public ContextBuilder xContext => new ContextBuilder(CoreBuilder, contextCallBack, isPending: true);
+
+        /// <summary>
+        /// Defines a pending <see cref="Describe"/>. Every spec inside it, including nested contexts, is pending.
+        /// </summary>
+        public ContextBuilder xDescribe => new ContextBuilder(CoreBuilder, contextCallBack, isPending: true);
     }
 }

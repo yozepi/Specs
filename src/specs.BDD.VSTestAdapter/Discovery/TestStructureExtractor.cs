@@ -59,7 +59,8 @@ namespace specs.BDD.VSTestAdapter.Discovery
                         ContextMethod = ctxMethod,
                         ContextPath = child.Description,
                         TestDescription = string.Empty,
-                        IsGrouped = true
+                        IsGrouped = true,
+                        IsPending = PendingSpecs.HasAnyTests(child) && !PendingSpecs.HasRunnableTests(child)
                     };
                     continue;
                 }
@@ -86,7 +87,8 @@ namespace specs.BDD.VSTestAdapter.Discovery
                     ContextPath = rootPath,
                     TestDescription = description,
                     ContextMethod = null,
-                    ItAction = action
+                    ItAction = action,
+                    IsPending = PendingSpecs.IsPending(testCase, description)
                 };
             }
 
@@ -115,7 +117,8 @@ namespace specs.BDD.VSTestAdapter.Discovery
                     ContextPath = contextPath,
                     TestDescription = description,
                     ContextMethod = contextMethod,
-                    ItAction = action
+                    ItAction = action,
+                    IsPending = PendingSpecs.IsPending(child, description)
                 };
             }
 

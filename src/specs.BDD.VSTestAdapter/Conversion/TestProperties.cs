@@ -65,5 +65,16 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 label: "Is Grouped",
                 valueType: typeof(bool),
                 owner: typeof(TestProperties));
+
+        /// <summary>
+        /// Whether the spec (or, for a grouped test case, every spec in the context) is pending.
+        /// Stored as a bool at discovery time. Exposed to <c>dotnet test --filter IsPending=true|false</c>.
+        /// </summary>
+        public static readonly TestProperty IsPending =
+            TestProperty.Register(
+                id: "SpecsBDD.IsPending",
+                label: "Is Pending",
+                valueType: typeof(bool),
+                owner: typeof(TestProperties));
     }
 }

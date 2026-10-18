@@ -1,4 +1,5 @@
 using NFluent;
+using specs.core.Framework.Processors.TestCases;
 using System;
 using System.Threading.Tasks;
 using yozepi;
@@ -315,6 +316,104 @@ namespace specs.BDD.UnitTests
                         {
                             Check.ThatCode(() => subject.ItAsync["test async assertion"] = async () => await Task.CompletedTask).DoesNotThrow();
                         };
+                    };
+                };
+
+                context["pending specs"] = () =>
+                {
+                    TestSpecification subject = null!;
+                    IContextualTestCase built = null!;
+                    bool bodyInvoked = false;
+
+                    beforeEach = () =>
+                    {
+                        subject = new TestSpecification();
+                        bodyInvoked = false;
+                    };
+
+                    act = () => built = subject.CoreBuilder.Build();
+
+                    context["It assigned TODO"] = () =>
+                    {
+                        beforeEach = () =>
+                        {
+                            subject.It["runnable"] = () => { };
+                            subject.It["todo"] = BDD.Specifications.TODO;
+                        };
+
+                        it["should mark only the TODO spec as pending"] = () =>
+                            Check.That(built.PendingTests).ContainsExactly("todo");
+
+                        it["should still register both specs"] = () =>
+                            Check.That(built.Tests.Select(t => t.description)).ContainsExactly("runnable", "todo");
+                    };
+
+                    context["ItAsync assigned TODOAsync"] = () =>
+                    {
+                        beforeEach = () =>
+                        {
+                            subject.ItAsync["runnable"] = () => Task.CompletedTask;
+                            subject.ItAsync["todo"] = BDD.Specifications.TODOAsync;
+                        };
+
+                        it["should mark only the TODOAsync spec as pending"] = () =>
+                            Check.That(built.PendingTests).ContainsExactly("todo");
+                    };
+
+                    context["xIt"] = () =>
+                    {
+                        beforeEach = () => subject.xIt["excluded"] = () => bodyInvoked = true;
+
+                        it["should mark the spec as pending"] = () =>
+                            Check.That(built.PendingTests).ContainsExactly("excluded");
+
+                        it["should keep the body without invoking it"] = () =>
+                        {
+                            Check.That(bodyInvoked).IsFalse();
+                            built.Tests[0].test();
+                            Check.That(bodyInvoked).IsTrue();
+                        };
+                    };
+
+                    context["xItAsync"] = () =>
+                    {
+                        beforeEach = () => subject.xItAsync["excluded"] = () => Task.CompletedTask;
+
+                        it["should mark the spec as pending"] = () =>
+                            Check.That(built.PendingTests).ContainsExactly("excluded");
+                    };
+
+                    context["xContext"] = () =>
+                    {
+                        beforeEach = () =>
+                        {
+                            subject.xContext["pending context"] = () =>
+                            {
+                                subject.It["inner"] = () => { };
+                                subject.Describe["nested"] = () => subject.It["nested inner"] = () => { };
+                            };
+                            subject.Context["normal context"] = () => subject.It["normal"] = () => { };
+                        };
+
+                        it["should mark its specs as pending"] = () =>
+                            Check.That(built.ChildContexts[0].PendingTests).ContainsExactly("inner");
+
+                        it["should mark nested specs as pending"] = () =>
+                        {
+                            var pendingContext = (IContextualTestCase)built.ChildContexts[0];
+                            Check.That(pendingContext.ChildContexts[0].PendingTests).ContainsExactly("nested inner");
+                        };
+
+                        it["should not affect sibling contexts"] = () =>
+                            Check.That(built.ChildContexts[1].PendingTests).IsEmpty();
+                    };
+
+                    context["xDescribe"] = () =>
+                    {
+                        beforeEach = () => subject.xDescribe["pending describe"] = () => subject.It["inner"] = () => { };
+
+                        it["should mark its specs as pending"] = () =>
+                            Check.That(built.ChildContexts[0].PendingTests).ContainsExactly("inner");
                     };
                 };
 

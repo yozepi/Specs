@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**📌 `dotnet test --filter` support** — `SpecsTestExecutor.RunTests(sources)` now applies the VSTest filter expression to re-discovered test cases instead of running the whole assembly. Follows the committed `SpecReporting` / root-lifecycle work below.
+**📌 Pending specs ** — specs can be marked pending with `TODO` / `TODOAsync` placeholders or `xIt` / `xItAsync` / `xContext` / `xDescribe`. They are discovered, reported as **Skipped**, never run any lifecycle, render as `○ ... - PENDING` in grouped reports, and are filterable via `--filter IsPending=true|false`.
+
+**📌 `dotnet test --filter` support (committed `b94d3a6`)** — `SpecsTestExecutor.RunTests(sources)` applies the VSTest filter expression to re-discovered test cases instead of running the whole assembly.
 
 **📌 `SpecReporting` API + root lifecycle (October 2026, committed `124ba8c`)** — the grouped-execution feature was reshaped and hardened:
 
@@ -24,17 +26,38 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 | Area | State |
 |------|-------|
-| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate |
-| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class) |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 217 adapter unit tests + 20 integration results passing |
-| `specs.core.UnitTests` | Self-hosted; 289 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
+| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests` |
+| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe` |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 252 adapter unit-test results + 27 integration results passing (13 Skipped = pending) |
+| `specs.core.UnitTests` | Self-hosted; 303 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | Maintained for backward compatibility |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — `--filter` support in `RunTests(sources)`
+### 📌 NEW — Pending specs
+
+BEFORE/AFTER routing diagrams and the runtime contract live in `systemPatterns.md` section "Pending Specs"; decisions #22–24 record the rationale.
+
+| Layer | File(s) | What changed |
+|-------|---------|--------------|
+| `specs.core` | `ITestCase.cs`, `ContextualTestCase.cs` | New `IReadOnlyCollection<string> PendingTests` (ordinal `HashSet`) passed through `CreateTestCase` / `CreateTestCaseContext` (optional `pendingTests` arg) |
+| `specs.core` | `IContextualTestCaseBuilder.cs`, `ContextualTestCaseBuilder.cs` | `AddPendingTest(string, Action)` / `AddPendingTest(string, Func<Task>)` (body kept in `Tests`, description recorded as pending); `ChildTestCase(description, configure, bool isPending)` — a pending builder propagates `isPending` to every descendant, so `AddTest` inside it records pending too |
+| `specs.BDD` | `Specifications.cs` | `public static readonly Action TODO` / `Func<Task> TODOAsync`; `xIt`, `xItAsync`, `xContext`, `xDescribe` properties |
+| `specs.BDD` | `AssertBuilder.cs`, `AssertBuilderAsync.cs`, `ContextBuilder.cs` | Internal `isPending` ctor arg; assert builders route to `AddPendingTest` when pending or when the value is `ReferenceEquals` to `TODO` / `TODOAsync` |
+| Adapter / Discovery | `PendingSpecs.cs` 📌 NEW, `TestStructureExtractor.cs` | Helpers `IsPending` / `HasRunnableTests` / `HasAnyTests`; `SpecTest.IsPending` set per spec, and for grouped records only when the subtree is non-empty and fully pending |
+| Adapter / Conversion | `SpecTest.cs`, `TestProperties.cs`, `TestCaseConverter.cs` | `IsPending` POCO field + `SpecsBDD.IsPending` `TestProperty` written onto each `TestCase` |
+| Adapter / Execution | `TestInvoker.cs` | Three-way split (grouped / pending / regular); pending recorded `Skipped` up front; root once-lifecycle runs only when something runnable is selected; `Invoke` returns `Skipped` for a pending case |
+| Adapter / Execution | `GroupedContextRunner.cs` | `PendingMark` (`○` / yellow ANSI / `⏸️`), `Pending` tally in summary, `RenderPendingSubtree` skips once-actions for nodes without runnable specs, all-pending result → `Skipped` ("All specs are pending."), root-setup failure leaves pending specs pending |
+| Adapter / Execution | `ResultReporter.cs`, `SpecsTestExecutor.cs` | `ResultReporter.Skipped(...)` + `PendingMessage = "Pending"`; `IsPending` added to `FilterProperties` |
+| Tests | `ContextualTestCaseBuilder_Tests/Pending.cs` 📌 NEW, `ContextualTestCase_Tests.cs` | +14 self-hosted core specs (pending builder API, propagation, argument validation, `PendingTests` default/dedup) |
+| Tests | `specs.specification.UnitTests/Specifications.cs` | Harness specs for `TODO`, `TODOAsync`, `xIt`, `xItAsync`, `xContext`, `xDescribe` |
+| Tests | Adapter `*_Tests.cs`, `SampleSpecifications.cs` | Fixtures `SpecWithPending`, `AllPendingSpec`, `PendingWithFailingRootBeforeAll`, `GroupedSpecWithPending`; tests for discovery flags, converter property, grouped pending output/outcomes, `ResultReporter.Skipped`, `IsPending` filter, `TestInvoker` pending routing and root lifecycle suppression |
+| Integration | `PendingSpecs.cs` 📌 NEW, `StringSpecs.cs` | Individual + grouped pending suites whose pending bodies / `BeforeAll` throw; `StringSpecs` gains a `TODO` spec |
+| Docs | `README.md` | "Pending specs" section + Key Features bullet |
+
+### 📌 `--filter` support in `RunTests(sources)` (committed `b94d3a6`)
 
 Flow diagram, BEFORE/AFTER behaviour, and supported property table live in `systemPatterns.md` section "Test Case Filtering (`dotnet test --filter`)".
 
@@ -193,11 +216,10 @@ Removed as redundant or superseded:
 
 ### Immediate
 
-- Commit the `--filter` support.
-- Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` filters through the real VSTest pipeline).
+- Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` / `IsPending` filters through the real VSTest pipeline).
 - Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
-- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix) and a class-level `BeforeAll` example.
+- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), and a class-level `BeforeAll` example.
 - Update the root `README.md` / user docs for the breaking attribute rename.
 
 ### Short term
@@ -252,6 +274,12 @@ Removed as redundant or superseded:
 - Both runners (`SelectionTreeWalker`, `GroupedContextRunner`) start *below* the suite root, so neither could own it without double-firing when a class mixes grouped and per-`It` contexts.
 - `TestInvoker.InvokeSuite` already owns the per-class tree instance, making it the one place that sees the whole selection.
 
+### 📌 Why pending is recorded in the core but skipped in the adapter
+
+- Only the builder knows that a spec sits under an `xContext` (pending propagates through child builders), so the fact must be captured at build time as tree metadata (`PendingTests`).
+- Reporting a pending spec is host policy (VSTest `Skipped`, grouped `○` marker), so `TestCaseExecutor` is untouched and the adapter decides via `PendingSpecs`.
+- Execution re-reads pending state from the rebuilt tree rather than the serialized `IsPending` property, keeping the tree the single source of truth.
+
 ## Patterns & Preferences
 
 ### Naming
@@ -269,6 +297,8 @@ Removed as redundant or superseded:
 | Grouped feature set 📌 | `[Context("...", Reporting = SpecReporting.GroupedByRootContext)] public void M()` | n/a |
 | Grouped suite / assembly 📌 | `[SpecReporting(SpecReporting.GroupedByRootContext)]` on class or `[assembly: ...]` | n/a |
 | Assertion | `It["..."] = () => { }` / `ItAsync[...] = async () => { }` | `It["..."] = () => { }` |
+| Pending spec 📌 | `It["..."] = TODO` / `ItAsync["..."] = TODOAsync` / `xIt[...]` / `xItAsync[...]` | n/a |
+| Pending scope 📌 | `xContext["..."] = () => { }` / `xDescribe["..."] = () => { }` | n/a |
 
 ### Style
 
@@ -292,14 +322,15 @@ Removed as redundant or superseded:
 11. 📌 **Closures hide the user's lambda** — wrapping a `Func<Task>` in a lambda makes `Action.Method` a compiler-generated closure; binding an extension method keeps the original delegate reachable through `Action.Target`.
 12. 📌 **Visual Studio's Test Explorer does not render ANSI** — output formatting must detect the host (`VSAPPIDNAME`) rather than assume a terminal.
 13. 📌 **Source-based runs arrive unfiltered** — VSTest only hands the `--filter` expression to the adapter through `IRunContext.GetTestCaseFilter`; an adapter that re-discovers without applying it silently runs the whole assembly.
+14. 📌 **"Pending" must reach the once-actions too** — skipping a pending spec's body is not enough; if its context's `BeforeAll` still runs, a parked `xContext` can fail the run. Liveness has to be computed from *runnable* specs, for both the root and every node.
 
 ## Health Indicators
 
 - **Builds**: clean across all 9 projects — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture).
-- **Tests**: 531 passing, 0 failing.
-  - `specs.core.UnitTests` — 289 results (run by the Specs adapter; one grouped suite)
-  - `specs.BDD.VSTestAdapter.Tests` — 217
-  - `specs.BDD.VSTestAdapter.IntegrationTests` — 20 (`CalculatorSpecs` reports one result per root context)
+- **Tests**: 587 results — 574 passed, 13 skipped (all pending specs), 0 failed.
+  - `specs.core.UnitTests` — 303 results (run by the Specs adapter; one grouped suite)
+  - `specs.BDD.VSTestAdapter.Tests` — 252 results (244 passed, 8 pending fixture specs skipped)
+  - `specs.BDD.VSTestAdapter.IntegrationTests` — 27 results (22 passed, 5 pending skipped; `CalculatorSpecs` reports one result per root context)
   - `specs.BDD.UnitTests` — 5
 - **Open bugs**: none known.
 - **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
@@ -314,3 +345,5 @@ Removed as redundant or superseded:
 6. 📌 Should a grouped `[Context]` be allowed below the root (nested `Describe`/`Context` blocks), or stay root-only as today?
 7. 📌 Should grouped results report the inner pass/fail tally to VSTest somehow (e.g. via `TestResult.Messages` only, as now, or via additional synthetic results)?
 8. 📌 Should `MarkerStyle` detection cover other non-ANSI hosts (e.g. Rider) beyond `VSAPPIDNAME=devenv.exe`?
+9. 📌 Should `TestCaseExecutor` honour `ITestCase.PendingTests` so non-VSTest hosts skip pending specs too?
+10. 📌 Should the legacy `Spec` API gain `TODO` / `xIt` equivalents?

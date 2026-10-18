@@ -125,6 +125,81 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             finally { GroupedSpecWithFailure.TriggerFailure = false; }
         }
 
+        // ── Pending specs ─────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void MixedPending_OutcomeIsPassed()
+        {
+            var result = ExecuteGrouped<GroupedSpecWithPending>("grouped with pending");
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Passed);
+        }
+
+        [Test]
+        public void MixedPending_OutputMarksPendingSpecsAndCountsThem()
+        {
+            var output = OutputOf(ExecuteGrouped<GroupedSpecWithPending>("grouped with pending"));
+
+            Check.That(output).Contains("✓ a passing spec");
+            Check.That(output).Contains("○ a todo spec - PENDING");
+            Check.That(output).Contains("pending inner");
+            Check.That(output).Contains("○ inner spec - PENDING");
+            Check.That(output).Contains("1 passed, 0 failed, 2 pending, 3 total");
+        }
+
+        [Test]
+        public void PendingContext_BeforeAllDoesNotRun()
+        {
+            GroupedSpecWithPending.ClearLog();
+
+            ExecuteGrouped<GroupedSpecWithPending>("grouped with pending");
+
+            Check.That(GroupedSpecWithPending.Log).IsEmpty();
+        }
+
+        [Test]
+        public void AllPending_OutcomeIsSkipped()
+        {
+            var result = ExecuteGrouped<GroupedSpecWithPending>("grouped all pending");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Skipped);
+            Check.That(result.ErrorMessage).IsEqualTo("All specs are pending.");
+        }
+
+        [Test]
+        public void AllPending_ContextBeforeAllDoesNotRun()
+        {
+            GroupedSpecWithPending.ClearLog();
+
+            ExecuteGrouped<GroupedSpecWithPending>("grouped all pending");
+
+            Check.That(GroupedSpecWithPending.Log).IsEmpty();
+        }
+
+        [Test]
+        public void RootSetupFailure_PendingSpecsStayPending()
+        {
+            var testCase = MakeGroupedTestCase<GroupedSpecWithPending>("grouped with pending");
+            var root = SuiteTreeBuilder.BuildSuite(typeof(GroupedSpecWithPending));
+
+            var result = GroupedContextRunner.Execute(
+                testCase, root, new InvalidOperationException("root boom"), false, MarkerStyle.Plain, CancellationToken.None);
+            var output = OutputOf(result);
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(output).Contains("✗ a passing spec - FAILED: BeforeAll failed:");
+            Check.That(output).Contains("○ a todo spec - PENDING");
+            Check.That(output).Contains("○ inner spec - PENDING");
+            Check.That(result.ErrorMessage).Contains("1 of 3 specs failed");
+        }
+
+        [Test]
+        public void AnsiMarkers_PendingMarkerIsYellow()
+        {
+            var output = OutputOf(ExecuteGrouped<GroupedSpecWithPending>("grouped with pending", markerStyle: MarkerStyle.Ansi));
+
+            Check.That(output).Contains("\u001b[33m○\u001b[0m a todo spec - PENDING");
+        }
+
         // ── Source locations ──
 
         [Test]

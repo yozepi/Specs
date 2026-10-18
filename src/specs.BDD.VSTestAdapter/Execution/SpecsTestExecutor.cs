@@ -28,6 +28,7 @@ namespace specs.BDD.VSTestAdapter.Execution
                 ["ContextMethod"] = TestProperties.ContextMethod,
                 ["ContextPath"] = TestProperties.ContextPath,
                 ["TestDescription"] = TestProperties.TestDescription,
+                ["IsPending"] = TestProperties.IsPending,
             };
 
         private CancellationTokenSource? _cancellationTokenSource = default;

@@ -97,11 +97,11 @@ namespace specs.BDD.VSTestAdapter.Execution
             public RunState(string? sourceForLocations, MarkerStyle markerStyle)
             {
                 SourceForLocations = sourceForLocations;
-                (PassMark, FailMark) = markerStyle switch
+                (PassMark, FailMark, PendingMark) = markerStyle switch
                 {
-                    MarkerStyle.Ansi => ("\u001b[32m✓\u001b[0m", "\u001b[31m✗\u001b[0m"),
-                    MarkerStyle.Emoji => ("✅", "❌"),
-                    _ => ("✓", "✗")
+                    MarkerStyle.Ansi => ("\u001b[32m✓\u001b[0m", "\u001b[31m✗\u001b[0m", "\u001b[33m○\u001b[0m"),
+                    MarkerStyle.Emoji => ("✅", "❌", "⏸️"),
+                    _ => ("✓", "✗", "○")
                 };
             }
 
@@ -109,11 +109,13 @@ namespace specs.BDD.VSTestAdapter.Execution
             public readonly string? SourceForLocations;
             public readonly string PassMark;
             public readonly string FailMark;
+            public readonly string PendingMark;
             public readonly StringBuilder Output = new StringBuilder();
             public readonly List<(string Path, Exception Cause)> Failures =
                 new List<(string, Exception)>();
             public int Total;
             public int Passed;
+            public int Pending;
         }
 
         private static void RunNode(
@@ -124,6 +126,13 @@ namespace specs.BDD.VSTestAdapter.Execution
             CancellationToken cancellationToken)
         {
             state.Output.AppendLine($"{Indent(depth)}{node.Description}");
+
+            // Nothing would execute here, so the node's BeforeAll/AfterAll must not run either.
+            if (!PendingSpecs.HasRunnableTests(node))
+            {
+                RenderPendingSubtree(node, depth + 1, state);
+                return;
+            }
 
             try
             {
@@ -171,6 +180,12 @@ namespace specs.BDD.VSTestAdapter.Execution
         {
             state.Total++;
 
+            if (PendingSpecs.IsPending(node, description))
+            {
+                AppendPending(description, test, depth, state);
+                return;
+            }
+
             Exception? failure = null;
             try
             {
@@ -216,6 +231,12 @@ namespace specs.BDD.VSTestAdapter.Execution
             foreach (var (description, test) in node.Tests)
             {
                 state.Total++;
+                if (PendingSpecs.IsPending(node, description))
+                {
+                    AppendPending(description, test, depth, state);
+                    continue;
+                }
+
                 state.Failures.Add((path + TestStructureExtractor.PathSeparator + description, cause));
                 state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED: BeforeAll failed:");
                 AppendLocation(test, depth + 1, state);
@@ -233,6 +254,34 @@ namespace specs.BDD.VSTestAdapter.Execution
             }
         }
 
+        /// <summary>
+        /// Renders every test in the subtree as pending without running any lifecycle.
+        /// </summary>
+        private static void RenderPendingSubtree(ITestCase node, int depth, RunState state)
+        {
+            foreach (var (description, test) in node.Tests)
+            {
+                state.Total++;
+                AppendPending(description, test, depth, state);
+            }
+
+            if (node is IContextualTestCase contextualNode)
+            {
+                foreach (var child in contextualNode.ChildContexts)
+                {
+                    state.Output.AppendLine($"{Indent(depth)}{child.Description}");
+                    RenderPendingSubtree(child, depth + 1, state);
+                }
+            }
+        }
+
+        private static void AppendPending(string description, Action test, int depth, RunState state)
+        {
+            state.Pending++;
+            state.Output.AppendLine($"{Indent(depth)}{state.PendingMark} {description} - PENDING");
+            AppendLocation(test, depth + 1, state);
+        }
+
         // ── Result assembly ────────────────────────────────────────────────────────────────────
 
         private static TestResult BuildResult(
@@ -245,7 +294,8 @@ namespace specs.BDD.VSTestAdapter.Execution
 
             var output = state.Output;
             output.AppendLine();
-            output.AppendLine($"{state.Passed} passed, {failed} failed, {state.Total} total");
+            var pendingSummary = state.Pending > 0 ? $"{state.Pending} pending, " : "";
+            output.AppendLine($"{state.Passed} passed, {failed} failed, {pendingSummary}{state.Total} total");
 
             if (failed > 0)
             {
@@ -273,6 +323,11 @@ namespace specs.BDD.VSTestAdapter.Execution
             {
                 result.Outcome = TestOutcome.Skipped;
                 result.ErrorMessage = "No specs found under this context.";
+            }
+            else if (failed == 0 && state.Passed == 0)
+            {
+                result.Outcome = TestOutcome.Skipped;
+                result.ErrorMessage = "All specs are pending.";
             }
             else if (failed == 0)
             {

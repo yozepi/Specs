@@ -60,6 +60,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 specTest.TestDescription);
             testCase.SetPropertyValue(TestProperties.IsGrouped,
                 specTest.IsGrouped);
+            testCase.SetPropertyValue(TestProperties.IsPending,
+                specTest.IsPending);
 
             // Set the VSTest RFC-0033 Hierarchy property so Test Explorer renders the
             // [Context] method name and Describe[...] blocks as tree nodes above the It[...] leaf.

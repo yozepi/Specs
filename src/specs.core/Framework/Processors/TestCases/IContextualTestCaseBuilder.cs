@@ -73,6 +73,22 @@ namespace specs.core.Framework.Processors.TestCases
         IContextualTestCaseBuilder AddTest(string description, Func<Task> test);
 
         /// <summary>
+        /// Adds a synchronous test that is pending: it is reported but never executed.
+        /// </summary>
+        /// <param name="description">A description of what the test verifies.</param>
+        /// <param name="test">The test body (kept for source navigation; never invoked).</param>
+        /// <returns>The builder instance for method chaining.</returns>
+        IContextualTestCaseBuilder AddPendingTest(string description, Action test);
+
+        /// <summary>
+        /// Adds an asynchronous test that is pending: it is reported but never executed.
+        /// </summary>
+        /// <param name="description">A description of what the test verifies.</param>
+        /// <param name="test">The async test body (kept for source navigation; never invoked).</param>
+        /// <returns>The builder instance for method chaining.</returns>
+        IContextualTestCaseBuilder AddPendingTest(string description, Func<Task> test);
+
+        /// <summary>
         /// Adds a synchronous teardown action that runs after each test.
         /// </summary>
         /// <param name="action">The teardown action to execute.</param>
@@ -107,6 +123,16 @@ namespace specs.core.Framework.Processors.TestCases
         /// <param name="configure">An action to configure the child builder.</param>
         /// <returns>The builder instance for method chaining.</returns>
         IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure);
+
+        /// <summary>
+        /// Creates a child test context; when <paramref name="isPending"/> is <c>true</c>, every test
+        /// added to it or to any of its descendants is pending.
+        /// </summary>
+        /// <param name="description">A description of the child context.</param>
+        /// <param name="configure">An action to configure the child builder.</param>
+        /// <param name="isPending">Whether the child context is pending.</param>
+        /// <returns>The builder instance for method chaining.</returns>
+        IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure, bool isPending);
 
         /// <summary>
         /// Builds the immutable test case from the configured actions.

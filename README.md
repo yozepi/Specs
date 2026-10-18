@@ -64,11 +64,20 @@ public class MySpecs : Specifications
 
 > A `[Context]`-decorated method is required for the VSTest adapter to discover tests in a suite.
 
+### Pending specs
+```csharp
+It["is not written yet"] = TODO;               // ItAsync["..."] = TODOAsync;
+xIt["is excluded for now"] = () => { /* kept, never run */ };   // also xItAsync
+xContext["a pending scenario"] = () => { /* every spec inside is pending */ };   // also xDescribe
+```
+Pending specs are discovered but never executed (no `BeforeEach` / `Act` / `AfterEach`; a context whose selected specs are all pending skips its `BeforeAll` / `AfterAll`). The adapter reports them as **Skipped**, and grouped results list them with a `○ ... - PENDING` marker. Select them with `dotnet test --filter IsPending=true` (or exclude them with `IsPending=false`).
+
 ## Key Features
 - Hierarchical test organization with parent-child contexts
 - Five-phase lifecycle (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
 - `BeforeAll` / `AfterAll` fire exactly once per context, even for partial test runs
 - Full async/await support on every lifecycle hook
+- Pending specs (`TODO`, `xIt`, `xContext`) reported as Skipped and filterable via `IsPending`
 - Fluent API for test construction
 - Framework-agnostic core with adapter pattern (zero external dependencies)
 - Test Explorer integration with hierarchical nesting and source navigation
