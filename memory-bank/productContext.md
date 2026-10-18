@@ -178,14 +178,14 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 |------|-------------------|
 | **Tests read like specs** | `Describe["..."]`, `Context["..."]`, `It["..."]` indexers |
 | **DRY setup** | Lifecycle inherits from parent contexts automatically |
-| **Choose your style** | Method-based (`Specifications`) or property-based (`Spec`) |
+| **One clear style** | Method-based `Specifications` (📌 the legacy property-based `Spec` was removed) |
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
 | **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Describe]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |
-| **Migration path** | Both API styles can live side by side; no forced rewrite |
+| **Migration path** | NSpec-style / property-based code migrates to `Specifications` (method calls instead of property assignments) |
 
 ## What Makes Specs Different
 
@@ -206,13 +206,13 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 
 - Modern builder + immutable test-case model instead of mutable runtime state.
 - Adapter pattern → can integrate with VSTest (or others) without changing the core.
-- Two API styles coexist; gradual migration is supported.
+- One method-based API; the legacy `Spec` style was removed.
 
 ## Target Scenarios
 
 1. **Complex integration tests** — once-per-suite DB setup, per-test transaction, mocked dependencies, async workflows.
 2. **Living documentation** — `Describe`/`Context`/`It` produces output that non-developers can read.
-3. **Legacy migration** — existing `Spec`-based suites keep working while new code uses `Specifications`.
+3. **Migration** — move property-based `Spec` suites (removed from this repo) to `Specifications` using `BeforeEach(() => ...)` style calls.
 4. **Async-heavy services** — every hook supports `Func<Task>` natively.
 5. **IDE-driven workflows** — discover, run, and debug individual `It[...]` from Test Explorer.
 6. **NSpec-style reporting** — teams migrating from NSpec can keep a single tree-formatted result per feature set via grouped execution.

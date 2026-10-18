@@ -47,7 +47,7 @@ Action that executes once after all tests in a context. Aggregated from parent c
 ## Test Organization
 
 ### Suite (Specification Class)
-A class inheriting from `Specifications` (or legacy `Spec`) that serves as a test suite for a single subject. Example: `Weather_Controller : Specifications` is a suite for the Weather Controller. Suite-level lifecycle methods (`BeforeAll`, `AfterAll`, `BeforeEach`, `AfterEach`) apply to ALL feature sets within the suite.
+A class inheriting from `Specifications` that serves as a test suite for a single subject. Example: `Weather_Controller : Specifications` is a suite for the Weather Controller. Suite-level lifecycle methods (`BeforeAll`, `AfterAll`, `BeforeEach`, `AfterEach`) apply to ALL feature sets within the suite.
 
 ### Feature Set (`[Describe]` Decorated Method)
 A method within a suite class decorated with the `[Describe]` attribute. Each feature set represents one aspect or feature of the subject under test. Feature sets have their own lifecycle control (`BeforeEach`, `AfterEach`) that applies only to specs within that feature set. The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the hierarchy.
@@ -206,11 +206,11 @@ Unit test project that tests the functionality of the specs.BDD library.
 ### Specifications (specs.BDD)
 Abstract base class in the specs.BDD library providing a method-based DSL for writing BDD-style tests. Modern approach that uses method calls for lifecycle hooks and builder properties for test organization.
 
-### Spec (Legacy)
-Legacy base class in `src/Spec.cs` providing a property-based DSL for writing BDD-style tests. Uses property assignments for lifecycle hooks (e.g., `BeforeEach = () => {}`). Includes built-in exception testing via `ShouldThrow` methods.
+### Spec (Legacy) — 📌 REMOVED
+Former property-based base class (`src/Spec.cs`). Deleted; use `Specifications`.
 
-### Domain Layer
-Legacy runtime integration layer in `src/Domain/` containing `IRunContext`, spec definitions (`ActionSpecDefinition`, `TaskSpecDefinition`), and runner implementations (`ActionRunner`, `TaskRunner`). Used by the legacy `Spec` class for runtime context management.
+### Domain Layer — 📌 REMOVED
+Former legacy runtime layer in `src/Domain/` (`IRunContext`, spec definitions, `ActionRunner` / `TaskRunner`). Deleted together with `Spec`.
 
 ### TestHarness
 Project containing the `nSpecTestHarness` base class for integrating the Specs framework with NSpec and NUnit.

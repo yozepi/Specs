@@ -10,19 +10,14 @@ The Specs framework organizes tests in a **Suite → Feature Set → Specificati
 
 The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Describe]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
 
-The framework has TWO API styles that both follow this hierarchy:
+The framework has ONE API style (📌 the legacy property-based `Spec` API and `Domain/` layer were removed; see `systemPatterns.md` decision #31):
 
-1. **Modern Method-Based API** (specs.core + specs.BDD)
+1. **Method-Based API** (specs.core + specs.BDD)
    - `Specifications` base class with method-based lifecycle (`BeforeAll()`, `BeforeEach()`)
    - Builder-based approach, framework-agnostic through adapters
    - Immutable test case models
 
-2. **Legacy Property-Based API** (Domain layer + Spec class)
-   - `Spec` base class with property-based lifecycle (`BeforeEach = () => {}`)
-   - Runtime context switching, mutable test state
-   - Direct integration with test runners
-
-Both API styles support the same Suite → Feature Set → Specification hierarchy.
+The API follows the Suite → Feature Set → Specification hierarchy.
 
 ## Design Patterns
 
@@ -240,21 +235,9 @@ Key constraint: every Specifications class MUST have at least one [Describe] met
 **Display name format**: `{MethodName} → {ContextPath} → {TestDescription}` (` → ` = space+U+2192+space)  
 **Context path format**: `root context → child context → …`
 
-### Approach 2: Legacy Runtime Architecture (Domain + Spec)
+### 📌 REMOVED — Legacy Runtime Architecture (Domain + Spec)
 
-```
-User Code (Test Specification inheriting from Spec)
-    ↓
-Spec Class (Property-based DSL: BeforeEach/Act/It)
-    ↓
-IRunContext (Runtime context switching)
-    ↓
-Domain Layer (ActionSpecDefinition/TaskSpecDefinition)
-    ↓
-Runner Implementations (ActionRunner/TaskRunner)
-    ↓
-Test Framework Integration (NSpec context)
-```
+The `Spec` class, `IRunContext` runtime switching, and the `ActionRunner` / `TaskRunner` Domain layer were deleted. Only the builder-based architecture above remains.
 
 ### specs.BDD Context Switching Pattern
 
@@ -302,42 +285,12 @@ Clear separation between:
 #### 5. Framework Agnostic Core
 The core is independent of specific test frameworks, with integration provided through adapters.
 
-### Legacy Runtime Architecture (Domain + Spec)
-
-#### 1. Runtime Mutability
-Test context can be modified at runtime, allowing for dynamic test construction.
-
-#### 2. Direct Context Switching
-The `Spec` class directly switches `IRunContext` when entering/exiting contexts.
-
-#### 3. Property-Based Lifecycle
-Lifecycle hooks are set through properties rather than method calls, providing a different API style.
-
-#### 4. Built-in Exception Testing
-`ShouldThrow` methods are built directly into the `Spec` base class for convenient exception assertions.
-
-#### 5. Tight Coupling to Runtime
-The Domain layer is designed for runtime execution, with direct integration to test runner contexts.
-
-## Architectural Comparison
-
-| Aspect | Core Framework | Legacy Runtime |
-|--------|---------------|----------------|
-| **API Style** | Method-based (`BeforeAll()`) | Property-based (`BeforeEach = ...`) |
-| **Context Model** | Builder pattern (immutable) | Runtime switching (mutable) |
-| **Test Case** | Built once, executed many | Constructed during execution |
-| **Framework Coupling** | Adapter pattern (loose) | Direct integration (tight) |
-| **Execution Model** | TestCaseExecutor | IRunContext |
-| **Primary Use** | New development | Legacy support |
-
 ## Migration Strategy
 
-Projects using the legacy `Spec` class can migrate to `Specifications` by:
+Code written against the removed `Spec` class migrates to `Specifications` by:
 1. Change base class from `Spec` to `Specifications`
 2. Convert property assignments to method calls:
    - `BeforeEach = () => {}` → `BeforeEach(() => {})`
    - `Act = () => {}` → `Act(() => {})`
-3. Update exception testing to use assertion libraries instead of `ShouldThrow`
-4. Test hierarchical context nesting (should work the same)
-
-Both approaches can coexist in the same solution during migration.
+3. Move definitions into `[Describe("...")]`-decorated methods
+4. Replace `ShouldThrow<T>()` helper calls with `It["..."] = ShouldThrow<T>()` (or an assertion library)

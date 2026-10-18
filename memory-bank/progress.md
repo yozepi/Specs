@@ -54,13 +54,9 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ `InvalidSpecificationException` surfaced when a suite has no `[Describe]` methods.
 - ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
 
-### Legacy `Spec` API
+### 📌 REMOVED — Legacy `Spec` API
 
-- ✅ Property-based lifecycle (`BeforeEach = ...`, `Act = ...`, `AfterEach = ...`).
-- ✅ `It[...]`, `ItAsync[...]`, `Context[...]`, `Describe[...]` indexers.
-- ✅ `ShouldThrow<T>()` / `ShouldThrowAsync<T>()` helpers for exception testing.
-- ✅ Domain layer (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`, `IRunContainer`).
-- ✅ Coexists with the modern API.
+The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, and `Examples/ConsoleExample` were deleted (22 files, 1,395 lines). Decision #31 in `systemPatterns.md`.
 
 ### Testing
 
@@ -75,7 +71,7 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 ```mermaid
 %%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
 flowchart TD
-    P1["Phase 1<br/>Legacy Spec API"]:::deprecated
+    P1["Phase 1<br/>Legacy Spec API (removed)"]:::deprecated
     P2["Phase 2<br/>Core extraction<br/>(builder + immutable model)"]:::app
     P3["Phase 3<br/>Modern Specifications API"]:::app
     P4["Phase 4<br/>VSTest adapter"]:::app
@@ -97,7 +93,7 @@ flowchart TD
 
 ### Phase 1 — Legacy foundation (early)
 
-Property-based `Spec` class, runtime context switching via `IRunContext`, direct nspec integration through `TestHarness`. Still supported; not the recommended starting point for new code.
+Property-based `Spec` class, runtime context switching via `IRunContext`, direct nspec integration through `TestHarness`. 📌 Since removed from the repository.
 
 ### Phase 2 — Core extraction (mid)
 
@@ -202,10 +198,10 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | 📌 Grouped mode is root-`[Describe]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
 | 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
 | 📌 Marker style detection relies on `VSAPPIDNAME` | Other hosts that cannot render ANSI show raw escapes | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` |
-| 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly (or the legacy `Spec` API) still runs pending bodies / has no pending syntax | Use the adapter; see `activeContext.md` open questions #9–10 |
+| 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly still runs pending bodies | Use the adapter; see `activeContext.md` open question #9 |
 | 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
 | 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Describe]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | Use `ShouldThrow<T>(verify)` when precise navigation matters |
-| Legacy `Spec` API retained | Two API styles to document and maintain | Both supported indefinitely; modern API recommended for new suites |
+| 📌 Legacy `Spec` API removed | Downstream code on `Spec` must migrate | See `architecture.md` "Migration Strategy" |
 
 ## Future Enhancements (Not Committed)
 
@@ -220,7 +216,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 | Metric | Status |
 |--------|--------|
-| Build cleanliness across all 9 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
+| Build cleanliness across all 8 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
 | Test pass rate | ✅ 100% of runnable results (625 passed, 13 pending skipped, 0 failed of 638) |
 | Self-hosted core tests | ✅ 333 results passing via the Specs adapter |
 | Adapter unit tests | ✅ 272 results (264 passed, 8 pending fixtures skipped) |
@@ -236,9 +232,9 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | `specs.core` | ✅ Production-ready |
 | `specs.BDD` | ✅ Production-ready |
 | `specs.BDD.VSTestAdapter` | ✅ Production-ready |
-| Legacy `Spec` class | ✅ Maintained for backward compatibility |
+| Legacy `Spec` class | 📌 Removed |
 | `TestHarness` | 🔧 Internal-only; retirement candidate now that the core self-hosts |
-| Examples | ✅ `ConsoleExample` demonstrates the legacy API |
+| Examples | 📌 `ConsoleExample` removed |
 | Memory bank | ✅ Refreshed October 2026 |
 
-Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Describe]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core that tests itself.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with a single method-based API, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Describe]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core that tests itself.

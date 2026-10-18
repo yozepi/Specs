@@ -20,13 +20,13 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 2. **Hierarchical organization** — nested contexts inherit setup/act behavior from their parents.
 3. **Sophisticated lifecycle** — `SetupOnce`, `SetupEach`, `Act`, `TeardownEach`, `TeardownOnce` with correct ordering.
 4. **First-class async** — every lifecycle hook has a `Func<Task>` overload.
-5. **Two coexisting API styles** — modern method-based `Specifications` and legacy property-based `Spec`.
+5. **Single, modern authoring API** — method-based `Specifications` (📌 the legacy property-based `Spec` API was removed).
 6. **Framework-agnostic core** — the core has zero test-framework dependencies; everything plugs in through adapters. 📌 Its executor and adapter interfaces are public, so third-party runners can host the same lifecycle.
 7. **Native IDE integration** — VSTest adapter delivers Test Explorer discovery and execution with source navigation.
 
 ## Solution Structure
 
-The solution contains **9 projects** plus a separate example.
+The solution contains **8 projects**.
 
 ### Deliverable Projects (3)
 
@@ -45,22 +45,19 @@ The solution contains **9 projects** plus a separate example.
 | **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 📌 272 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
 | **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 28 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs class-level grouped |
 
-### Legacy / Internal (2)
+### Internal (1)
 
 | Project | Folder | Purpose |
 |---------|--------|---------|
-| **Specs** (legacy) | `src/Specs.csproj` | Stub project holding the legacy `Spec` class and `Domain/` layer |
 | **TestHarness** | `src/TestHarness/` | **Internal-only** nspec bridge from the era before the framework could test itself; not a deliverable, now a retirement candidate |
 
-### Example (separate folder)
+> 📌 REMOVED: the legacy `Specs` stub project (`src/Specs.csproj`, `Spec` class, `Domain/` layer) and the `Examples/ConsoleExample` sample. See `systemPatterns.md` decision #31.
 
-- **ConsoleExample** — `Examples/ConsoleExample/` — net6.0 sample using the legacy `Spec` API with `FluentAssertions`.
+## Authoring API
 
-## Two Testing Approaches (Same Paradigm)
+The API follows a single hierarchical paradigm — Suite → Feature Set → Scenario → Specification.
 
-Both APIs target the **same hierarchical paradigm** — Suite → Feature Set → Scenario → Specification — and differ only in syntax.
-
-### Modern: `Specifications` (specs.BDD)
+### `Specifications` (specs.BDD)
 
 ```csharp
 public class CalculatorSpecs : Specifications      // Suite
@@ -78,27 +75,11 @@ public class CalculatorSpecs : Specifications      // Suite
 }
 ```
 
-### Legacy: `Spec` (property-based)
-
-```csharp
-public class CalculatorSpecs : Spec
-{
-    public void TryIt()
-    {
-        Calculator calc = null!;
-        int result = 0;
-        BeforeEach = () => calc = new Calculator();
-        Act         = () => result = calc.Add(2, 3);
-        It["returns the sum"] = () => result.Should().Be(5);
-    }
-}
-```
-
 ## Hierarchy Vocabulary
 
 | Term | Code element |
 |------|--------------|
-| **Suite** | Class inheriting `Specifications` or `Spec` (one subject) |
+| **Suite** | Class inheriting `Specifications` (one subject) |
 | **Feature Set** | `[Describe("...")]`-decorated method (one feature of the subject) |
 | **Scenario** | `Context[...]` / `Describe[...]` block (when/given) |
 | **Specification** | `It[...]` (single assertion) |
@@ -109,7 +90,7 @@ public class CalculatorSpecs : Spec
 - .NET developers writing readable BDD tests.
 - Teams needing nested contexts with inherited setup/teardown.
 - Async-heavy codebases wanting first-class `async` support across the lifecycle.
-- Teams migrating from older property-based test code to a modern fluent API.
+- Teams migrating from NSpec-style or older test code to a modern fluent API.
 
 ## Technology Stack
 
@@ -123,7 +104,7 @@ public class CalculatorSpecs : Spec
 **In scope**:
 
 - Hierarchical test construction, lifecycle, async support.
-- Two coexisting BDD API styles.
+- BDD authoring API with async support.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting + 📌 `dotnet test --filter` support.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
 - 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the `SpecReporting` enum at method (`[Describe(Reporting = ...)]`), class or assembly (`[SpecReporting(...)]`), or `.runsettings` level.
@@ -142,8 +123,8 @@ public class CalculatorSpecs : Spec
 
 1. Deliverables must remain `netstandard2.1`-compatible.
 2. `specs.core` must have **zero** third-party package references.
-3. Backward compatibility with the legacy `Spec` API must be preserved.
-4. Both API styles must continue to coexist.
+3. ~~Backward compatibility with the legacy `Spec` API~~ — 📌 dropped; the legacy API was removed.
+4. `Specifications` is the single supported authoring API.
 5. Discovery must be safe (cannot execute arbitrary spec code during scan).
 6. Discovery and execution must build the suite tree through the same code path (`SuiteTreeBuilder`).
 
@@ -153,7 +134,7 @@ public class CalculatorSpecs : Spec
 - ✅ Test Explorer renders the full `Class → [Describe] → Describe → It` hierarchy.
 - ✅ Source location ("Go to source") navigates to the `It[...]` line for every discovered test.
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
-- ✅ Both API styles produce identical lifecycle semantics.
+- ✅ Sync and async hooks produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
 - ✅ **The framework tests its own core with itself** — 📌 333 self-hosted test results, plus 272 adapter and 28 integration results.
 - ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.

@@ -8,7 +8,6 @@ flowchart TD
     subgraph Runtimes["Target Runtimes"]
         NS21["netstandard2.1<br/>(deliverables)"]:::app
         N8["net8.0<br/>(test projects)"]:::app
-        N6["net6.0<br/>(ConsoleExample)"]:::app
     end
 
     subgraph Lang["Language"]
@@ -57,7 +56,6 @@ flowchart TD
 |--------------|-----|-------|
 | Deliverables (core, BDD, VSTestAdapter) | `netstandard2.1` | Broad compatibility — runs on .NET Core 3.0+, .NET 5+, .NET Framework support via netstandard2.1 polyfills |
 | All test projects | `net8.0` | NUnit + NFluent + Microsoft.NET.Test.Sdk |
-| ConsoleExample | `net6.0` | Demonstrates legacy `Spec` API with FluentAssertions |
 | TestHarness (internal) | `netstandard2.1` | Bridges to nspec for internal scaffolding |
 
 ## Language
@@ -75,13 +73,11 @@ flowchart LR
     CORE["specs.core"]:::app
     BDD["specs.BDD<br/>(specs.specification)"]:::app
     ADP["specs.BDD.VSTestAdapter"]:::app
-    SPECS["Specs (legacy stub)"]:::deprecated
     TH["TestHarness"]:::deprecated
     CUT["specs.core.UnitTests"]:::data
     BUT["specs.BDD.UnitTests"]:::data
     AUT["specs.BDD.VSTestAdapter.Tests"]:::data
     AIT["specs.BDD.VSTestAdapter.IntegrationTests"]:::data
-    EX["ConsoleExample"]:::data
 
     BDD --> CORE
     ADP --> CORE
@@ -95,7 +91,6 @@ flowchart LR
     AUT --> ADP
     AUT --> BDD
     AIT --> ADP
-    EX --> SPECS
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
@@ -161,33 +156,12 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 |---------|--------------|
 | `TestHarness` | `nspec 3.1.0`, `NUnit 3.14.0`, `System.Text.Encodings.Web 9.0.11` |
 
-### Example
-
-| Project | Dependencies |
-|---------|--------------|
-| `ConsoleExample` | `FluentAssertions 6.12`, project ref to legacy `Specs.csproj` |
-
 ## Solution Layout
 
 ```
 Specs/
 ├── src/
 │   ├── Specs.sln
-│   ├── Specs.csproj                        # legacy stub
-│   ├── Spec.cs                             # legacy property-based API
-│   ├── Global.cs
-│   ├── Domain/                             # legacy runtime layer
-│   │   ├── AbstractSpecDefinition.cs
-│   │   ├── ActionRunner.cs
-│   │   ├── ActionSpecDefinition.cs
-│   │   ├── IndexedRunnerDelegate.cs
-│   │   ├── IRunContext.cs
-│   │   ├── IRunContainer.cs
-│   │   ├── ISpecDefinition.cs
-│   │   ├── Runner.cs
-│   │   ├── TaskRunner.cs
-│   │   ├── TaskSpecDefinition.cs
-│   │   └── Exceptions/
 │   │
 │   ├── specs.core/                         # DELIVERABLE
 │   │   └── Framework/
@@ -221,7 +195,6 @@ Specs/
 │   ├── specs.BDD.VSTestAdapter.IntegrationTests/  # VSTest via Specs adapter
 │   └── TestHarness/                        # internal-only nspec bridge
 │
-├── Examples/ConsoleExample/                # net6.0 sample (legacy Spec API)
 ├── memory-bank/                            # documentation (this folder)
 ├── scripts/
 ├── .vscode/settings.json                   # dotnet.defaultSolution = src/Specs.sln
