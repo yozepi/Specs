@@ -461,6 +461,120 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         }
     }
 
+    // ── ShouldThrow fixtures ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Exercises ShouldThrow. Every spec passes unless <see cref="TriggerFailure"/> is set.
+    /// </summary>
+    public class ShouldThrowSpec : Specifications
+    {
+        /// <summary>When <c>true</c>, every spec outside "when Act throws" fails. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; } = false;
+
+        public static readonly System.Collections.Generic.List<string> Log =
+            new System.Collections.Generic.List<string>();
+
+        public static void ClearLog() => Log.Clear();
+
+        [Context("should throw")]
+        public void describe_should_throw()
+        {
+            AfterEach(() => Log.Add("AfterEach"));
+
+            Context["when Act throws"] = () =>
+            {
+                Act(() => throw new DivideByZeroException("Attempted to divide by zero."));
+
+                It["the thrown type"] = ShouldThrow<DivideByZeroException>();
+                It["a base type"] = ShouldThrow<ArithmeticException>();
+                It["a verified exception"] = ShouldThrow<DivideByZeroException>(ex =>
+                {
+                    if (!ex.Message.ToLowerInvariant().Contains("zero"))
+                        throw new InvalidOperationException("message should mention zero");
+                });
+            };
+
+            Context["when the verifier may fail"] = () =>
+            {
+                Act(() => throw new DivideByZeroException("Attempted to divide by zero."));
+
+                It["a verified exception"] = ShouldThrow<DivideByZeroException>(_ =>
+                {
+                    if (TriggerFailure)
+                        throw new InvalidOperationException("verify failed");
+                });
+            };
+
+            Context["when Act may not throw"] = () =>
+            {
+                Act(() =>
+                {
+                    if (!TriggerFailure)
+                        throw new DivideByZeroException();
+                });
+
+                It["an expected exception"] = ShouldThrow<DivideByZeroException>();
+            };
+
+            Context["when Act may throw another type"] = () =>
+            {
+                Act(() =>
+                {
+                    if (TriggerFailure)
+                        throw new FormatException("unexpected");
+                    throw new DivideByZeroException();
+                });
+
+                It["an expected exception"] = ShouldThrow<DivideByZeroException>();
+            };
+
+            Context["when Act may fail unexpectedly"] = () =>
+            {
+                Act(() =>
+                {
+                    if (TriggerFailure)
+                        throw new InvalidOperationException("act failed");
+                });
+
+                It["a plain spec"] = () => Log.Add("plain spec ran");
+            };
+        }
+    }
+
+    /// <summary>Grouped variant of <see cref="ShouldThrowSpec"/>; fails only when <see cref="TriggerFailure"/> is set.</summary>
+    public class GroupedShouldThrowSpec : Specifications
+    {
+        /// <summary>When <c>true</c>, the plain spec's Act throws. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; } = false;
+
+        [Context("grouped should throw", Reporting = SpecReporting.GroupedByRootContext)]
+        public void describe_grouped_should_throw()
+        {
+            Context["when Act throws"] = () =>
+            {
+                Act(() => throw new DivideByZeroException("Attempted to divide by zero."));
+
+                It["the thrown type"] = ShouldThrow<DivideByZeroException>();
+                It["a verified exception"] = ShouldThrow<DivideByZeroException>(ex =>
+                {
+                    if (!ex.Message.ToLowerInvariant().Contains("zero"))
+                        throw new InvalidOperationException("message should mention zero");
+                });
+            };
+
+            Context["when Act may fail unexpectedly"] = () =>
+            {
+                Act(() =>
+                {
+                    if (TriggerFailure)
+                        throw new InvalidOperationException("grouped act failed");
+                });
+
+                It["a plain spec"] = () => { };
+            };
+        }
+    }
+
     // ── Non-specification types ───────────────────────────────────────────────────────────────
 
     /// <summary>Non-abstract class that does NOT inherit from Specifications.</summary>

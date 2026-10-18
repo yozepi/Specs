@@ -35,7 +35,7 @@ public class AsyncDataService
 /// Key patterns shown:
 ///  - Act(async () => ...)          — async action under test
 ///  - ItAsync["..."] = async () =>  — async assertions
-///  - Manual exception capture in Act for exception-path testing
+///  - ShouldThrow                    — verifying exceptions thrown by Act
 /// </summary>
 public class AsyncAndExceptionSpecs : Specifications
 {
@@ -86,49 +86,33 @@ public class AsyncAndExceptionSpecs : Specifications
     public void describe_async_exception_handling()
     {
         AsyncDataService service = null!;
-        Exception? caughtException = null;
 
         BeforeAll(() => { service = new AsyncDataService(); });
 
         Context["when fetching a missing key"] = () =>
         {
+            Act(async () => { await service.FetchAsync("missing-key"); });
 
-            BeforeEach(() => { caughtException = null; });
+            It["throws KeyNotFoundException"] = ShouldThrow<KeyNotFoundException>();
 
-            Act(async () =>
+            It["exception message names the missing key"] = ShouldThrow<KeyNotFoundException>(ex =>
             {
-                try   { await service.FetchAsync("missing-key"); }
-                catch (Exception ex) { caughtException = ex; }
+                if (!ex.Message.Contains("missing-key"))
+                    throw new Exception($"Expected message to contain 'missing-key' but was: '{ex.Message}'");
             });
-
-            It["throws KeyNotFoundException"] = () =>
-            {
-                if (caughtException is not KeyNotFoundException)
-                    throw new Exception($"Expected KeyNotFoundException but got: {caughtException?.GetType().Name ?? "none"}");
-            };
-
-            It["exception message names the missing key"] = () =>
-            {
-                if (caughtException?.Message.Contains("missing-key") != true)
-                    throw new Exception($"Expected message to contain 'missing-key' but was: '{caughtException?.Message}'");
-            };
         };
 
         Context["when saving with an empty key"] = () =>
         {
-            BeforeEach(() => { caughtException = null; });
+            Act(async () => { await service.SaveAsync(string.Empty, "value"); });
 
-            Act(async () =>
+            It["throws ArgumentException"] = ShouldThrow<ArgumentException>();
+
+            It["names the offending parameter"] = ShouldThrow<ArgumentException>(ex =>
             {
-                try   { await service.SaveAsync(string.Empty, "value"); }
-                catch (Exception ex) { caughtException = ex; }
+                if (ex.ParamName != "key")
+                    throw new Exception($"Expected ParamName 'key' but was: '{ex.ParamName}'");
             });
-
-            It["throws ArgumentException"] = () =>
-            {
-                if (caughtException is not ArgumentException)
-                    throw new Exception($"Expected ArgumentException but got: {caughtException?.GetType().Name ?? "none"}");
-            };
         };
     }
 

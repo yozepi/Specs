@@ -155,6 +155,23 @@ xContext["when the cache is cold"] = () => { /* every spec inside is pending */ 
 - Grouped reports list them with a `○ ... - PENDING` marker and an `N pending` tally; an all-pending grouped context is Skipped.
 - `dotnet test --filter IsPending=true` lists outstanding work; `IsPending=false` excludes it.
 
+### 📌 NEW — Problem 7 — Exception specs needed boilerplate, and one bad `Act` broke its neighbours
+
+Asserting that `Act` throws used to mean a `try/catch` inside `Act`, a shared `Exception?` local, and a `BeforeEach` to reset it. Worse, an *unexpected* `Act` exception aborted the rest of the context and skipped `AfterEach`. Now:
+
+```csharp
+Act(() => calculator.Divide(1, 0));
+
+It["throws"] = ShouldThrow<DivideByZeroException>();               // base types pass too
+It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
+    Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+```
+
+- The `Act` exception (sync or async `Act`) is captured per spec and handed to `ShouldThrow<T>`.
+- `ShouldThrow<T>` fails with a clear message when `Act` threw nothing or the wrong type.
+- Any other spec whose `Act` throws fails **with the `Act` exception** (the root cause), only that spec fails, and `AfterEach` still runs.
+- Works the same in per-`It` and grouped reporting.
+
 ## User-Experience Goals
 
 | Goal | How Specs delivers |
@@ -166,6 +183,7 @@ xContext["when the cache is cold"] = () => { /* every spec inside is pending */ 
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
 | **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Context]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
+| **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Migration path** | Both API styles can live side by side; no forced rewrite |
 
 ## What Makes Specs Different

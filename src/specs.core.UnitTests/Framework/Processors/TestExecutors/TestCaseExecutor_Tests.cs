@@ -328,22 +328,67 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             .Throws<NullReferenceException>();
                     });
 
-                    It["should log the failure"] = () =>
+                    It["should log the Act exception as the test's failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogException(Moq.It.IsAny<NullReferenceException>()), Times.Once());
+                            .Verify(x => x.LogAssertFailure(Moq.It.IsAny<NullReferenceException>(), testCaseDescription), Times.Once());
                     };
 
-                    It["should throw the exception"] = () =>
+                    It["should not throw the exception"] = () =>
                     {
-                        Check.That(_caughtActException).IsNotNull();
-                        Check.That(_caughtActException).IsInstanceOf<NullReferenceException>();
+                        Check.That(_caughtActException).IsNull();
                     };
 
-                    It["should not assert the test"] = () =>
+                    It["should not log the test as passing"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
                             .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
+                    };
+
+                    It[$"should still run {nameof(ITestContextAdapter.TeardownEach)} and {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownEach(), Times.Once());
+                        mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownOnce(), Times.Once());
+                    };
+
+                    Context["when configured to stop on an assertion failure..."] = () =>
+                    {
+                        BeforeEach(() =>
+                        {
+                            settings.StopOnAssertFailure = true;
+                        });
+
+                        It["should throw the Act exception"] = () =>
+                        {
+                            Check.That(_caughtActException).IsInstanceOf<NullReferenceException>();
+                        };
+                    };
+
+                    Context["when the test handles the Act exception..."] = () =>
+                    {
+                        Exception? observedActException = null;
+
+                        BeforeEach(() =>
+                        {
+                            observedActException = null;
+                            tests.Clear();
+                            tests.Add(new TestInstance(testCaseDescription, () =>
+                            {
+                                observedActException = ActExceptionContext.Current;
+                                ActExceptionContext.MarkHandled();
+                            }));
+                        });
+
+                        It["should expose the Act exception to the test"] = () =>
+                        {
+                            Check.That(observedActException).IsInstanceOf<NullReferenceException>();
+                        };
+
+                        It["should log the test as passing"] = () =>
+                        {
+                            mocker.Mock<ILoggingAdapter>()
+                                .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
+                        };
                     };
                 };
 

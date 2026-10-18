@@ -192,10 +192,11 @@ Specs/
 │   ├── specs.core/                         # DELIVERABLE
 │   │   └── Framework/
 │   │       ├── Adapters/                   # ITestContextAdapter, ILoggingAdapter, ITestProviderAdapter, TestInstance
+│   │       ├── Assertions/                 # 📌 ActExceptionAssertions, ExpectedExceptionNotThrownException
 │   │       ├── ExceptionExtensions/
 │   │       ├── Processors/
 │   │       │   ├── TestCases/              # IContextualTestCase, builders, RunAll*
-│   │       │   └── TestExecutors/          # TestCaseExecutor, TestCaseExecutorSettings
+│   │       │   └── TestExecutors/          # TestCaseExecutor, TestCaseExecutorSettings, 📌 ActExceptionContext
 │   │       └── Settings/
 │   │
 │   ├── specs.specification/                # DELIVERABLE (asm: specs.BDD)
@@ -285,12 +286,14 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 | 📌 `TestStructureExtractor.PathSeparator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
 | 📌 Pending specs must never invoke any lifecycle action | A parked `xContext` may contain deliberately broken setup; execution derives pending state from the rebuilt tree, not the serialized `IsPending` flag |
 | 📌 Pending state is keyed by spec description within a node | `ContextualTestCase.PendingTests` is an ordinal `HashSet<string>`; sibling specs must keep unique descriptions (already required by `TestFinder`) |
+| 📌 Every execution path must run `Act` + test via `ActExceptionContext.Run(act, test)` | `ShouldThrow<T>` reads the ambient `Act` exception; a path that calls `Act()` directly makes exception specs fail and lets an `Act` throw skip teardown |
+| 📌 Types that custom front-ends / runners need from `specs.core` must be `public` | `specs.core` is an extensibility library — `ActExceptionContext` and `ActExceptionAssertions` are public rather than `internal` + `InternalsVisibleTo` |
 
 ## Testing Strategy
 
 - 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Context]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
 - **NUnit still covers the outer rings.** `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` remain NUnit fixtures; the adapter cannot credibly test itself.
-- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[SpecReporting(GroupedByRootContext)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run).
+- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[SpecReporting(GroupedByRootContext)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
 - **TestHarness** provides an nspec-based scaffold from the era before the framework could test itself. It is *internal infrastructure only* and is now a retirement candidate.
 - Test layout mirrors source layout (`Framework/Processors/TestCases/...` → `specs.core.UnitTests/Framework/Processors/TestCases/...`).
 - Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in the NUnit projects.
@@ -319,3 +322,6 @@ The adapter behaves like any other VSTest extension:
 | 📌 `ItAsync[...]` "Go to Source" lands on the `[Context]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
 | 📌 `dotnet test --filter` runs every Specs test | Adapter versions before the filtering fix ignored `IRunContext.GetTestCaseFilter` in `RunTests(sources)` | Fixed: `SpecsTestExecutor` applies the filter; an invalid expression is logged as an error and runs nothing |
 | 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `SpecReporting` API | Use `Reporting = SpecReporting.GroupedByRootContext` / `[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]` |
+| 📌 A spec fails with the `Act` exception instead of its own assertion message | `Act` threw and the `It` did not verify it; the unverified `Act` exception replaces any `It` failure | Assert it with `It[...] = ShouldThrow<T>(...)`, or fix the `Act` |
+| 📌 `ShouldThrow<T>` fails with `ExpectedExceptionNotThrownException` | `Act` threw nothing, or a type not assignable to `T` (see `InnerException`) | Check the `Act` under that context and the expected type |
+| 📌 `ItAsync[...] = ShouldThrow<T>()` does not compile | `ShouldThrow` returns `Action`; there is no async variant by design | Use `It[...]` — the `Act` exception (sync or async) is already captured |

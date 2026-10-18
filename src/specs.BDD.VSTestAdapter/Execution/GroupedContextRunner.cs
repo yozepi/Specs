@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 using specs.core.Framework.Processors.TestCases;
+using specs.core.Framework.Processors.TestExecutors;
 
 namespace specs.BDD.VSTestAdapter.Execution
 {
@@ -190,8 +191,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             try
             {
                 node.SetupEach();
-                node.Act();
-                test();
+                ActExceptionContext.Run(node.Act, test);
             }
             catch (Exception ex)
             {

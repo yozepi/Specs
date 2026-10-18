@@ -42,8 +42,8 @@ flowchart TD
 
 | Container | Key components |
 |-----------|---------------|
-| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
-| `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
+| `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor`, 📌 `ActExceptionContext`, 📌 `ActExceptionAssertions` / `ExpectedExceptionNotThrownException`, `TestContextAdapter`, adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) |
+| `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`, 📌 `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T>)`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Context]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
 | `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, 📌 `PendingSpecs`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
 
 ## Core Design Patterns
@@ -114,7 +114,7 @@ The core has **zero** reference to `Microsoft.TestPlatform.*`.
 `TestCaseExecutor.ProcessTestCase(CancellationToken)` always runs:
 
 1. `SetupOnce` (parent → child).
-2. For each test: `SetupEach` → `Act` → test → `TeardownEach`.
+2. For each test: `SetupEach` → `Act` → test → `TeardownEach`. 📌 `Act` + test run together through `ActExceptionContext.Run`, so an `Act` exception fails only that test and `TeardownEach` still runs (see "Act Exception Capture").
 3. `TeardownOnce` (child → parent).
 
 ## Critical Implementation Patterns
@@ -271,7 +271,7 @@ flowchart TD
 | Discovery | **`GroupingSettings`** 📌 UPDATED | Resolves the effective `SpecReporting` per root `[Context]`: `ContextAttribute.ReportingSetting` → class `[SpecReporting]` (not inherited) → assembly `[SpecReporting]` → `.runsettings` `<SpecsBDD><SpecReporting>` → `Individual`. Also reads `ShowSourceLocations` / `ColorOutput` and picks the grouped-report `MarkerStyle` |
 | Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`); emits a single `IsGrouped` record for grouped root contexts 📌; 📌 sets `IsPending` per spec (grouped record: pending only when the subtree has specs and all are pending) |
 | Discovery | `PendingSpecs` 📌 NEW | Internal static helpers over a built tree: `IsPending(node, description)`, `HasRunnableTests(node)` (any non-pending spec at or below), `HasAnyTests(node)`. Shared by discovery, `TestInvoker`, and `GroupedContextRunner` |
-| Discovery | `SourceLocationReader` | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Context]` method). 📌 `GetTestMethod(Action)` unwraps async `It` wrappers to the user's `Func<Task>`; async bodies resolve via the state machine's `MoveNext`; methods from a different assembly than the PDB return `null` |
+| Discovery | `SourceLocationReader` | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Context]` method). 📌 `GetTestMethod(Action)` walks the whole `Delegate.Target` chain, unwrapping async `It` wrappers to the user's `Func<Task>` and 📌 `ShouldThrow` delegates to the user's verifier; async bodies resolve via the state machine's `MoveNext`; methods from a different assembly than the PDB return `null` |
 | Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW |
 | Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` that embeds `ContextPath` (VS Code ignores `Hierarchy`) 📌, the RFC-0033 `TestCase.Hierarchy` property, and source location |
 | Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW — `SpecsBDD.IsPending`, `bool`) preserving metadata across VSTest serialization |
@@ -524,6 +524,7 @@ Benefits:
 | `DisplayName` | `ContextPath → Description` | Root context description |
 | Once-actions | `OwnSetupOnce` / `OwnTeardownOnce` once per live node | Same, over the entire subtree |
 | Per-test failure | That test fails; siblings continue | Counted, run continues; result fails if any failed |
+| 📌 `Act` exception | Captured by `ActExceptionContext.Run`; fails that test only (unless verified by `ShouldThrow`), `TeardownEach` still runs | Same — counted as that spec's failure, run continues |
 | `BeforeAll` failure | Fails every selected test under the node | Fails every test under the node (`FailSubtree`), run continues elsewhere |
 | 📌 Root (class) `BeforeAll` failure | Every selected test reported failed; root `AfterAll` skipped | Whole tree rendered as failed with the root exception; root `AfterAll` skipped |
 | `AfterAll` failure | Swallowed (best-effort) | Swallowed (best-effort) |
@@ -586,7 +587,7 @@ sequenceDiagram
 
 Source navigation prefers the `It[...]` lambda's PDB sequence point (`SourceLocationReader.GetTestMethod(SpecTest.ItAction)`) so "Go to Source" lands on the assertion line, falling back to the `[Context]` method when the lambda has no sequence points.
 
-📌 **Async `ItAsync[...]` navigation**: `ContextualTestCaseBuilder.AddTest(string, Func<Task>)` wraps the test as `test.RunSync` (an extension-method-bound delegate) instead of a closure, so the wrapper `Action.Target` *is* the user's `Func<Task>`. `GetTestMethod` unwraps it, and `TryGetLocation` follows `[AsyncStateMachine]` to `MoveNext`, where the async body's sequence points actually live.
+📌 **Async `ItAsync[...]` navigation**: `ContextualTestCaseBuilder.AddTest(string, Func<Task>)` wraps the test as `test.RunSync` (an extension-method-bound delegate) instead of a closure, so the wrapper `Action.Target` *is* the user's `Func<Task>`. `GetTestMethod` unwraps it, and `TryGetLocation` follows `[AsyncStateMachine]` to `MoveNext`, where the async body's sequence points actually live. 📌 `ShouldThrow<T>(verify)` uses the same trick — it returns `verify.VerifyActException` (extension-method-bound), so the user's verifier lambda is the innermost `Target`. The parameterless `ShouldThrow<T>()` binds a verifier defined in `specs.BDD`, which the cross-assembly guard rejects, so navigation falls back to the `[Context]` method.
 
 📌 **VS Code caveat**: the VS Code test UI ignores `Hierarchy`, so `TestCaseConverter.BuildDisplayName` embeds the context path (`ContextPath → TestDescription`) to keep contexts visible there. Visual Studio still nests via `Hierarchy`.
 
@@ -651,7 +652,11 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 21 | 📌 NEW **The adapter applies `--filter` itself in `RunTests(sources)`** | VSTest hands source-based runs to the adapter unfiltered; an adapter that ignores `IRunContext.GetTestCaseFilter` runs every test | `SpecsTestExecutor.FilterProperties` maps case-insensitive names to `TestProperty`s; an invalid expression is reported as an error and nothing runs |
 | 22 | 📌 NEW **Pending is tree metadata in the core; skipping is adapter policy** | The core builder is where `xContext` inheritance is known, but *how* a pending spec is reported is host-specific | `ITestCase.PendingTests` (ordinal set of descriptions) in `specs.core`; `TestCaseExecutor` is unchanged and does not consult it |
 | 23 | 📌 NEW **Pending specs keep their body in `Tests`** | Pending specs must still be discovered, addressed by `TestFinder`, and navigable via "Go to Source" | `AddPendingTest` calls `AddTest` then records the description; `TODO` / `TODOAsync` are recognised by reference identity |
-| 24 | 📌 NEW **No lifecycle for pending-only selections** | A half-written `xContext` (e.g. a throwing `BeforeAll`) must not fail the run | Pending cases bypass the walker; root and node once-actions run only when `PendingSpecs.HasRunnableTests` is true |
+| 24 | 📌 **No lifecycle for pending-only selections** | A half-written `xContext` (e.g. a throwing `BeforeAll`) must not fail the run | Pending cases bypass the walker; root and node once-actions run only when `PendingSpecs.HasRunnableTests` is true |
+| 25 | 📌 NEW **The `Act` exception is exposed to the spec through an ambient `AsyncLocal` context** | Keeps `It` an `Action`; `ShouldThrow<T>` is just an `It` body, needing no new builder API or lifecycle phase | `ActExceptionContext` is **public** in `specs.core` (extensibility library); every execution path (`TestCaseExecutor`, `TestInvoker.RunLifecycle`, `GroupedContextRunner.RunTest`) must call `Run(act, test)` |
+| 26 | 📌 NEW **An unverified `Act` exception fails only its spec and wins over the `It` exception** | The `Act` failure is the root cause; an `It` that then trips over missing state would report a misleading symptom | Behaviour change: `Act` exceptions no longer abort the node via `LogException` or skip `TeardownEach` / `TeardownOnce`; rethrown with `ExceptionDispatchInfo` to keep the stack |
+| 27 | 📌 NEW **`ShouldThrow<T>` matches by assignability and returns a bound delegate** | Base-type expectations (`ArithmeticException`) are idiomatic; a bound delegate keeps "Go to Source" on the verifier lambda | `GetTestMethod` walks the full `Target` chain; wrong type / no exception → `ExpectedExceptionNotThrownException` (wrong type kept as `InnerException`) |
+| 28 | 📌 NEW **No `ShouldThrowAsync`** | The `Act` exception (sync or async `Act`) is already captured before `It` runs; an async verifier adds nothing | `ShouldThrow` returns `Action` and is used with `It[...]`, not `ItAsync[...]` |
 
 ## Critical Execution Paths
 
@@ -854,6 +859,107 @@ Benefits / contract:
 - **Filtering**: `IsPending` is a supported `--filter` property.
 - **Scope**: only the `Specifications` API and the VSTest adapter honour pending; `TestCaseExecutor` and the legacy `Spec` API do not.
 
+## 📌 NEW — Act Exception Capture (`ShouldThrow<T>`)
+
+Expected-exception specs are written by pointing `It[...]` at the exception thrown by `Act`:
+
+```csharp
+Act(() => calculator.Divide(1, 0));
+
+It["throws"] = ShouldThrow<DivideByZeroException>();
+It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
+    Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+```
+
+### 📌 BEFORE (Act outside the test's failure boundary)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: Act/It execution (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    EXE["<b>TestCaseExecutor</b><br/>[Component: specs.core]<br/>Calls Act before test try"]:::deprecated
+    ACT["<b>User Act</b><br/>[Component: delegate]<br/>Manual try/catch to a local"]:::deprecated
+    IT["<b>User It</b><br/>[Component: delegate]<br/>Inspects captured local"]:::deprecated
+    LOG["<b>LogException + rethrow</b><br/>[Component: ILoggingAdapter]<br/>Aborts the whole node"]:::deprecated
+
+    EXE -->|"1. Invokes [in-process]"| ACT
+    ACT -.->|"Uncaught throw [exception]"| LOG
+    EXE -->|"2. Invokes if Act survived [in-process]"| IT
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Deprecated element"]:::deprecated
+    end
+
+    IT ~~~ LEGEND
+
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Exception specs needed a hand-rolled `try/catch` in `Act`, a shared `Exception?` local, and a `BeforeEach` to reset it.
+- An uncaught `Act` exception escaped `ProcessTestCase` (and `TestInvoker.RunLifecycle`): remaining tests in the node never ran, and `TeardownEach` / `TeardownOnce` were skipped.
+
+### 📌 AFTER (`ActExceptionContext.Run`)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: Act/It execution (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    subgraph HOSTS["Execution paths"]
+        direction TB
+        EXE["<b>TestCaseExecutor</b><br/>[Component: specs.core]<br/>Per-node test loop"]:::app
+        INV["<b>TestInvoker.RunLifecycle</b><br/>[Component: adapter]<br/>Single-case invoke"]:::app
+        GR["<b>GroupedContextRunner</b><br/>[Component: adapter]<br/>RunTest per spec"]:::app
+    end
+
+    AEC["<b>ActExceptionContext</b><br/>[Component: specs.core static class]<br/>Run(act, test)"]:::app
+    SLOT[("<b>Outcome</b><br/>[Data: AsyncLocal]<br/>Exception + Handled")]:::data
+    ST["<b>ShouldThrow&lt;T&gt;</b><br/>[Component: specs.BDD]<br/>Bound verifier delegate"]:::app
+    AEA["<b>ActExceptionAssertions</b><br/>[Component: specs.core]<br/>VerifyActException&lt;T&gt;"]:::app
+
+    HOSTS -->|"1. Run(Act, It) [in-process]"| AEC
+    AEC ==>|"2. Captures Act throw [AsyncLocal]"| SLOT
+    AEC -->|"3. Invokes It [in-process]"| ST
+    ST -->|"4. Delegates [extension method]"| AEA
+    AEA -->|"5. Reads + MarkHandled [AsyncLocal]"| SLOT
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned component"]:::app
+        L2[("Ambient data")]:::data
+    end
+
+    AEA ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Contract:
+
+| Situation | Result |
+|-----------|--------|
+| `Act` does not throw | `It` runs normally; `ActExceptionContext.Current` is `null` |
+| `Act` throws, `It` calls `MarkHandled` (any `ShouldThrow`) | Spec outcome is the `It` outcome (verifier failure propagates) |
+| `Act` throws, `It` does not handle it | `Act` exception rethrown (`ExceptionDispatchInfo`), **replacing** any exception thrown by `It` |
+| `ShouldThrow<T>` and `Act` threw nothing / an unrelated type | `ExpectedExceptionNotThrownException` (unrelated type kept as `InnerException`); verifier not called |
+| `ShouldThrow<T>` and `Act` threw a derived type | Passes (assignability) |
+| Nested `Run` inside a test | Isolated outcome; enclosing `Current` restored afterwards |
+
+Benefits:
+
+- Exception specs read like any other spec — no shared mutable local, no reset hook.
+- One throwing `Act` no longer takes down sibling specs or skips teardown; `StopOnAssertFailure` still rethrows.
+- All three execution paths share the same capture code, so per-`It`, single-invoke, and grouped runs agree.
+
+> **📌 See**: decisions #25–28 above.
+
 ## Pattern Summary
 
 | Pattern | Used by | Benefit |
@@ -867,3 +973,4 @@ Benefits / contract:
 | Visitor / tree walk | `SelectionTreeWalker`, `GroupedContextRunner` | Once-per-node lifecycle over an arbitrary test selection / an entire root context |
 | Chain of responsibility (config) | `GroupingSettings.Resolve` | Layered opt-in: method → class → assembly → `.runsettings` → `Individual` |
 | Callback (scope switch) | `Specifications.contextCallBack` | Nested context definition without thread-local state |
+| 📌 Ambient context | `ActExceptionContext` (`AsyncLocal<Outcome>`) | Exposes the `Act` exception to `It` without changing the `Action` signature |

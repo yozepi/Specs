@@ -1,3 +1,4 @@
+using specs.core.Framework.Assertions;
 using specs.core.Framework.ParameterValidation;
 using specs.core.Framework.Processors.TestCases;
 using System;
@@ -186,6 +187,34 @@ namespace specs.BDD
         /// The spec is reported as pending and never executed.
         /// </summary>
         public static readonly Func<Task> TODOAsync = () => Task.CompletedTask;
+
+        /// <summary>
+        /// Creates an <see cref="It"/> body that passes when <see cref="Act(Action)"/> threw an exception
+        /// assignable to <typeparamref name="TException"/>: <c>It["..."] = ShouldThrow&lt;ArgumentException&gt;();</c>.
+        /// </summary>
+        /// <typeparam name="TException">The expected exception type.</typeparam>
+        public static Action ShouldThrow<TException>()
+            where TException : Exception
+            => ShouldThrow<TException>(_ => { });
+
+        /// <summary>
+        /// Creates an <see cref="It"/> body that passes when <see cref="Act(Action)"/> threw an exception
+        /// assignable to <typeparamref name="TException"/> and <paramref name="verify"/> succeeds.
+        /// </summary>
+        /// <typeparam name="TException">The expected exception type.</typeparam>
+        /// <param name="verify">Verifies the properties of the thrown exception.</param>
+        /// <example>
+        /// <code>
+        /// It["should explain the problem"] = ShouldThrow&lt;DivideByZeroException&gt;(ex =>
+        ///     Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+        /// </code>
+        /// </example>
+        public static Action ShouldThrow<TException>(Action<TException> verify)
+            where TException : Exception
+        {
+            Action<TException> verifier = verify.ThrowIfNull(nameof(verify));
+            return verifier.VerifyActException;
+        }
 
         /// <summary>
         /// Defines a pending (excluded) <see cref="It"/> spec. The body is kept but never executed.

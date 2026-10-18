@@ -72,6 +72,16 @@ xContext["a pending scenario"] = () => { /* every spec inside is pending */ };  
 ```
 Pending specs are discovered but never executed (no `BeforeEach` / `Act` / `AfterEach`; a context whose selected specs are all pending skips its `BeforeAll` / `AfterAll`). The adapter reports them as **Skipped**, and grouped results list them with a `○ ... - PENDING` marker. Select them with `dotnet test --filter IsPending=true` (or exclude them with `IsPending=false`).
 
+### Expected exceptions
+```csharp
+Act(() => calculator.Divide(1, 0));
+
+It["throws"] = ShouldThrow<DivideByZeroException>();
+It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
+    Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+```
+An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes when it is assignable to `T` (and the optional verifier succeeds), and fails if `Act` threw nothing or another type. Any other spec whose `Act` throws fails with the `Act` exception; `AfterEach` still runs.
+
 ## Key Features
 - Hierarchical test organization with parent-child contexts
 - Five-phase lifecycle (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)

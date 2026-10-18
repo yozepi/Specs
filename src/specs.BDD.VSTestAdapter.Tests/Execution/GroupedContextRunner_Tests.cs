@@ -125,6 +125,34 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             finally { GroupedSpecWithFailure.TriggerFailure = false; }
         }
 
+        // ── ShouldThrow ───────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void ShouldThrow_ExpectedActExceptions_OutcomeIsPassed()
+        {
+            var result = ExecuteGrouped<GroupedShouldThrowSpec>("grouped should throw");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Passed);
+            Check.That(OutputOf(result)).Contains("3 passed, 0 failed, 3 total");
+        }
+
+        [Test]
+        public void ShouldThrow_UnexpectedActException_FailsOnlyThePlainSpec()
+        {
+            GroupedShouldThrowSpec.TriggerFailure = true;
+            try
+            {
+                var result = ExecuteGrouped<GroupedShouldThrowSpec>("grouped should throw");
+                var output = OutputOf(result);
+
+                Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+                Check.That(output).Contains("✗ a plain spec - FAILED:");
+                Check.That(output).Contains("grouped act failed");
+                Check.That(output).Contains("2 passed, 1 failed, 3 total");
+            }
+            finally { GroupedShouldThrowSpec.TriggerFailure = false; }
+        }
+
         // ── Pending specs ─────────────────────────────────────────────────────────────────────
 
         [Test]

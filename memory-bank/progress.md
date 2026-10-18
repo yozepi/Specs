@@ -17,6 +17,8 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ `TestCaseExecutorSettings.StopOnAssertFailure`.
 - ✅ `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` — node-local once-actions for the selection walker.
 - ✅ 📌 Pending metadata: `AddPendingTest` (sync + async), `ChildTestCase(..., isPending)` with descendant propagation, `ITestCase.PendingTests`.
+- ✅ 📌 `ActExceptionContext.Run(act, test)` — captures the `Act` exception per test, exposes it via `Current` / `MarkHandled`, and fails only that test when unverified (teardown still runs).
+- ✅ 📌 `ActExceptionAssertions.VerifyActException<T>` + `ExpectedExceptionNotThrownException` (public, reusable by custom front-ends).
 - ✅ Adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`).
 - ✅ `RunAllBuilder` / `RunAllRunner` action aggregation.
 - ✅ Zero external NuGet dependencies.
@@ -28,6 +30,7 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ Callback-driven nested-context scope switching.
 - ✅ `[Context]` attribute marking feature-set methods.
 - ✅ 📌 Pending specs: `TODO` / `TODOAsync` placeholders, `xIt` / `xItAsync` / `xContext` / `xDescribe`.
+- ✅ 📌 Expected-exception specs: `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T> verify)` (assignability match, null verifier rejected).
 - ✅ 📌 `SpecReporting` enum, `ContextAttribute.Reporting` (nullable-backed) and `[SpecReporting]` (assembly or class, not inherited) opt-in metadata for grouped execution — replaces `Grouped` / `GroupSpecsByRootContext`.
 - ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
 
@@ -42,10 +45,11 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ 📌 Grouped report formatting: host-aware markers (ANSI / emoji in Visual Studio / plain) and optional per-`It` source locations.
 - ✅ 📌 `.runsettings` support (`<SpecsBDD>` `SpecReporting`, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
 - ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property; display names embed `ContextPath` for VS Code 📌.
-- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`), falling back to the `[Context]` method.
+- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), falling back to the `[Context]` method.
 - ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
 - ✅ 📌 `dotnet test --filter` honoured in `RunTests(sources)` on `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsPending`; invalid expressions reported as errors.
 - ✅ 📌 Pending specs reported as Skipped (`Pending`) with no lifecycle; pending-only contexts (and the root, when nothing runnable is selected) skip `BeforeAll` / `AfterAll`; grouped reports show `○ ... - PENDING` and an all-pending grouped context is Skipped.
+- ✅ 📌 `Act` + `It` run through `ActExceptionContext.Run` in `TestInvoker.RunLifecycle` and `GroupedContextRunner.RunTest` (as in `TestCaseExecutor`), so `ShouldThrow` and `Act`-failure semantics match across all modes.
 - ✅ Cancellation flowing from `ITestExecutor.Cancel()` into `TestCaseExecutor`.
 - ✅ `InvalidSpecificationException` surfaced when a suite has no `[Context]` methods.
 - ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
@@ -60,11 +64,11 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 
 ### Testing
 
-- ✅ `specs.core.UnitTests` — **303 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result).
-- ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface (📌 harness specs now include the pending syntax).
-- ✅ `specs.BDD.VSTestAdapter.Tests` — 252 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, using Moq); 8 are pending fixture specs reported as Skipped.
-- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 27 end-to-end results (`CalculatorSpecs` grouped at class level with a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, 📌 `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent; 5 pending specs Skipped.
-- ✅ All 587 results green (574 passed, 13 pending skipped); build is clean.
+- ✅ `specs.core.UnitTests` — **332 results**, written in Specs itself (`Specifications` + `[Context]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result). 📌 Includes `ActExceptionContext_Tests` and `ActExceptionAssertions_Tests`.
+- ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface (📌 harness specs now include the pending syntax and `ShouldThrow`).
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 272 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
+- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 28 end-to-end results (`CalculatorSpecs` grouped at class level with a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, 📌 `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and 📌 `ShouldThrow`; 5 pending specs Skipped.
+- ✅ All 637 results green (624 passed, 13 pending skipped); build is clean.
 
 ## Evolution Timeline
 
@@ -82,9 +86,10 @@ flowchart TD
     P9["Phase 9<br/>Grouped root-context execution"]:::app
     P10["Phase 10<br/>SpecReporting API + root lifecycle"]:::app
     P11["Phase 11<br/>--filter + pending specs"]:::app
+    P12["Phase 12<br/>ShouldThrow + Act capture"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -146,7 +151,7 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 
 > **📌 See**: `systemPatterns.md` section "Test Case Filtering (`dotnet test --filter`)".
 
-### 📌 Phase 11 — Pending specs (Oct 2026, staged)
+### 📌 Phase 11 — Pending specs (Oct 2026, committed `5c5d942`)
 
 - **Authoring**: `It["..."] = TODO` / `ItAsync["..."] = TODOAsync`, `xIt` / `xItAsync`, `xContext` / `xDescribe` (pending inherited by every descendant).
 - **Core**: `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; `TestCaseExecutor` unchanged.
@@ -155,6 +160,17 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 - **Docs**: root `README.md` gained a "Pending specs" section.
 
 > **📌 See**: `systemPatterns.md` section "Pending Specs".
+
+### 📌 Phase 12 — `ShouldThrow<T>` + `Act` exception capture (Oct 2026)
+
+- **Authoring**: `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` replaces hand-rolled `try/catch` in `Act`.
+- **Core**: new public `ActExceptionContext` (`AsyncLocal` outcome, `Run`, `Current`, `MarkHandled`), `ActExceptionAssertions.VerifyActException<T>`, `ExpectedExceptionNotThrownException`. `TestCaseExecutor` runs `Act` + test through `Run`.
+- **Behaviour change**: an `Act` exception used to escape `ProcessTestCase` (logged via `LogException`, rest of the node and `TeardownEach` / `TeardownOnce` skipped); it now fails only that spec via `LogAssertFailure`, teardown runs, siblings continue. An unverified `Act` exception replaces any `It` exception.
+- **Adapter**: `TestInvoker.RunLifecycle` and `GroupedContextRunner.RunTest` use `ActExceptionContext.Run`; `SourceLocationReader.GetTestMethod` walks the full delegate `Target` chain.
+- **Tests**: core 303 → 332, adapter 252 → 272 (`ShouldThrowSpec`, `GroupedShouldThrowSpec`, `TestInvoker` / `GroupedContextRunner` / `SourceLocationReader` cases), integration 27 → 28 (`CalculatorSpecs` and `AsyncAndExceptionSpecs` rewritten with `ShouldThrow`).
+- **Docs**: root `README.md` gained an "Expected exceptions" section.
+
+> **📌 See**: `systemPatterns.md` section "Act Exception Capture (`ShouldThrow<T>`)".
 
 ## Known Limitations
 
@@ -170,6 +186,8 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 | 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
 | 📌 Marker style detection relies on `VSAPPIDNAME` | Other hosts that cannot render ANSI show raw escapes | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` |
 | 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly (or the legacy `Spec` API) still runs pending bodies / has no pending syntax | Use the adapter; see `activeContext.md` open questions #9–10 |
+| 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
+| 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Context]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | Use `ShouldThrow<T>(verify)` when precise navigation matters |
 | Legacy `Spec` API retained | Two API styles to document and maintain | Both supported indefinitely; modern API recommended for new suites |
 
 ## Future Enhancements (Not Committed)
@@ -186,10 +204,10 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 | Metric | Status |
 |--------|--------|
 | Build cleanliness across all 9 projects | ✅ Clean — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture) |
-| Test pass rate | ✅ 100% of runnable results (574 passed, 13 pending skipped, 0 failed of 587) |
-| Self-hosted core tests | ✅ 303 results passing via the Specs adapter |
-| Adapter unit tests | ✅ 252 results (244 passed, 8 pending fixtures skipped) |
-| Adapter integration tests | ✅ 27 results (22 passed, 5 pending skipped) |
+| Test pass rate | ✅ 100% of runnable results (624 passed, 13 pending skipped, 0 failed of 637) |
+| Self-hosted core tests | ✅ 332 results passing via the Specs adapter |
+| Adapter unit tests | ✅ 272 results (264 passed, 8 pending fixtures skipped) |
+| Adapter integration tests | ✅ 28 results (23 passed, 5 pending skipped) |
 | `specs.core` external dependencies | ✅ Zero |
 | Known open bugs | ✅ None |
 | Documentation accuracy | ✅ Refreshed (October 2026) |
@@ -206,4 +224,4 @@ Opt-in grouped mode: a root `[Context]` becomes one `TestCase` (`Class::Method::
 | Examples | ✅ `ConsoleExample` demonstrates the legacy API |
 | Memory bank | ✅ Refreshed October 2026 |
 
-Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Context]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, and a framework-agnostic core that tests itself.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with two coexisting API styles, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Context]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core that tests itself.

@@ -69,12 +69,10 @@ public class CalculatorSpecs : Specifications
     [Context("Division")]
     public void describe_division()
     {
-
+        Act(() => { result = calculator.Divide(num1, num2); });
 
         Context["when dividing evenly"] = () =>
         {
-            Act(() => { result = calculator.Divide(num1, num2); });
-
             BeforeEach(() => { num1 = 10; num2 = 2; });
 
             It["returns the correct quotient"] = () =>
@@ -85,23 +83,12 @@ public class CalculatorSpecs : Specifications
 
         Context["when dividing by zero"] = () =>
         {
-            Exception? caught = null;
+            It["throws DivideByZeroException"] = ShouldThrow<DivideByZeroException>();
 
-            Act(() =>
+            It["exception message mentions zero"] = ShouldThrow<DivideByZeroException>(ex =>
             {
-                try { calculator.Divide(10, 0); }
-                catch (DivideByZeroException ex) { caught = ex; }
+                Check.That(ex.Message.ToLowerInvariant()).Contains("zero");
             });
-
-            It["throws DivideByZeroException"] = () =>
-            {
-                Check.That(caught).IsInstanceOf<DivideByZeroException>();
-            };
-
-            It["exception message mentions zero"] = () =>
-            {
-                Check.That(caught!.Message.ToLowerInvariant()).Contains("zero");
-            };
         };
     }
 

@@ -113,6 +113,15 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
 
             Check.That(SourceLocationReader.GetTestMethod(wrapper)).IsSameReferenceAs(inner.Method);
         }
+
+        [Test]
+        public void GetTestMethod_ShouldThrowVerifier_ReturnsVerifierMethod()
+        {
+            System.Action<System.DivideByZeroException> verify = _ => { };
+            var test = specs.BDD.Specifications.ShouldThrow(verify);
+
+            Check.That(SourceLocationReader.GetTestMethod(test)).IsSameReferenceAs(verify.Method);
+        }
         // ── Helpers ───────────────────────────────────────────────────────────────────────────
 
         /// <summary>

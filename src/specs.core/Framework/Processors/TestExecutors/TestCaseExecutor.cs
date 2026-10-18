@@ -43,11 +43,10 @@ namespace specs.core.Framework.Processors.TestExecutors
                             break;
 
                         testContext.SetupEach();
-                        testContext.Act();
 
                         try
                         {
-                            test.Test.Invoke();
+                            ActExceptionContext.Run(testContext.Act, test.Test);
                             logger.LogAssertSuccess(test.Description);
                         }
                         catch (Exception ex)

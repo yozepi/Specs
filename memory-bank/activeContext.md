@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**📌 Pending specs ** — specs can be marked pending with `TODO` / `TODOAsync` placeholders or `xIt` / `xItAsync` / `xContext` / `xDescribe`. They are discovered, reported as **Skipped**, never run any lifecycle, render as `○ ... - PENDING` in grouped reports, and are filterable via `--filter IsPending=true|false`.
+**📌 `ShouldThrow<T>` + `Act` exception capture** — `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` verifies the exception thrown by `Act`. `Act` + `It` now run through `specs.core`'s public `ActExceptionContext.Run` in every execution path, so an unexpected `Act` exception fails only its own spec (with teardown still running) instead of aborting the context.
+
+**📌 Pending specs (committed `5c5d942`)** — specs can be marked pending with `TODO` / `TODOAsync` placeholders or `xIt` / `xItAsync` / `xContext` / `xDescribe`. They are discovered, reported as **Skipped**, never run any lifecycle, render as `○ ... - PENDING` in grouped reports, and are filterable via `--filter IsPending=true|false`.
 
 **📌 `dotnet test --filter` support (committed `b94d3a6`)** — `SpecsTestExecutor.RunTests(sources)` applies the VSTest filter expression to re-discovered test cases instead of running the whole assembly.
 
@@ -26,17 +28,35 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 
 | Area | State |
 |------|-------|
-| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests` |
-| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe` |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 252 adapter unit-test results + 27 integration results passing (13 Skipped = pending) |
-| `specs.core.UnitTests` | Self-hosted; 303 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
+| `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException` |
+| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `ContextAttribute.Reporting`, `SpecReportingAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 28 integration results passing (13 Skipped = pending) |
+| `specs.core.UnitTests` | Self-hosted; 332 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | Maintained for backward compatibility |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — Pending specs
+### 📌 NEW — `ShouldThrow<T>` + `Act` exception capture 19 files)
+
+BEFORE/AFTER diagrams and the outcome contract live in `systemPatterns.md` section "Act Exception Capture (`ShouldThrow<T>`)"; decisions #25–28 record the rationale.
+
+| Layer | File(s) | What changed |
+|-------|---------|--------------|
+| `specs.core` | `Processors/TestExecutors/ActExceptionContext.cs` 📌 NEW | Public static class: `Run(act, test)` catches the `Act` exception, publishes it in an `AsyncLocal` outcome while `test` runs, and rethrows it (`ExceptionDispatchInfo`) unless the test called `MarkHandled()`; an unhandled `Act` exception replaces any `test` exception; nested runs restore the enclosing outcome |
+| `specs.core` | `Assertions/ActExceptionAssertions.cs`, `Assertions/ExpectedExceptionNotThrownException.cs` 📌 NEW | `VerifyActException<T>(this Action<T> verify)` — marks handled, throws `ExpectedExceptionNotThrownException` when nothing / an unrelated type was thrown (actual kept as `InnerException`), else calls `verify` |
+| `specs.core` | `TestCaseExecutor.cs` | `Act()` moved inside the per-test `try` via `ActExceptionContext.Run(testContext.Act, test.Test)` |
+| `specs.BDD` | `Specifications.cs` | `public static Action ShouldThrow<T>()` and `ShouldThrow<T>(Action<T> verify)` returning the bound `verifier.VerifyActException` |
+| Adapter / Execution | `TestInvoker.cs`, `GroupedContextRunner.cs` | `RunLifecycle` / `RunTest` call `ActExceptionContext.Run(node.Act, test)` |
+| Adapter / Discovery | `SourceLocationReader.cs` | `GetTestMethod` loops through nested `Delegate.Target`s (async wrapper and `ShouldThrow` verifier) |
+| Tests | `ActExceptionContext_Tests.cs`, `ActExceptionAssertions_Tests.cs` 📌 NEW, `TestCaseExecutor_Tests.cs` | Self-hosted core specs for `Run` / `MarkHandled` / nesting / null args and verifier outcomes; executor `Act`-throws context rewritten (logs `LogAssertFailure`, does not throw, still tears down; rethrows with `StopOnAssertFailure`; handled exception logs success) |
+| Tests | `specs.specification.UnitTests/Specifications.cs` | Harness specs for `ShouldThrow` (null verifier, bound target, assignable pass, verifier receives exception, no-throw fails) |
+| Tests | Adapter `TestInvoker_Tests`, `GroupedContextRunner_Tests`, `SourceLocationReader_Tests`, `SampleSpecifications.cs` | Fixtures `ShouldThrowSpec`, `GroupedShouldThrowSpec` (`TriggerFailure`-gated); tests for pass / no-throw / wrong-type / verifier failure, plain spec failing with the `Act` exception while teardown runs, suite-level isolation, grouped tallies, verifier source navigation |
+| Integration | `CalculatorSpecs.cs`, `AsyncAndExceptionSpecs.cs` | Manual `try/catch` + captured locals replaced by `ShouldThrow<T>`; division `Act` hoisted to the `[Context]` level; new `names the offending parameter` spec |
+| Docs | `README.md` | "Expected exceptions" section |
+
+### 📌 Pending specs (committed `5c5d942`)
 
 BEFORE/AFTER routing diagrams and the runtime contract live in `systemPatterns.md` section "Pending Specs"; decisions #22–24 record the rationale.
 
@@ -219,7 +239,7 @@ Removed as redundant or superseded:
 - Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` / `IsPending` filters through the real VSTest pipeline).
 - Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
-- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), and a class-level `BeforeAll` example.
+- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), 📌 `ShouldThrow<T>` / `ActExceptionContext`, and a class-level `BeforeAll` example.
 - Update the root `README.md` / user docs for the breaking attribute rename.
 
 ### Short term
@@ -280,6 +300,12 @@ Removed as redundant or superseded:
 - Reporting a pending spec is host policy (VSTest `Skipped`, grouped `○` marker), so `TestCaseExecutor` is untouched and the adapter decides via `PendingSpecs`.
 - Execution re-reads pending state from the rebuilt tree rather than the serialized `IsPending` property, keeping the tree the single source of truth.
 
+### 📌 Why `ShouldThrow` reads an ambient `Act` exception instead of wrapping `Act`
+
+- `Act` is shared by every `It` in its context; only the individual spec knows whether it *expects* an exception, so the decision must be made when the `It` runs.
+- Exposing the captured exception through `ActExceptionContext` (an `AsyncLocal`) keeps `It` an `Action` and needs no new builder API — `ShouldThrow<T>` is just a pre-built `It` body.
+- The capture lives in `specs.core` (public) so `TestCaseExecutor`, both adapter runners, and third-party runners share one implementation.
+
 ## Patterns & Preferences
 
 ### Naming
@@ -299,6 +325,7 @@ Removed as redundant or superseded:
 | Assertion | `It["..."] = () => { }` / `ItAsync[...] = async () => { }` | `It["..."] = () => { }` |
 | Pending spec 📌 | `It["..."] = TODO` / `ItAsync["..."] = TODOAsync` / `xIt[...]` / `xItAsync[...]` | n/a |
 | Pending scope 📌 | `xContext["..."] = () => { }` / `xDescribe["..."] = () => { }` | n/a |
+| Expected exception 📌 | `It["..."] = ShouldThrow<T>()` / `ShouldThrow<T>(ex => ...)` | `ShouldThrow<T>()` / `ShouldThrowAsync<T>()` helpers |
 
 ### Style
 
@@ -323,14 +350,16 @@ Removed as redundant or superseded:
 12. 📌 **Visual Studio's Test Explorer does not render ANSI** — output formatting must detect the host (`VSAPPIDNAME`) rather than assume a terminal.
 13. 📌 **Source-based runs arrive unfiltered** — VSTest only hands the `--filter` expression to the adapter through `IRunContext.GetTestCaseFilter`; an adapter that re-discovers without applying it silently runs the whole assembly.
 14. 📌 **"Pending" must reach the once-actions too** — skipping a pending spec's body is not enough; if its context's `BeforeAll` still runs, a parked `xContext` can fail the run. Liveness has to be computed from *runnable* specs, for both the root and every node.
+15. 📌 **An `Act` exception is a spec outcome, not a run fault** — calling `Act()` outside the per-test `try` let one throwing `Act` skip its siblings and every teardown. Moving it inside the failure boundary is what made `ShouldThrow` possible *and* fixed the teardown leak.
+16. 📌 **Report the root cause** — when `Act` throws and the `It` then trips over the missing result, the `It` exception is a symptom; the unverified `Act` exception must win.
 
 ## Health Indicators
 
 - **Builds**: clean across all 9 projects — 0 errors (one expected discovery warning from the `SpecWithNoContextMethods` fixture).
-- **Tests**: 587 results — 574 passed, 13 skipped (all pending specs), 0 failed.
-  - `specs.core.UnitTests` — 303 results (run by the Specs adapter; one grouped suite)
-  - `specs.BDD.VSTestAdapter.Tests` — 252 results (244 passed, 8 pending fixture specs skipped)
-  - `specs.BDD.VSTestAdapter.IntegrationTests` — 27 results (22 passed, 5 pending skipped; `CalculatorSpecs` reports one result per root context)
+- **Tests**: 637 results — 624 passed, 13 skipped (all pending specs), 0 failed.
+  - `specs.core.UnitTests` — 332 results (run by the Specs adapter; one grouped suite)
+  - `specs.BDD.VSTestAdapter.Tests` — 272 results (264 passed, 8 pending fixture specs skipped)
+  - `specs.BDD.VSTestAdapter.IntegrationTests` — 28 results (23 passed, 5 pending skipped; `CalculatorSpecs` reports one result per root context)
   - `specs.BDD.UnitTests` — 5
 - **Open bugs**: none known.
 - **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
@@ -347,3 +376,5 @@ Removed as redundant or superseded:
 8. 📌 Should `MarkerStyle` detection cover other non-ANSI hosts (e.g. Rider) beyond `VSAPPIDNAME=devenv.exe`?
 9. 📌 Should `TestCaseExecutor` honour `ITestCase.PendingTests` so non-VSTest hosts skip pending specs too?
 10. 📌 Should the legacy `Spec` API gain `TODO` / `xIt` equivalents?
+11. 📌 Should the parameterless `ShouldThrow<T>()` navigate to the `It[...]` line (e.g. by capturing a caller location), rather than falling back to the `[Context]` method?
+12. 📌 Should the legacy `Spec.ShouldThrow<T>()` / `ShouldThrowAsync<T>()` helpers converge on `ActExceptionContext`?

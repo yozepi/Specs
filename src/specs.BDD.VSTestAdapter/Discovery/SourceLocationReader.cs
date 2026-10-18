@@ -96,10 +96,15 @@ namespace specs.BDD.VSTestAdapter.Discovery
         }
 
         /// <summary>
-        /// Returns the user-authored method behind an It[...] action, unwrapping async
-        /// tests whose wrapper is bound to the original <c>Func&lt;Task&gt;</c>.
+        /// Returns the user-authored method behind an It[...] action, unwrapping wrappers
+        /// (async tests, ShouldThrow verifiers) that are bound to the delegate they wrap.
         /// </summary>
         public static MethodInfo GetTestMethod(Action action)
-            => (action.Target as Delegate)?.Method ?? action.Method;
+        {
+            Delegate current = action;
+            while (current.Target is Delegate inner)
+                current = inner;
+            return current.Method;
+        }
     }
 }

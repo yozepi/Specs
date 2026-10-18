@@ -40,10 +40,10 @@ The solution contains **9 projects** plus a separate example.
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 📌 303 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
+| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 📌 332 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
 | **specs.BDD.UnitTests** | `src/specs.specification.UnitTests/` | BDD API unit tests (NUnit) |
-| **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 📌 252 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
-| **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 27 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs class-level grouped |
+| **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 📌 272 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
+| **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 28 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs class-level grouped |
 
 ### Legacy / Internal (2)
 
@@ -129,6 +129,7 @@ public class CalculatorSpecs : Spec
 - 📌 Opt-in **grouped execution** — a root `[Context]` runs as one test result with an NSpec-style tree report in its output, selected via the `SpecReporting` enum at method (`[Context(Reporting = ...)]`), class or assembly (`[SpecReporting(...)]`), or `.runsettings` level.
 - 📌 Class-level (constructor-registered) `BeforeAll` / `AfterAll` running once per suite.
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
+- 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
 - Adapter pattern for swappable test-framework integration.
 
 **Out of scope**:
@@ -154,7 +155,8 @@ public class CalculatorSpecs : Spec
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Both API styles produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter).
-- ✅ **The framework tests its own core with itself** — 📌 303 self-hosted test results, plus 252 adapter and 27 integration results.
+- ✅ **The framework tests its own core with itself** — 📌 332 self-hosted test results, plus 272 adapter and 28 integration results.
 - ✅ A root `[Context]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).
+- ✅ 📌 An exception thrown by `Act` is verifiable from `It` via `ShouldThrow<T>`, and otherwise fails only that spec while `AfterEach` / `AfterAll` still run — identically in `TestCaseExecutor`, per-`It`, and grouped execution.

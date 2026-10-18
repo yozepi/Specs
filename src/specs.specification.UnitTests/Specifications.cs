@@ -1,5 +1,7 @@
 using NFluent;
+using specs.core.Framework.Assertions;
 using specs.core.Framework.Processors.TestCases;
+using specs.core.Framework.Processors.TestExecutors;
 using System;
 using System.Threading.Tasks;
 using yozepi;
@@ -415,6 +417,37 @@ namespace specs.BDD.UnitTests
                         it["should mark its specs as pending"] = () =>
                             Check.That(built.ChildContexts[0].PendingTests).ContainsExactly("inner");
                     };
+                };
+
+                context["ShouldThrow"] = () =>
+                {
+                    Action throwingAct = () => throw new DivideByZeroException("Attempted to divide by zero.");
+                    Action quietAct = () => { };
+
+                    it["should reject a null verifier"] = () =>
+                        Check.ThatCode(() => BDD.Specifications.ShouldThrow<DivideByZeroException>(null!))
+                            .Throws<ArgumentNullException>();
+
+                    it["should bind the returned test to the verifier"] = () =>
+                    {
+                        Action<DivideByZeroException> verify = _ => { };
+                        Check.That(BDD.Specifications.ShouldThrow(verify).Target).IsSameReferenceAs(verify);
+                    };
+
+                    it["should pass when Act throws an assignable exception"] = () =>
+                        Check.ThatCode(() => ActExceptionContext.Run(throwingAct, BDD.Specifications.ShouldThrow<ArithmeticException>()))
+                            .DoesNotThrow();
+
+                    it["should pass the Act exception to the verifier"] = () =>
+                    {
+                        string? message = null;
+                        ActExceptionContext.Run(throwingAct, BDD.Specifications.ShouldThrow<DivideByZeroException>(ex => message = ex.Message));
+                        Check.That(message).IsEqualTo("Attempted to divide by zero.");
+                    };
+
+                    it["should fail when Act does not throw"] = () =>
+                        Check.ThatCode(() => ActExceptionContext.Run(quietAct, BDD.Specifications.ShouldThrow<DivideByZeroException>()))
+                            .Throws<ExpectedExceptionNotThrownException>();
                 };
 
                 context["full lifecycle integration"] = () =>

@@ -337,5 +337,101 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             }
             finally { PendingWithFailingRootBeforeAll.TriggerFailure = false; }
         }
+
+        // ── ShouldThrow ───────────────────────────────────────────────────────────────────────
+
+        private static TestResult InvokeShouldThrow(string context, string description) =>
+            TestInvoker.Invoke(MakeTestCase<ShouldThrowSpec>(
+                "describe_should_throw",
+                $"should throw{TestStructureExtractor.PathSeparator}{context}",
+                description));
+
+        private static TestResult InvokeShouldThrowWithFailure(string context, string description)
+        {
+            ShouldThrowSpec.TriggerFailure = true;
+            try { return InvokeShouldThrow(context, description); }
+            finally { ShouldThrowSpec.TriggerFailure = false; }
+        }
+
+        [TestCase("the thrown type")]
+        [TestCase("a base type")]
+        [TestCase("a verified exception")]
+        public void Invoke_ShouldThrow_WhenActThrowsExpectedException_ReturnsPassed(string description)
+        {
+            var result = InvokeShouldThrow("when Act throws", description);
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Passed);
+        }
+
+        [Test]
+        public void Invoke_ShouldThrow_WhenActDoesNotThrow_ReturnsFailed()
+        {
+            var result = InvokeShouldThrowWithFailure("when Act may not throw", "an expected exception");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(result.ErrorMessage)
+                .Contains("Expected DivideByZeroException to be thrown, but no exception was thrown.");
+        }
+
+        [Test]
+        public void Invoke_ShouldThrow_WhenActThrowsAnotherType_ReturnsFailed()
+        {
+            var result = InvokeShouldThrowWithFailure("when Act may throw another type", "an expected exception");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(result.ErrorMessage)
+                .Contains("Expected DivideByZeroException to be thrown, but FormatException was thrown.");
+        }
+
+        [Test]
+        public void Invoke_ShouldThrow_WhenVerifierFails_ReturnsVerifierFailure()
+        {
+            var result = InvokeShouldThrowWithFailure("when the verifier may fail", "a verified exception");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(result.ErrorMessage).Contains("verify failed");
+        }
+
+        [Test]
+        public void Invoke_PlainSpec_WhenActThrows_FailsWithActExceptionAndRunsTeardown()
+        {
+            ShouldThrowSpec.ClearLog();
+
+            var result = InvokeShouldThrowWithFailure("when Act may fail unexpectedly", "a plain spec");
+
+            Check.That(result.Outcome).IsEqualTo(TestOutcome.Failed);
+            Check.That(result.ErrorMessage).Contains("act failed");
+            Check.That(ShouldThrowSpec.Log).ContainsExactly("plain spec ran", "AfterEach");
+        }
+
+        [Test]
+        public void InvokeSuite_ShouldThrow_AllSpecsPassWithoutFailureTrigger()
+        {
+            var results = InvokeSuite<ShouldThrowSpec>();
+
+            Check.That(results).HasSize(7);
+            Check.That(results.Select(r => r.Outcome)).ContainsOnlyElementsThatMatch(o => o == TestOutcome.Passed);
+        }
+
+        [Test]
+        public void InvokeSuite_ShouldThrow_ActFailureFailsOnlyAffectedSpecs()
+        {
+            ShouldThrowSpec.TriggerFailure = true;
+            try
+            {
+                var failed = InvokeSuite<ShouldThrowSpec>()
+                    .Where(r => r.Outcome == TestOutcome.Failed)
+                    .Select(r => r.TestCase.GetPropertyValue<string>(TestProperties.ContextPath, null)!)
+                    .ToList();
+
+                var separator = TestStructureExtractor.PathSeparator;
+                Check.That(failed).IsEquivalentTo(
+                    $"should throw{separator}when the verifier may fail",
+                    $"should throw{separator}when Act may not throw",
+                    $"should throw{separator}when Act may throw another type",
+                    $"should throw{separator}when Act may fail unexpectedly");
+            }
+            finally { ShouldThrowSpec.TriggerFailure = false; }
+        }
     }
 }
