@@ -54,6 +54,12 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ `InvalidSpecificationException` surfaced when a suite has no `[Describe]` methods.
 - ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
 
+### 📌 NEW — .NET 10 upgrade (test projects)
+
+- ✅ All four test projects target `net10.0` (was `net8.0`); deliverables remain `netstandard2.1`.
+- ✅ Redundant `System.Text.Encodings.Web` references removed from `specs.core.UnitTests` and `specs.BDD.UnitTests`.
+- ✅ Final validation task completed (solution build + tests); tracked in `.github/upgrades/scenarios/dotnet-version-upgrade/`.
+
 ### 📌 REMOVED — Legacy `Spec` API
 
 The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, and `Examples/ConsoleExample` were deleted (22 files, 1,395 lines). Decision #31 in `systemPatterns.md`.

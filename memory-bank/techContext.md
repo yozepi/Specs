@@ -7,7 +7,7 @@
 flowchart TD
     subgraph Runtimes["Target Runtimes"]
         NS21["netstandard2.1<br/>(deliverables)"]:::app
-        N8["net8.0<br/>(test projects)"]:::app
+        N8["net10.0<br/>(test projects)"]:::app
     end
 
     subgraph Lang["Language"]
@@ -55,7 +55,7 @@ flowchart TD
 | Project type | TFM | Notes |
 |--------------|-----|-------|
 | Deliverables (core, BDD, VSTestAdapter) | `netstandard2.1` | Broad compatibility — runs on .NET Core 3.0+, .NET 5+, .NET Framework support via netstandard2.1 polyfills |
-| All test projects | `net8.0` | NUnit + NFluent + Microsoft.NET.Test.Sdk |
+| All test projects | `net10.0` 📌 UPDATED (was `net8.0`) | NUnit + NFluent + Microsoft.NET.Test.Sdk; the redundant `System.Text.Encodings.Web` pin was dropped from `specs.core.UnitTests` and `specs.BDD.UnitTests` |
 | TestHarness (internal) | `netstandard2.1` | Bridges to nspec for internal scaffolding |
 
 ## Language
@@ -205,7 +205,7 @@ Specs/
 
 ### Prerequisites
 
-- **.NET SDK 8.0+** (required for the test projects; SDK can build netstandard2.1 deliverables)
+- **.NET SDK 10.0+** 📌 UPDATED (required for the net10.0 test projects; SDK can build netstandard2.1 deliverables)
 - **Visual Studio 2022 17.8+**, **VS Code with C#/C# Dev Kit**, or **Rider 2023+**
 - **Git**
 

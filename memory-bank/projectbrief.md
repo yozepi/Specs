@@ -6,7 +6,7 @@
 |----------|-------|
 | **Name** | Specs |
 | **Type** | .NET BDD testing framework + VSTest adapter |
-| **Core Target** | .NET Standard 2.1 (deliverables) / net8.0 (tests) |
+| **Core Target** | .NET Standard 2.1 (deliverables) / net10.0 (tests) 📌 UPDATED |
 | **Language** | C# 8.0 with nullable reference types |
 | **Repository** | <https://github.com/yozepi/Specs> |
 
@@ -95,7 +95,7 @@ public class CalculatorSpecs : Specifications      // Suite
 ## Technology Stack
 
 - **Deliverables**: .NET Standard 2.1, C# 8.0, nullable enabled.
-- **Tests**: net8.0. `specs.core.UnitTests` runs on **Specs itself**; the BDD and adapter test projects use NUnit 3.x. NFluent 3.x for assertions, Autofac.Extras.Moq 7.0 in core tests only.
+- **Tests**: net10.0 📌 UPDATED. `specs.core.UnitTests` runs on **Specs itself**; the BDD and adapter test projects use NUnit 3.x. NFluent 3.x for assertions, Autofac.Extras.Moq 7.0 in core tests only.
 - **Adapter dependencies**: Microsoft.TestPlatform.ObjectModel 17.8.0, System.Reflection.Metadata 6.0.0.
 - **Legacy bridge**: nspec 3.1.0 (TestHarness only — not shipped).
 
