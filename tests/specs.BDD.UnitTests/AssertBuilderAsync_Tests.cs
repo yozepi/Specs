@@ -1,19 +1,11 @@
-// NFluent and specs imports
 using NFluent;
-using NUnit.Framework;
+using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
 
 namespace specs.BDD.UnitTests
 {
-    public class AssertBuilderAsync : BaseAssertBuilderSpecs<BDD.AssertBuilderAsync, Func<Task>>
+    public class AssertBuilderAsync_Tests : BaseAssertBuilderSpecs<BDD.AssertBuilderAsync, Func<Task>>
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
-
         protected override string ActionVerb => "async";
 
 
@@ -26,9 +18,9 @@ namespace specs.BDD.UnitTests
 
         protected override void ExtendedUsePatterns()
         {
-            context["with actual async operations"] = () =>
+            Context["with actual async operations"] = () =>
             {
-                it["should handle Task.Delay operations"] = () =>
+                It["should handle Task.Delay operations"] = () =>
                 {
                     Check.ThatCode(() =>
                     {
@@ -39,7 +31,7 @@ namespace specs.BDD.UnitTests
                     }).DoesNotThrow();
                 };
 
-                it["should handle async method calls"] = () =>
+                It["should handle async method calls"] = () =>
                 {
                     Check.ThatCode(() =>
                     {
@@ -53,7 +45,8 @@ namespace specs.BDD.UnitTests
             };
         }
 
-        private void AssertBuilderAsync_Specs()
+        [Describe]
+        public void AssertBuilderAsync()
         {
             SetSharedSpecs();
         }

@@ -50,21 +50,21 @@
 ## 📍 Project Structure Reference
 
 ```
+├── Specs.sln
 ├── memory-bank/             # 📚 Documentation (READ THIS FIRST!)
-└── src/
-    ├── specs.core/                  # DELIVERABLE — framework-agnostic core
-    │   └── Framework/
-    │       ├── Adapters/            # External dependency abstractions
-    │       ├── Processors/          # Test case models & executors
-    │       └── Settings/            # Configuration
-    ├── specs.specification/         # DELIVERABLE — specs.BDD authoring API
-    ├── specs.BDD.VSTestAdapter/     # DELIVERABLE — Discovery/Conversion/Execution
+├── src/
+│   ├── specs.core/                  # DELIVERABLE — framework-agnostic core
+│   │   └── Framework/
+│   │       ├── Adapters/            # External dependency abstractions
+│   │       ├── Processors/          # Test case models & executors
+│   │       └── Settings/            # Configuration
+│   ├── specs.specification/         # DELIVERABLE — specs.BDD authoring API
+│   └── specs.BDD.VSTestAdapter/     # DELIVERABLE — Discovery/Conversion/Execution
+└── tests/
     ├── specs.core.UnitTests/        # Self-hosted (runs on Specs itself)
-    ├── specs.specification.UnitTests/
+    ├── specs.BDD.UnitTests/
     ├── specs.BDD.VSTestAdapter.Tests/
-    ├── specs.BDD.VSTestAdapter.IntegrationTests/
-    ├── Specs.csproj + Domain/       # Legacy property-based Spec API
-    └── TestHarness/                 # Internal-only nspec bridge (NOT a deliverable)
+    └── specs.BDD.VSTestAdapter.IntegrationTests/
 ```
 
 ## 🚫 Common Pitfalls to Avoid

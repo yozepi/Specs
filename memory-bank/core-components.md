@@ -398,51 +398,41 @@ public void ProcessTestCase(CancellationToken cancellationToken)
 
 ---
 
-## 12. nSpecTestHarness
+## 12. nSpecTestHarness — 📌 REMOVED
 
-**Location**: `TestHarness/nSpecTestHarness.cs`
-
-**Purpose**: Base class for integrating Specs framework with NSpec and NUnit.
-
-**Key Features**:
-- **Tag Support**: Filter tests by tags
-- **Focus Tags**: Run only focused tests
-- **Formatter**: Configurable output formatting
-- **Fail Fast**: Stop on first failure
-- **NUnit Integration**: Asserts test results through NUnit
-
-**Key Methods**:
-- `LoadSpecs(Func<Type[]> specFinder)`: Load test specifications
-- `RunSpecs()`: Execute loaded specs
-- `RunSpecs(Func<Type[]> specFinder)`: Load and run in one call
-- `RunMySpecs()`: Run specs from current test class
-
-**Workflow**:
-1. Find spec types
-2. Build contexts (with tag filtering)
-3. Run contexts through NSpec runner
-4. Assert results through NUnit
+The `TestHarness` project (`nSpecTestHarness`, an nspec + NUnit bridge exposing `RunMySpecs()`) was deleted once `specs.BDD.UnitTests` — its last consumer — moved to `Specifications` + `[Describe]`. See `systemPatterns.md` section "Test Hosting" and decision #33.
 
 ---
 
 ## Component Interaction Diagram
 
-```
-User Test Code
-    ↓
-ContextualTestCaseBuilder (Build test structure)
-    ↓
-Build() → ContextualTestCase (Immutable representation)
-    ↓
-TestCaseExecutor (Execute lifecycle)
-    ↓
-├─→ ITestProviderAdapter (Get tests)
-├─→ ITestContextAdapter (Run lifecycle hooks)
-└─→ ILoggingAdapter (Log results)
-    ↓
-nSpecTestHarness (Integration layer)
-    ↓
-NSpec Runner → NUnit Assertions
+```mermaid
+---
+title: "C4 Level 3 — Component: specs.core execution"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    USR["<b>User Test Code</b><br/>[Component: Specifications subclass]<br/>Declares the spec tree"]:::external
+    BLD["<b>ContextualTestCaseBuilder</b><br/>[Component: C# class]<br/>Accumulates lifecycle actions"]:::app
+    TC["<b>ContextualTestCase</b><br/>[Component: immutable tree]<br/>Built test structure"]:::app
+    EXE["<b>TestCaseExecutor</b><br/>[Component: C# class]<br/>Runs the lifecycle"]:::app
+    ADP["<b>I*Adapter implementations</b><br/>[Component: host adapter]<br/>Tests, hooks, logging"]:::app
+
+    USR -->|"Builds via [in-process]"| BLD
+    BLD -->|"Build() [in-process]"| TC
+    TC -->|"Executed by [in-process]"| EXE
+    EXE -->|"Calls [adapter interfaces]"| ADP
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["App-owned"]:::app
+        L2["User code"]:::external
+    end
+
+    ADP ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
 ```
 
 ---

@@ -741,6 +741,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 30 | 📌 NEW **Context-builder attribute renamed `[Context]` → `[Describe]`** | Matches the `Describe[...]` vocabulary and the BDD idiom; the attribute marks the root describe block of a suite | **Breaking**: `ContextAttribute` → `DescribeAttribute` (same members: `Description`, `Reporting`, `ReportingSetting` — 📌 since renamed by #32); scanners, extractor, grouping resolver, error message, README and all fixtures updated. `Context[...]` / `xContext` indexers are unchanged |
 | 31 | 📌 NEW **Legacy `Spec` API, `Domain/` layer, `Specs.csproj` and `Examples/ConsoleExample` removed** | Two API styles doubled the documentation and maintenance burden; the modern `Specifications` API + `specs.core` fully replace it, and the core now self-hosts | **Breaking**: `Spec`, `Global.cs`, `Domain/*` (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`/`IRunContainer`, spec definitions, `Exceptions/*`) and the `ConsoleExample` sample are deleted (1,395 lines). Migrate by deriving from `Specifications` and using `[Describe]` methods; `ShouldThrow<T>()` now lives on `Specifications` (see #25–28) |
 | 32 | 📌 NEW **`SpecReporting` renamed `TestStructure` (`PerSpec` / `PerDescribe`); `ContextPath` delimiter moved to `Conversion.ContextPathFormat`** | The switch decides how specs map to VSTest test cases (granularity), not merely how results are reported; the delimiter is part of the `SpecTest.ContextPath` contract shared by discovery and execution, so execution should not depend on a discovery class for it | **Breaking**: `SpecReporting` → `TestStructure`, `SpecReportingAttribute` → `TestStructureAttribute`, `Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `SpecReporting` → `TestStructure`. Adapter: `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, `PathSeparator` → `ContextPathFormat.Separator`. Behaviour, FQNs, and precedence unchanged |
+| 33 | 📌 NEW **Repo split into `src/` (deliverables) + `tests/` (test projects); `Specs.sln` at the root; `TestHarness` retired; `specs.BDD.UnitTests` self-hosted** | Deliverables and test code are separated at folder level, and the nspec bridge was only kept alive by `specs.BDD.UnitTests` — once that project ran on Specs, nothing needed it | `TestHarness` project, `nspec 3.1.0`, and every NUnit dependency outside `specs.BDD.VSTestAdapter.Tests` are gone; solution goes from 8 to 7 projects. Test files take a `_Tests` suffix so the class name no longer collides with the type under test, and the `[Describe]` method is named after that type. See section "Test Hosting" |
 
 ## Critical Execution Paths
 
@@ -1043,6 +1044,109 @@ Benefits:
 - All three execution paths share the same capture code, so per-`It`, single-invoke, and grouped runs agree.
 
 > **📌 See**: decisions #25–28 above.
+
+## 📌 NEW — Test Hosting (self-hosting + `src/` / `tests/` split)
+
+Which runner discovers each test project, and where it lives on disk. Decision #33 records the rationale.
+
+### 📌 BEFORE (nspec bridge for the BDD tests)
+
+```mermaid
+---
+title: "C4 Level 2 — Container: Test hosting (BEFORE)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    VST["<b>VSTest Platform</b><br/>[Software System: Microsoft]<br/>Runs all test projects"]:::external
+
+    subgraph SRC["Folder: src/ (Specs.sln here)"]
+        direction TB
+        NUA["<b>NUnit3TestAdapter</b><br/>[Library: NuGet]<br/>Hosts NUnit fixtures"]:::external
+        BUT["<b>specs.BDD.UnitTests</b><br/>[Container: NUnit tests]<br/>5 [Test] wrappers"]:::deprecated
+        TH["<b>TestHarness</b><br/>[Container: netstandard2.1]<br/>nSpecTestHarness.RunMySpecs"]:::deprecated
+        NSPEC["<b>nspec 3.1</b><br/>[Library: NuGet]<br/>Legacy BDD runner"]:::deprecated
+        CUT["<b>specs.core.UnitTests</b><br/>[Container: Specs-hosted]<br/>Still referenced TestHarness"]:::deprecated
+    end
+
+    VST -->|"Loads adapter [VSTest]"| NUA
+    NUA -->|"Runs [NUnit]"| BUT
+    BUT -->|"Inherits base [project ref]"| TH
+    TH -->|"Executes specs [nspec API]"| NSPEC
+    CUT -.->|"Unused ref [project ref]"| TH
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Deprecated"]:::deprecated
+        L2["External"]:::external
+    end
+
+    NSPEC ~~~ LEGEND
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- `specs.BDD.UnitTests` wrote nspec syntax (`describe[...]`, `it[...]`, `act = ...`) wrapped in one NUnit `[Test]` per class — 5 results for the whole spec tree, with failures surfaced only through NUnit's aggregate assertion.
+- `TestHarness` (and with it `nspec` + `NUnit`) leaked into `specs.core.UnitTests` via a global `Using Include="NUnit.Framework"`.
+- Deliverables and test projects were mixed in `src/`, with the solution file nested inside it.
+
+### 📌 AFTER (Specs hosts its own unit tests)
+
+```mermaid
+---
+title: "C4 Level 2 — Container: Test hosting (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    VST["<b>VSTest Platform</b><br/>[Software System: Microsoft]<br/>Runs all test projects"]:::external
+
+    subgraph SRC["Folder: src/"]
+        direction TB
+        ADP["<b>specs.BDD.VSTestAdapter</b><br/>[Container: netstandard2.1]<br/>Specs discovery + execution"]:::app
+    end
+
+    subgraph TESTS["Folder: tests/"]
+        direction TB
+        SELF["<b>Self-hosted suites</b><br/>[Container: Specs-hosted]<br/>core + BDD + integration"]:::app
+        AUT["<b>specs.BDD.VSTestAdapter.Tests</b><br/>[Container: NUnit tests]<br/>Independent safety net"]:::app
+        NUA["<b>NUnit3TestAdapter</b><br/>[Library: NuGet]<br/>Adapter tests only"]:::external
+    end
+
+    VST -->|"Loads adapter [VSTest]"| ADP
+    ADP -->|"Discovers [Describe] [reflection]"| SELF
+    VST -->|"Loads adapter [VSTest]"| NUA
+    NUA -->|"Runs fixtures [NUnit]"| AUT
+    AUT -->|"Tests [project ref]"| ADP
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["App-owned"]:::app
+        L2["External"]:::external
+    end
+
+    AUT ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+Benefits:
+
+- `specs.BDD.UnitTests` derives from `Specifications` with `[Describe]` methods and is run by the Specs adapter: 5 opaque NUnit results → 📌 147 individual spec results with Test Explorer nesting and source navigation.
+- Three of four test projects now run on Specs; only the adapter's own tests stay on NUnit, so a broken adapter cannot hide its own failures.
+- No `nspec`, no `TestHarness`, and no `NUnit` reference outside `specs.BDD.VSTestAdapter.Tests` (`TestCaseExecutor_Tests` swapped NUnit's `AssertionException` for `InvalidOperationException`).
+- `Specs.sln` at the repo root; `src/` holds only the three deliverables and `tests/` holds the four test projects (`ProjectReference`s now `..\..\src\...`).
+
+Conventions introduced by the migration:
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Test file / class | `<TypeUnderTest>_Tests` | `ContextBuilder_Tests`, `TestContextAdapter_Tests` |
+| Root `[Describe]` method | Named after the type under test | `[Describe] public void ContextBuilder()` |
+| Shared spec bodies | Abstract base deriving `Specifications`, concrete `[Describe]` per subclass | `BaseAssertBuilderSpecs<TSubject, TDelegate>` → `AssertBuilder_Tests` / `AssertBuilderAsync_Tests` |
+| nspec → Specs syntax | `describe`/`context`/`it` → `Describe`/`Context`/`It`; `act = ...` / `beforeEach = ...` → `Act(...)` / `BeforeEach(...)` | — |
 
 ## Pattern Summary
 

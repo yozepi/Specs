@@ -2,17 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (TestHarness)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/TestHarness/bin/Debug/net8.0/TestHarness.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/src/TestHarness",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        },
-        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach"
@@ -25,7 +14,7 @@
             "program": "dotnet",
             "args": [
                 "test",
-                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "${workspaceFolder}/tests/specs.core.UnitTests/specs.core.UnitTests.csproj",
                 "--no-build",
                 "--logger:console;verbosity=detailed"
             ],
@@ -41,7 +30,7 @@
             "program": "dotnet",
             "args": [
                 "test",
-                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "${workspaceFolder}/tests/specs.core.UnitTests/specs.core.UnitTests.csproj",
                 "--no-build",
                 "--filter",
                 "FullyQualifiedName~${input:testFilter}"
@@ -58,7 +47,7 @@
             "program": "dotnet",
             "args": [
                 "test",
-                "${workspaceFolder}/src/specs.core.UnitTests/specs.core.UnitTests.csproj",
+                "${workspaceFolder}/tests/specs.core.UnitTests/specs.core.UnitTests.csproj",
                 "--no-build",
                 "--filter",
                 "FullyQualifiedName~${fileBasenameNoExtension}"

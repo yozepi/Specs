@@ -2,9 +2,11 @@
 
 ## Current Focus
 
-**📌 NEW — `SpecReporting` → `TestStructure` rename** — the grouping switch is renamed to say what it actually controls: how specs map to VSTest test cases. **Breaking**: `SpecReporting` (`Individual` / `GroupedByRootContext`) → `TestStructure` (`PerSpec` / `PerDescribe`), `[SpecReporting]` → `[TestStructure]`, `DescribeAttribute.Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `<SpecsBDD><SpecReporting>` → `<SpecsBDD><TestStructure>`. In the adapter, `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, and the `ContextPath` delimiter moved from `TestStructureExtractor.PathSeparator` to the new `Conversion.ContextPathFormat.Separator`, so execution no longer reaches into `Discovery` for path formatting. No behaviour change. See `systemPatterns.md` decision #32.
+**📌 NEW — `src/` + `tests/` split, `TestHarness` retired, `specs.BDD.UnitTests` self-hosted** — `Specs.sln` moved from `src/` to the repo root; the four test projects moved to `tests/` (`src/specs.specification.UnitTests/` became `tests/specs.BDD.UnitTests/`, matching its assembly name), leaving only the three deliverables in `src/`. `specs.BDD.UnitTests` was rewritten from nspec syntax on `nSpecTestHarness` (5 NUnit `[Test]` wrappers) to `Specifications` + `[Describe]` run by the Specs adapter (147 results). With no remaining consumer, the `TestHarness` project (`nSpecTestHarness`, `nspec 3.1.0`) was deleted, and NUnit now appears only in `specs.BDD.VSTestAdapter.Tests`. `CalculatorSpecs` switched from class-level `PerDescribe` to `PerSpec` (integration 28 → 34 results). See `systemPatterns.md` section "Test Hosting" and decision #33.
 
-**📌 NEW — .NET 10 test-project upgrade (commits `ba0a0f9`, `b496376`, `a4ad8cc`, `4affb1b`)** — the four `net8.0` test projects (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `specs.BDD.VSTestAdapter.Tests`, `specs.BDD.VSTestAdapter.IntegrationTests`) now target `net10.0`, upgraded top-down one project at a time and validated with a full solution build/test. The `netstandard2.1` deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`, `TestHarness`) are unchanged, so no multi-targeting was needed. The explicit `System.Text.Encodings.Web 9.0.11` reference was removed from `specs.core.UnitTests` and `specs.BDD.UnitTests`. Upgrade assessment, plan, and per-task logs live under `.github/upgrades/scenarios/dotnet-version-upgrade/`. See `techContext.md` section "Target Frameworks".
+**📌 `SpecReporting` → `TestStructure` rename** — the grouping switch is renamed to say what it actually controls: how specs map to VSTest test cases. **Breaking**: `SpecReporting` (`Individual` / `GroupedByRootContext`) → `TestStructure` (`PerSpec` / `PerDescribe`), `[SpecReporting]` → `[TestStructure]`, `DescribeAttribute.Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `<SpecsBDD><SpecReporting>` → `<SpecsBDD><TestStructure>`. In the adapter, `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, and the `ContextPath` delimiter moved from `TestStructureExtractor.PathSeparator` to the new `Conversion.ContextPathFormat.Separator`, so execution no longer reaches into `Discovery` for path formatting. No behaviour change. See `systemPatterns.md` decision #32.
+
+**📌 NEW — .NET 10 test-project upgrade (commits `ba0a0f9`, `b496376`, `a4ad8cc`, `4affb1b`)** — the four `net8.0` test projects (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `specs.BDD.VSTestAdapter.Tests`, `specs.BDD.VSTestAdapter.IntegrationTests`) now target `net10.0`, upgraded top-down one project at a time and validated with a full solution build/test. The `netstandard2.1` deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`, and the since-deleted `TestHarness`) are unchanged, so no multi-targeting was needed. The explicit `System.Text.Encodings.Web 9.0.11` reference was removed from `specs.core.UnitTests` and `specs.BDD.UnitTests`. Upgrade assessment, plan, and per-task logs live under `.github/upgrades/scenarios/dotnet-version-upgrade/`. See `techContext.md` section "Target Frameworks".
 
 **📌 NEW — Legacy `Spec` API removed** — the property-based `Spec` class, its `Domain/` runtime layer (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`, `IRunContainer`, `ISpecDefinition`, `IndexedRunnerDelegate`, `Runner`, `Action/TaskSpecDefinition`, `Exceptions/*`), `Global.cs`, the `Specs.csproj` stub, and the `Examples/ConsoleExample` sample are deleted (22 files, 1,395 lines). `Specifications` is now the only authoring API. See `systemPatterns.md` decision #31.
 
@@ -40,15 +42,33 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 |------|-------|
 | `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException`; 📌 public `TestCaseExecutor` + adapter types, `TestContextAdapter.FromTestCase`, no `InternalsVisibleTo` for the adapter |
 | `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure`, `TestStructureAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 `SuiteTreeFlattener` + `ContextPathFormat`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 28 integration results passing (13 Skipped = pending) |
-| `specs.core.UnitTests` | Self-hosted; 📌 333 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 `SuiteTreeFlattener` + `ContextPathFormat`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 📌 34 integration results passing (13 Skipped = pending) |
+| `specs.core.UnitTests` | Self-hosted; 333 results passing (`TestContextAdapter_Tests` suite runs grouped, collapsing 27 `It`s into 1 result); 📌 NUnit-free, moved to `tests/` |
+| `specs.BDD.UnitTests` | 📌 Self-hosted (was NUnit + nspec via `TestHarness`); 147 results; moved to `tests/` |
 | Legacy `Spec` API | 📌 REMOVED — `Specifications` is the only API; `Examples/ConsoleExample` removed too |
-| TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
+| TestHarness | 📌 REMOVED — no remaining consumer once `specs.BDD.UnitTests` self-hosted |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — `SpecReporting` → `TestStructure` rename, 21 files)
+### 📌 NEW — Repo restructure + BDD self-hosting (54 files)
+
+BEFORE/AFTER diagrams and naming conventions live in `systemPatterns.md` section "Test Hosting"; decision #33 records the rationale. No production code changed.
+
+| Area | File(s) | What changed |
+|------|---------|--------------|
+| Solution | `src/Specs.sln` → `Specs.sln` | Moved to the repo root; project paths now `src\...` / `tests\...`; `TestHarness` entry and its configurations removed (8 → 7 projects) |
+| Removed | `src/TestHarness/TestHarness.csproj`, `nSpecTestHarness.cs` 📌 DELETED | nspec bridge (`nspec 3.1.0`, `NUnit 3.14.0`, `System.Text.Encodings.Web 9.0.11`) |
+| Test projects | `src/specs.*Tests/` → `tests/specs.*Tests/` | All four moved; `ProjectReference`s rewritten to `..\..\src\...`; `src/specs.specification.UnitTests/` folder renamed `tests/specs.BDD.UnitTests/` |
+| `specs.BDD.UnitTests` | `.csproj` | Dropped `NUnit3TestAdapter`, `NUnit.Analyzers`, the `TestHarness` reference, and the global `Using NUnit.Framework`; added a `ProjectReference` to `specs.BDD.VSTestAdapter` |
+| `specs.BDD.UnitTests` | `AssertBuilder_Tests`, `AssertBuilderAsync_Tests`, `ContextBuilder_Tests`, `Specifications_Tests`, `BaseAssertBuilderSpecs`, `Attributes/DescribeAttribute_Tests` | Renamed with a `_Tests` suffix; base class `nSpecTestHarness` → `Specifications`; `[Test] Specs() => RunMySpecs()` + private `*_Specs()` → one public `[Describe]` method named after the type under test; `describe`/`context`/`it`/`act =`/`beforeEach =` → `Describe`/`Context`/`It`/`Act(...)`/`BeforeEach(...)`. `ContextBuilder_Tests` hoists the shared `BeforeEach` callback above `Act` |
+| `specs.core.UnitTests` | `.csproj`, `TestContextAdapter.cs` → `TestContextAdapter_Tests.cs`, `RunAll*_Tests.cs`, `TestCaseExecutor_Tests.cs` | `TestHarness` reference and global `Using NUnit.Framework` removed; stray `using NUnit.Framework` deleted; NUnit `AssertionException` → `InvalidOperationException` in the executor-failure specs; `TestContextAdapter` suite class renamed `TestContextAdapter_Tests` with `[Describe]` method `TestContextAdapter()` |
+| Adapter tests / integration | `.csproj` files | Paths only |
+| Integration | `CalculatorSpecs.cs` | Class-level `[TestStructure(PerDescribe)]` → `[TestStructure(PerSpec)]`; `Subtraction (grouped)` keeps its method-level `PerDescribe` (results 28 → 34) |
+| Tooling | `.vscode/tasks.json`, `launch.json`, `settings.json`, `.clinerules/default-rules.md` | Paths point at `Specs.sln` / `tests\specs.core.UnitTests`; `watch` task and TestHarness launch config removed; project-structure reference redrawn |
+| Docs | `README.md` | TestHarness and the nspec dependency dropped from the project list / tech stack |
+
+### 📌 `SpecReporting` → `TestStructure` rename, 21 files)
 
 Pure rename/relocation — discovery output, FQNs (`Class::Method::[grouped]`), precedence, and runtime behaviour are unchanged. Decision #32 in `systemPatterns.md` records the rationale.
 
@@ -93,7 +113,7 @@ BEFORE/AFTER diagrams and the outcome contract live in `systemPatterns.md` secti
 | Adapter / Execution | `TestInvoker.cs`, `GroupedContextRunner.cs` | `RunLifecycle` / `RunTest` call `ActExceptionContext.Run(node.Act, test)` |
 | Adapter / Discovery | `SourceLocationReader.cs` | `GetTestMethod` loops through nested `Delegate.Target`s (async wrapper and `ShouldThrow` verifier) |
 | Tests | `ActExceptionContext_Tests.cs`, `ActExceptionAssertions_Tests.cs` 📌 NEW, `TestCaseExecutor_Tests.cs` | Self-hosted core specs for `Run` / `MarkHandled` / nesting / null args and verifier outcomes; executor `Act`-throws context rewritten (logs `LogAssertFailure`, does not throw, still tears down; rethrows with `StopOnAssertFailure`; handled exception logs success) |
-| Tests | `specs.specification.UnitTests/Specifications.cs` | Harness specs for `ShouldThrow` (null verifier, bound target, assignable pass, verifier receives exception, no-throw fails) |
+| Tests | `specs.specification.UnitTests/Specifications.cs` (📌 now `tests/specs.BDD.UnitTests/Specifications_Tests.cs`) | Harness specs for `ShouldThrow` (null verifier, bound target, assignable pass, verifier receives exception, no-throw fails) |
 | Tests | Adapter `TestInvoker_Tests`, `GroupedContextRunner_Tests`, `SourceLocationReader_Tests`, `SampleSpecifications.cs` | Fixtures `ShouldThrowSpec`, `GroupedShouldThrowSpec` (`TriggerFailure`-gated); tests for pass / no-throw / wrong-type / verifier failure, plain spec failing with the `Act` exception while teardown runs, suite-level isolation, grouped tallies, verifier source navigation |
 | Integration | `CalculatorSpecs.cs`, `AsyncAndExceptionSpecs.cs` | Manual `try/catch` + captured locals replaced by `ShouldThrow<T>`; division `Act` hoisted to the `[Describe]` level; new `names the offending parameter` spec |
 | Docs | `README.md` | "Expected exceptions" section |
@@ -114,7 +134,7 @@ BEFORE/AFTER routing diagrams and the runtime contract live in `systemPatterns.m
 | Adapter / Execution | `GroupedContextRunner.cs` | `PendingMark` (`○` / yellow ANSI / `⏸️`), `Pending` tally in summary, `RenderPendingSubtree` skips once-actions for nodes without runnable specs, all-pending result → `Skipped` ("All specs are pending."), root-setup failure leaves pending specs pending |
 | Adapter / Execution | `ResultReporter.cs`, `SpecsTestExecutor.cs` | `ResultReporter.Skipped(...)` + `PendingMessage = "Pending"`; `IsPending` added to `FilterProperties` |
 | Tests | `ContextualTestCaseBuilder_Tests/Pending.cs` 📌 NEW, `ContextualTestCase_Tests.cs` | +14 self-hosted core specs (pending builder API, propagation, argument validation, `PendingTests` default/dedup) |
-| Tests | `specs.specification.UnitTests/Specifications.cs` | Harness specs for `TODO`, `TODOAsync`, `xIt`, `xItAsync`, `xContext`, `xDescribe` |
+| Tests | `specs.specification.UnitTests/Specifications.cs` (📌 now `Specifications_Tests.cs`) | Harness specs for `TODO`, `TODOAsync`, `xIt`, `xItAsync`, `xContext`, `xDescribe` |
 | Tests | Adapter `*_Tests.cs`, `SampleSpecifications.cs` | Fixtures `SpecWithPending`, `AllPendingSpec`, `PendingWithFailingRootBeforeAll`, `GroupedSpecWithPending`; tests for discovery flags, converter property, grouped pending output/outcomes, `ResultReporter.Skipped`, `IsPending` filter, `TestInvoker` pending routing and root lifecycle suppression |
 | Integration | `PendingSpecs.cs` 📌 NEW, `StringSpecs.cs` | Individual + grouped pending suites whose pending bodies / `BeforeAll` throw; `StringSpecs` gains a `TODO` spec |
 | Docs | `README.md` | "Pending specs" section + Key Features bullet |
@@ -161,7 +181,7 @@ Side effects of the change:
 
 - `specs.core.UnitTests.Framework.Adapters.TestContextAdapter` runs grouped, so the self-hosted count reads **289 results** (27 `It`s became 1).
 - `CalculatorSpecs` in the integration project switched from hand-rolled `throw` checks to NFluent (`NFluent 3.1.0` package added).
-- `.vscode/settings.json` pins `dotnet.defaultSolution` to `src/Specs.sln`.
+- `.vscode/settings.json` pins `dotnet.defaultSolution` to `src/Specs.sln` (📌 now `Specs.sln` at the root).
 
 ### 📌 UPDATED — Display names embed the context path
 
@@ -196,7 +216,7 @@ The existing `SetupOnce` / `TeardownOnce` cascade ancestor actions into the node
 |--------|-------|
 | `[TestFixture]` / `[Test]` NUnit classes | Classes derive from `Specifications` with `[Describe]` methods |
 | `NUnit3TestAdapter` + `NUnit.Analyzers` package references | Removed; `ProjectReference` to `specs.BDD.VSTestAdapter` instead |
-| `TestContextAdapter_Tests.cs` (NUnit) | `TestContextAdapter.cs` (Specs-style suite) |
+| `TestContextAdapter_Tests.cs` (NUnit) | `TestContextAdapter.cs` (Specs-style suite; 📌 since renamed back to `TestContextAdapter_Tests.cs`) |
 | 2 test projects discovered by NUnit's adapter | `specs.core.UnitTests` is discovered by the Specs adapter |
 
 315 core tests pass under the Specs adapter. `Autofac.Extras.Moq` + `NFluent` are unchanged; only the *host* changed.
@@ -255,9 +275,9 @@ Benefits:
 
 `[Describe]` (attribute on a method) and `Context[...]` (indexer inside a method body) are **levels of the same hierarchy**, not separate paradigms. The earlier documentation that described them as alternatives has been corrected throughout the memory bank.
 
-### 📌 CLARIFIED — TestHarness is not a deliverable
+### 📌 UPDATED — TestHarness retired
 
-TestHarness is an internal nspec bridge used only to test Specs while it could not yet test itself. It is not packed and not shipped. Now that `specs.core.UnitTests` runs on Specs, TestHarness survives only as a transitive dependency of the remaining NUnit projects and is a retirement candidate.
+TestHarness was an internal nspec bridge used only to test Specs while it could not yet test itself; it was never packed or shipped. Once `specs.core.UnitTests` and then `specs.BDD.UnitTests` ran on Specs, nothing depended on it, so the project was deleted (decision #33).
 
 ### 📌 UPDATED — Memory bank consolidated
 
@@ -279,22 +299,19 @@ Removed as redundant or superseded:
 ### Immediate
 
 - Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` / `IsPending` filters through the real VSTest pipeline).
-- Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
 - Refresh `glossary.md` / `test-patterns.md` with the 📌 test-structure vocabulary (`TestStructure`, `Structure =`, `[TestStructure]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), 📌 `ShouldThrow<T>` / `ActExceptionContext`, and a class-level `BeforeAll` example.
-- Update the root `README.md` / user docs for the breaking attribute renames (`[Describe]`, 📌 `TestStructure`).
-- 📌 Rename the stale `SpecReporting` / `TestStructureExtractor` / `PathSeparator` references in the supplementary references (`architecture.md`, `core-components.md`).
+- Update the root `README.md` / user docs for the breaking attribute renames (`[Describe]`, 📌 `TestStructure`); 📌 it still lists the removed `Specs` legacy project and `net8.0` tests.
+- 📌 Rename the stale `SpecReporting` / `TestStructureExtractor` / `PathSeparator` references in the supplementary references (`architecture.md`, `core-components.md`), and retire the remaining nspec-syntax entries in `glossary.md` ("NSpec Integration", `should_be`, Tags).
 
 ### Short term
 
-- Migrate `specs.BDD.UnitTests` to self-hosting as well (only 5 tests remain there).
-- Extend `IntegrationTests` to cover the once-per-node contract explicitly (partial selection, failing `BeforeAll`, cancellation mid-run) and add an individually-reported suite back alongside the class-grouped `CalculatorSpecs`.
+- Extend `IntegrationTests` to cover the once-per-node contract explicitly (partial selection, failing `BeforeAll`, cancellation mid-run). 📌 `CalculatorSpecs` is now individually reported; class-level `[TestStructure(PerDescribe)]` no longer has integration coverage and should get a dedicated suite.
 - Decide whether grouped results should expose a per-`It` count to VSTest (currently one grouped context = one test in the totals).
 - Document a `dotnet new` template once one exists.
 
 ### Long term
 
-- Retire TestHarness entirely.
 - Consider parallel execution support (currently sequential by design).
 - Publish the adapter as a NuGet package.
 
@@ -384,8 +401,9 @@ Removed as redundant or superseded:
 
 ### Style
 
-- NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests, the integration tests, and in user-facing examples.
-- NUnit constraint-based assertions (`Assert.That(..., Is.EqualTo(...))`) in the remaining NUnit projects (`specs.BDD.UnitTests`, `specs.BDD.VSTestAdapter.Tests`).
+- NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted tests (📌 core, BDD, integration) and in user-facing examples.
+- NUnit constraint-based assertions (`Assert.That(..., Is.EqualTo(...))`) only in `specs.BDD.VSTestAdapter.Tests`.
+- 📌 Test classes/files are `<TypeUnderTest>_Tests`; the root `[Describe]` method is named after the type under test.
 - `null!` suppression only on fields initialized in `BeforeEach`.
 - Builder methods return `IContextualTestCaseBuilder` to enable fluent chaining.
 
@@ -408,15 +426,17 @@ Removed as redundant or superseded:
 15. 📌 **An `Act` exception is a spec outcome, not a run fault** — calling `Act()` outside the per-test `try` let one throwing `Act` skip its siblings and every teardown. Moving it inside the failure boundary is what made `ShouldThrow` possible *and* fixed the teardown leak.
 16. 📌 **Report the root cause** — when `Act` throws and the `It` then trips over the missing result, the `It` exception is a symptom; the unverified `Act` exception must win.
 17. 📌 **Publishing an API is when dead parameters get noticed** — `TestContextAdapter`'s unvalidated `test` argument and `TestCaseExecutor`'s unchecked provider survived while internal; reviewing them as public API surfaced both.
+18. 📌 NEW **Scaffolding outlives its purpose quietly** — `TestHarness` stayed in the build long after the core self-hosted because one small project still inherited from it, and it dragged `NUnit.Framework` into an otherwise NUnit-free project as a global `Using`. Migrating that last consumer let both go.
+19. 📌 NEW **Granularity also shows in a test project's headline count** — the same BDD specs went from 5 results (one NUnit wrapper per class) to 147 once Specs hosted them; per-spec results are what make Test Explorer navigation and `--filter` useful.
 
 ## Health Indicators
 
-- **Builds**: clean across all 8 projects — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time).
-- **Tests**: 📌 638 results — 625 passed, 13 skipped (all pending specs), 0 failed.
-  - `specs.core.UnitTests` — 📌 333 results (run by the Specs adapter; one grouped suite)
+- **Builds**: clean across all 📌 7 projects — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time).
+- **Tests**: 📌 786 results — 773 passed, 13 skipped (all pending specs), 0 failed.
+  - `specs.core.UnitTests` — 333 results (run by the Specs adapter; one grouped suite)
+  - `specs.BDD.UnitTests` — 📌 147 results (run by the Specs adapter; was 5 NUnit tests)
   - `specs.BDD.VSTestAdapter.Tests` — 272 results (264 passed, 8 pending fixture specs skipped)
-  - `specs.BDD.VSTestAdapter.IntegrationTests` — 28 results (23 passed, 5 pending skipped; `CalculatorSpecs` reports one result per root context)
-  - `specs.BDD.UnitTests` — 5
+  - `specs.BDD.VSTestAdapter.IntegrationTests` — 📌 34 results (29 passed, 5 pending skipped; `CalculatorSpecs` reports one result per spec, except the grouped `Subtraction` describe)
 - **Open bugs**: none known.
 - **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
 
@@ -426,7 +446,7 @@ Removed as redundant or superseded:
 2. Should `TestCaseExecutorSettings` expose a `MaxParallelism` knob (or do we keep things sequential)?
 3. ~~Can we retire the legacy `Spec` class?~~ 📌 RESOLVED — removed.
 4. Should `SelectionTreeWalker`'s best-effort `OwnTeardownOnce` (exceptions swallowed) instead surface as a run-level warning?
-5. Can `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` also move to self-hosting, or does the adapter need an independent NUnit safety net?
+5. ~~Can `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` also move to self-hosting?~~ 📌 PARTLY RESOLVED — `specs.BDD.UnitTests` now self-hosts; `specs.BDD.VSTestAdapter.Tests` stays on NUnit as the adapter's independent safety net.
 6. 📌 Should a grouped `[Describe]` be allowed below the root (nested `Describe`/`Context` blocks), or stay root-only as today?
 7. 📌 Should grouped results report the inner pass/fail tally to VSTest somehow (e.g. via `TestResult.Messages` only, as now, or via additional synthetic results)?
 8. 📌 Should `MarkerStyle` detection cover other non-ANSI hosts (e.g. Rider) beyond `VSAPPIDNAME=devenv.exe`?

@@ -16,20 +16,11 @@
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="NFluent" Version="3.1.0" />
-    <PackageReference Include="NUnit.Analyzers" Version="4.6.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
-    <ProjectReference Include="..\TestHarness\TestHarness.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="NUnit.Framework" />
+    <ProjectReference Include="..\..\src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
+    <ProjectReference Include="..\..\src\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
 </Project>

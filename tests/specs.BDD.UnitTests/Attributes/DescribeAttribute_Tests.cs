@@ -1,137 +1,131 @@
 ﻿using NFluent;
 using specs.BDD.Attributes;
 using System.Reflection;
-using yozepi;
 
 namespace specs.BDD.UnitTests.Attributes
 {
-    public class DescribeAttribute_Tests : nSpecTestHarness
+    public class DescribeAttribute_Tests : Specifications
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();
-        }
-
-        private void DescribeAttribute_Specs()
+        [Describe]
+        public void DescribeAttribute()
         {
             DescribeAttribute subject = null!;
 
-            describe["DescribeAttribute constructor"] = () =>
+            Describe["constructor"] = () =>
             {
-                context["when created with no description"] = () =>
+                Context["when created with no description"] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new DescribeAttribute();
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should set Description to null"] = () =>
+                    It["should set Description to null"] = () =>
                     {
                         Check.That(subject.Description).IsNull();
                     };
                 };
 
-                context["when created with description"] = () =>
+                Context["when created with description"] = () =>
                 {
                     string description = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         description = "Test context description";
-                    };
+                    });
 
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new DescribeAttribute(description);
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should set Description property"] = () =>
+                    It["should set Description property"] = () =>
                     {
                         Check.That(subject.Description).IsEqualTo(description);
                     };
                 };
 
-                context["when created with null description explicitly"] = () =>
+                Context["when created with null description explicitly"] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new DescribeAttribute(null);
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should set Description to null"] = () =>
+                    It["should set Description to null"] = () =>
                     {
                         Check.That(subject.Description).IsNull();
                     };
                 };
 
-                context["when created with empty string"] = () =>
+                Context["when created with empty string"] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new DescribeAttribute("");
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should set Description to empty string"] = () =>
+                    It["should set Description to empty string"] = () =>
                     {
                         Check.That(subject.Description).IsEqualTo("");
                     };
                 };
 
-                context["when created with whitespace"] = () =>
+                Context["when created with whitespace"] = () =>
                 {
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new DescribeAttribute("   ");
-                    };
+                    });
 
-                    it["should preserve whitespace in Description"] = () =>
+                    It["should preserve whitespace in Description"] = () =>
                     {
                         Check.That(subject.Description).IsEqualTo("   ");
                     };
                 };
             };
 
-            describe["Description property"] = () =>
+            Describe["Description property"] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject = new DescribeAttribute("Test description");
-                };
+                });
 
-                it["should return the value provided in constructor"] = () =>
+                It["should return the value provided in constructor"] = () =>
                 {
                     Check.That(subject.Description).IsEqualTo("Test description");
                 };
 
-                it["should be read-only (no setter)"] = () =>
+                It["should be read-only (no setter)"] = () =>
                 {
                     var propertyInfo = typeof(DescribeAttribute).GetProperty("Description");
                     Check.That(propertyInfo).IsNotNull();
                     Check.That(propertyInfo!.CanWrite).IsFalse();
                 };
 
-                context["with various description formats"] = () =>
+                Context["with various description formats"] = () =>
                 {
                     var testDescriptions = new[]
                     {
@@ -147,7 +141,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                     foreach (var testDescription in testDescriptions)
                     {
-                        it[$"should preserve description: '{testDescription}'"] = () =>
+                        It[$"should preserve this description: '{testDescription}'"] = () =>
                         {
                             var attr = new DescribeAttribute(testDescription);
                             Check.That(attr.Description).IsEqualTo(testDescription);
@@ -156,114 +150,114 @@ namespace specs.BDD.UnitTests.Attributes
                 };
             };
 
-            describe["AttributeUsage configuration"] = () =>
+            Describe["AttributeUsage configuration"] = () =>
             {
                 AttributeUsageAttribute attributeUsage = null!;
 
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     var attributes = typeof(DescribeAttribute)
                         .GetCustomAttributes(typeof(AttributeUsageAttribute), false);
                     attributeUsage = (AttributeUsageAttribute)attributes[0];
-                };
+                });
 
-                it["should be retrievable via reflection"] = () =>
+                It["should be retrievable via reflection"] = () =>
                 {
                     Check.That(attributeUsage).IsNotNull();
                 };
 
-                it["should target Methods"] = () =>
+                It["should target Methods"] = () =>
                 {
                     Check.That(attributeUsage.ValidOn).HasFlag(AttributeTargets.Method);
                 };
 
-                it["should not allow multiple attributes"] = () =>
+                It["should not allow multiple attributes"] = () =>
                 {
                     Check.That(attributeUsage.AllowMultiple).IsFalse();
                 };
 
-                it["should be inherited"] = () =>
+                It["should be inherited"] = () =>
                 {
                     Check.That(attributeUsage.Inherited).IsTrue();
                 };
             };
 
-            describe["inheritance from Attribute"] = () =>
+            Describe["inheritance from Attribute"] = () =>
             {
-                it["should inherit from System.Attribute"] = () =>
+                It["should inherit from System.Attribute"] = () =>
                 {
                     Check.That(typeof(DescribeAttribute).IsSubclassOf(typeof(Attribute))).IsTrue();
                 };
 
-                it["should be an Attribute type"] = () =>
+                It["should be an Attribute type"] = () =>
                 {
                     var attr = new DescribeAttribute("test");
                     Check.That(attr is Attribute).IsTrue();
                 };
             };
 
-            describe["reflection-based retrieval"] = () =>
+            Describe["reflection-based retrieval"] = () =>
             {
-                context["from method with single attribute"] = () =>
+                Context["from method with single attribute"] = () =>
                 {
                     MethodInfo method = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         method = typeof(TestClass).GetMethod(nameof(TestClass.MethodWithSingleContext))!;
-                    };
+                    });
 
-                    it["should retrieve attribute from method"] = () =>
+                    It["should retrieve attribute from method"] = () =>
                     {
                         var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
-                    it["should have correct description"] = () =>
+                    It["should have correct description"] = () =>
                     {
                         var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr!.Description).IsEqualTo("Single context");
                     };
                 };
 
-                context["from method without attribute"] = () =>
+                Context["from method without attribute"] = () =>
                 {
                     MethodInfo method = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         method = typeof(TestClass).GetMethod(nameof(TestClass.MethodWithoutContext))!;
-                    };
+                    });
 
-                    it["should return null when no attribute present"] = () =>
+                    It["should return null when no attribute present"] = () =>
                     {
                         var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNull();
                     };
 
-                    it["should return empty collection when using GetCustomAttributes"] = () =>
+                    It["should return empty collection when using GetCustomAttributes"] = () =>
                     {
                         var attrs = method.GetCustomAttributes<DescribeAttribute>();
                         Check.That(attrs).IsEmpty();
                     };
                 };
 
-                context["from method with null description"] = () =>
+                Context["from method with null description"] = () =>
                 {
                     MethodInfo method = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         method = typeof(TestClass).GetMethod(nameof(TestClass.MethodWithNullDescription))!;
-                    };
+                    });
 
-                    it["should retrieve attribute"] = () =>
+                    It["should retrieve attribute"] = () =>
                     {
                         var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
-                    it["should have null description"] = () =>
+                    It["should have null description"] = () =>
                     {
                         var attr = method.GetCustomAttribute<DescribeAttribute>();
                         Check.That(attr!.Description).IsNull();
@@ -271,9 +265,9 @@ namespace specs.BDD.UnitTests.Attributes
                 };
             };
 
-            describe["real-world usage patterns"] = () =>
+            Describe["real-world usage patterns"] = () =>
             {
-                it["should work with NSpec-style context descriptions"] = () =>
+                It["should work with NSpec-style context descriptions"] = () =>
                 {
                     var testDescriptions = new[]
                     {
@@ -290,7 +284,7 @@ namespace specs.BDD.UnitTests.Attributes
                     }
                 };
 
-                it["should allow discovery of all context methods in class"] = () =>
+                It["should allow discovery of all context methods in class"] = () =>
                 {
                     var methods = typeof(TestClass).GetMethods()
                         .Where(m => m.GetCustomAttributes<DescribeAttribute>().Any())
@@ -300,21 +294,21 @@ namespace specs.BDD.UnitTests.Attributes
                 };
             };
 
-            describe["immutability"] = () =>
+            Describe["immutability"] = () =>
             {
-                beforeEach = () =>
+                BeforeEach(() =>
                 {
                     subject = new DescribeAttribute("Original description");
-                };
+                });
 
-                it["should not allow Description to be modified after construction"] = () =>
+                It["should not allow Description to be modified after construction"] = () =>
                 {
                     var originalDescription = subject.Description;
                     // Property is read-only, verified in property tests
                     Check.That(subject.Description).IsEqualTo(originalDescription);
                 };
 
-                it["should maintain same Description value across multiple accesses"] = () =>
+                It["should maintain same Description value across multiple accesses"] = () =>
                 {
                     var description1 = subject.Description;
                     var description2 = subject.Description;
@@ -322,9 +316,9 @@ namespace specs.BDD.UnitTests.Attributes
                 };
             };
 
-            describe["instance independence"] = () =>
+            Describe["instance independence"] = () =>
             {
-                it["should create independent instances with same description"] = () =>
+                It["should create independent instances with same description"] = () =>
                 {
                     var attr1 = new DescribeAttribute("same description");
                     var attr2 = new DescribeAttribute("same description");
@@ -335,7 +329,7 @@ namespace specs.BDD.UnitTests.Attributes
                     Check.That(attr1.Description).IsEqualTo(attr2.Description);
                 };
 
-                it["should create independent instances with different descriptions"] = () =>
+                It["should create independent instances with different descriptions"] = () =>
                 {
                     var attr1 = new DescribeAttribute("first");
                     var attr2 = new DescribeAttribute("second");

@@ -28,9 +28,8 @@ Supplementary references: **[Core Components](memory-bank/core-components.md)**,
 - **specs.BDD.VSTestAdapter.Tests** - Adapter component tests
 - **specs.BDD.VSTestAdapter.IntegrationTests** - End-to-end VSTest pipeline tests
 
-### Legacy / internal (2)
+### Legacy / internal (1)
 - **Specs** - Legacy property-based `Spec` class and `Domain/` layer
-- **TestHarness** - Internal-only nspec bridge; not a deliverable
 
 ## Two API Styles, One Paradigm
 
@@ -97,7 +96,6 @@ An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes 
 - .NET Standard 2.1 (deliverables), net8.0 (tests)
 - Microsoft.TestPlatform.ObjectModel (adapter only)
 - NUnit, NFluent (tests)
-- nspec (internal TestHarness only — not shipped)
 
 ## License
 See [LICENSE](LICENSE) file for details.

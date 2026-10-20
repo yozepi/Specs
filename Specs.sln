@@ -5,21 +5,19 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F513DF53-EF23-448C-A685-4668EF0CE777}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.core.UnitTests", "specs.core.UnitTests\specs.core.UnitTests.csproj", "{908B7517-CC9E-456D-A8A4-247DCB69B752}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.core.UnitTests", "tests\specs.core.UnitTests\specs.core.UnitTests.csproj", "{908B7517-CC9E-456D-A8A4-247DCB69B752}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestHarness", "TestHarness\TestHarness.csproj", "{44D3724B-0ADC-42B4-9173-6616097F8FB4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.core", "src\specs.core\specs.core.csproj", "{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.core", "specs.core\specs.core.csproj", "{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD", "src\specs.specification\specs.BDD.csproj", "{0F91CE0B-7030-409C-A4E9-7479EA1255A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD", "specs.specification\specs.BDD.csproj", "{0F91CE0B-7030-409C-A4E9-7479EA1255A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.UnitTests", "tests\specs.BDD.UnitTests\specs.BDD.UnitTests.csproj", "{75BDA9B7-CF25-973A-9688-385575D656A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.UnitTests", "specs.specification.UnitTests\specs.BDD.UnitTests.csproj", "{75BDA9B7-CF25-973A-9688-385575D656A5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter", "src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj", "{22B40E5E-5E14-446C-AA2A-AA2AFFD22C43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter", "specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj", "{22B40E5E-5E14-446C-AA2A-AA2AFFD22C43}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.Tests", "tests\specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.csproj", "{4E9C223F-1D0A-43B6-9B8D-DA8C91155ECB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.Tests", "specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.csproj", "{4E9C223F-1D0A-43B6-9B8D-DA8C91155ECB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.IntegrationTests", "specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj", "{889ED416-97FC-45BD-8751-2E32E49A9DDA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.IntegrationTests", "tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj", "{889ED416-97FC-45BD-8751-2E32E49A9DDA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,18 +41,6 @@ Global
 		{908B7517-CC9E-456D-A8A4-247DCB69B752}.Release|x64.Build.0 = Release|Any CPU
 		{908B7517-CC9E-456D-A8A4-247DCB69B752}.Release|x86.ActiveCfg = Release|Any CPU
 		{908B7517-CC9E-456D-A8A4-247DCB69B752}.Release|x86.Build.0 = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|x64.Build.0 = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Debug|x86.Build.0 = Debug|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|x64.ActiveCfg = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|x64.Build.0 = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|x86.ActiveCfg = Release|Any CPU
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4}.Release|x86.Build.0 = Release|Any CPU
 		{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1B9604F-0232-3FFE-EBB6-F22E214F9A76}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -133,7 +119,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{908B7517-CC9E-456D-A8A4-247DCB69B752} = {F513DF53-EF23-448C-A685-4668EF0CE777}
-		{44D3724B-0ADC-42B4-9173-6616097F8FB4} = {F513DF53-EF23-448C-A685-4668EF0CE777}
 		{75BDA9B7-CF25-973A-9688-385575D656A5} = {F513DF53-EF23-448C-A685-4668EF0CE777}
 		{4E9C223F-1D0A-43B6-9B8D-DA8C91155ECB} = {F513DF53-EF23-448C-A685-4668EF0CE777}
 		{889ED416-97FC-45BD-8751-2E32E49A9DDA} = {F513DF53-EF23-448C-A685-4668EF0CE777}

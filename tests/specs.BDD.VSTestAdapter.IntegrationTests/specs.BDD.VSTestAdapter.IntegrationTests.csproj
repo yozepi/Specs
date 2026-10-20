@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
+    <ProjectReference Include="..\..\src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
   </ItemGroup>
 
 </Project>

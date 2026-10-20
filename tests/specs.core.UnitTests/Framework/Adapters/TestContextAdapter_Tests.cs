@@ -7,10 +7,10 @@ using specs.BDD.Attributes;
 
 namespace specs.core.UnitTests.Framework.Adapters
 {
-    public class TestContextAdapter : Specifications
+    public class TestContextAdapter_Tests : Specifications
     {
         [Describe(Structure = TestStructure.PerDescribe)]
-        public void Specs()
+        public void TestContextAdapter()
         {
             core.Framework.Adapters.TestContextAdapter subject = null!;
 
@@ -22,8 +22,8 @@ namespace specs.core.UnitTests.Framework.Adapters
 
             List<string> callOrder = null!;
 
-            core.Framework.Adapters.TestContextAdapter Create() =>
-                new core.Framework.Adapters.TestContextAdapter(
+            TestContextAdapter Create() =>
+                new TestContextAdapter(
                     setupOnceAction,
                     setupEachAction,
                     actAction,

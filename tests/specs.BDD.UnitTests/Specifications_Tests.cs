@@ -1,53 +1,48 @@
 using NFluent;
+using specs.BDD.Attributes;
 using specs.core.Framework.Assertions;
 using specs.core.Framework.Processors.TestCases;
 using specs.core.Framework.Processors.TestExecutors;
 using System;
 using System.Threading.Tasks;
-using yozepi;
 
 namespace specs.BDD.UnitTests
 {
-    public class Specifications : nSpecTestHarness
+    public class Specifications_Tests : Specifications
     {
-        [Test]
-        public void Specs()
+        [Describe]
+        public void Specifications()
         {
-            RunMySpecs();
-        }
-
-        private void Specifications_Specs()
-        {
-            describe["Specifications base class"] = () =>
+            Describe["Specifications base class"] = () =>
             {
-                context["when creating derived class instance"] = () =>
+                Context["when creating derived class instance"] = () =>
                 {
                     TestSpecification subject = null!;
 
-                    act = () =>
+                    Act(() =>
                     {
                         subject = new TestSpecification();
-                    };
+                    });
 
-                    it["should create instance successfully"] = () =>
+                    It["should create instance successfully"] = () =>
                     {
                         Check.That(subject).IsNotNull();
                     };
 
-                    it["should be assignable to Specifications"] = () =>
+                    It["should be assignable to Specifications"] = () =>
                     {
                         Check.That(subject is BDD.Specifications).IsTrue();
                     };
                 };
 
-                context["constructor behavior"] = () =>
+                Context["constructor behavior"] = () =>
                 {
-                    it["should not throw exception when creating derived instance"] = () =>
+                    It["should not throw exception when creating derived instance"] = () =>
                     {
                         Check.ThatCode(() => new TestSpecification()).DoesNotThrow();
                     };
 
-                    it["should initialize successfully for multiple instances"] = () =>
+                    It["should initialize successfully for multiple instances"] = () =>
                     {
                         var instance1 = new TestSpecification();
                         var instance2 = new TestSpecification();
@@ -58,48 +53,48 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["inheritance characteristics"] = () =>
+                Context["inheritance characteristics"] = () =>
                 {
-                    it["should be abstract class"] = () =>
+                    It["should be abstract class"] = () =>
                     {
                         var type = typeof(BDD.Specifications);
                         Check.That(type.IsAbstract).IsTrue();
                     };
 
-                    it["should be public class"] = () =>
+                    It["should be public class"] = () =>
                     {
                         var type = typeof(BDD.Specifications);
                         Check.That(type.IsPublic).IsTrue();
                     };
                 };
 
-                context["lifecycle methods"] = () =>
+                Context["lifecycle methods"] = () =>
                 {
                     TestSpecification subject = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject = new TestSpecification();
-                    };
+                    });
 
-                    context["BeforeAll method"] = () =>
+                    Context["BeforeAll method"] = () =>
                     {
-                        it["should accept synchronous action"] = () =>
+                        It["should accept synchronous action"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeAll(() => { })).DoesNotThrow();
                         };
 
-                        it["should accept asynchronous task function"] = () =>
+                        It["should accept asynchronous task function"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeAll(() => Task.CompletedTask)).DoesNotThrow();
                         };
 
-                        it["should accept async Task with actual async work"] = () =>
+                        It["should accept async Task with actual async work"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeAll(async () => await Task.Delay(1))).DoesNotThrow();
                         };
 
-                        it["should allow multiple BeforeAll registrations"] = () =>
+                        It["should allow multiple BeforeAll registrations"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -110,24 +105,24 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["BeforeEach method"] = () =>
+                    Context["BeforeEach method"] = () =>
                     {
-                        it["should accept synchronous action"] = () =>
+                        It["should accept synchronous action"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeEach(() => { })).DoesNotThrow();
                         };
 
-                        it["should accept asynchronous task function"] = () =>
+                        It["should accept asynchronous task function"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeEach(() => Task.CompletedTask)).DoesNotThrow();
                         };
 
-                        it["should accept async Task with actual async work"] = () =>
+                        It["should accept async Task with actual async work"] = () =>
                         {
                             Check.ThatCode(() => subject.BeforeEach(async () => await Task.Delay(1))).DoesNotThrow();
                         };
 
-                        it["should allow multiple BeforeEach registrations"] = () =>
+                        It["should allow multiple BeforeEach registrations"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -138,24 +133,24 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["Act method"] = () =>
+                    Context["Act method"] = () =>
                     {
-                        it["should accept synchronous action"] = () =>
+                        It["should accept synchronous action"] = () =>
                         {
                             Check.ThatCode(() => subject.Act(() => { })).DoesNotThrow();
                         };
 
-                        it["should accept asynchronous task function"] = () =>
+                        It["should accept asynchronous task function"] = () =>
                         {
                             Check.ThatCode(() => subject.Act(() => Task.CompletedTask)).DoesNotThrow();
                         };
 
-                        it["should accept async Task with actual async work"] = () =>
+                        It["should accept async Task with actual async work"] = () =>
                         {
                             Check.ThatCode(() => subject.Act(async () => await Task.Delay(1))).DoesNotThrow();
                         };
 
-                        it["should allow multiple Act registrations"] = () =>
+                        It["should allow multiple Act registrations"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -166,24 +161,24 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["AfterEach method"] = () =>
+                    Context["AfterEach method"] = () =>
                     {
-                        it["should accept synchronous action"] = () =>
+                        It["should accept synchronous action"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterEach(() => { })).DoesNotThrow();
                         };
 
-                        it["should accept asynchronous task function"] = () =>
+                        It["should accept asynchronous task function"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterEach(() => Task.CompletedTask)).DoesNotThrow();
                         };
 
-                        it["should accept async Task with actual async work"] = () =>
+                        It["should accept async Task with actual async work"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterEach(async () => await Task.Delay(1))).DoesNotThrow();
                         };
 
-                        it["should allow multiple AfterEach registrations"] = () =>
+                        It["should allow multiple AfterEach registrations"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -194,24 +189,24 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["AfterAll method"] = () =>
+                    Context["AfterAll method"] = () =>
                     {
-                        it["should accept synchronous action"] = () =>
+                        It["should accept synchronous action"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterAll(() => { })).DoesNotThrow();
                         };
 
-                        it["should accept asynchronous task function"] = () =>
+                        It["should accept asynchronous task function"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterAll(() => Task.CompletedTask)).DoesNotThrow();
                         };
 
-                        it["should accept async Task with actual async work"] = () =>
+                        It["should accept async Task with actual async work"] = () =>
                         {
                             Check.ThatCode(() => subject.AfterAll(async () => await Task.Delay(1))).DoesNotThrow();
                         };
 
-                        it["should allow multiple AfterAll registrations"] = () =>
+                        It["should allow multiple AfterAll registrations"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -223,153 +218,153 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["property accessors"] = () =>
+                Context["property accessors"] = () =>
                 {
                     TestSpecification subject = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject = new TestSpecification();
-                    };
+                    });
 
-                    context["Describe property"] = () =>
+                    Context["Describe property"] = () =>
                     {
-                it["should return ContextBuilder instance"] = () =>
-                {
-                    var spec = new TestSpecification();
-                    var builder = spec.Describe;
-                    Check.That(builder).IsInstanceOf<specs.BDD.ContextBuilder>();
-                };
+                        It["should return ContextBuilder instance"] = () =>
+                        {
+                            var spec = new TestSpecification();
+                            var builder = spec.Describe;
+                            Check.That(builder).IsInstanceOf<specs.BDD.ContextBuilder>();
+                        };
 
-                        it["should return new instance each time"] = () =>
+                        It["should return new instance each time"] = () =>
                         {
                             var first = subject.Describe;
                             var second = subject.Describe;
                             Check.That(first).Not.IsSameReferenceAs(second);
                         };
 
-                        it["should support indexer syntax"] = () =>
+                        It["should support indexer syntax"] = () =>
                         {
                             Check.ThatCode(() => subject.Describe["test description"] = () => { }).DoesNotThrow();
                         };
                     };
 
-                    context["Context property"] = () =>
+                    Context["Context property"] = () =>
                     {
-                it["should return ContextBuilder instance"] = () =>
-                {
-                    var spec = new TestSpecification();
-                    var builder = spec.Context;
-                    Check.That(builder).IsInstanceOf<specs.BDD.ContextBuilder>();
-                };
+                        It["should return ContextBuilder instance"] = () =>
+                        {
+                            var spec = new TestSpecification();
+                            var builder = spec.Context;
+                            Check.That(builder).IsInstanceOf<specs.BDD.ContextBuilder>();
+                        };
 
-                        it["should return new instance each time"] = () =>
+                        It["should return new instance each time"] = () =>
                         {
                             var first = subject.Context;
                             var second = subject.Context;
                             Check.That(first).Not.IsSameReferenceAs(second);
                         };
 
-                        it["should support indexer syntax"] = () =>
+                        It["should support indexer syntax"] = () =>
                         {
                             Check.ThatCode(() => subject.Context["test context"] = () => { }).DoesNotThrow();
                         };
                     };
 
-                    context["It property"] = () =>
+                    Context["It property"] = () =>
                     {
-                it["should return AssertBuilder instance"] = () =>
-                {
-                    var spec = new TestSpecification();
-                    var builder = spec.It;
-                    Check.That(builder).IsInstanceOf<specs.BDD.AssertBuilder>();
-                };
+                        It["should return AssertBuilder instance"] = () =>
+                        {
+                            var spec = new TestSpecification();
+                            var builder = spec.It;
+                            Check.That(builder).IsInstanceOf<specs.BDD.AssertBuilder>();
+                        };
 
-                        it["should return new instance each time"] = () =>
+                        It["should return new instance each time"] = () =>
                         {
                             var first = subject.It;
                             var second = subject.It;
                             Check.That(first).Not.IsSameReferenceAs(second);
                         };
 
-                        it["should support indexer syntax"] = () =>
+                        It["should support indexer syntax"] = () =>
                         {
                             Check.ThatCode(() => subject.It["test assertion"] = () => { }).DoesNotThrow();
                         };
                     };
 
-                    context["ItAsync property"] = () =>
+                    Context["ItAsync property"] = () =>
                     {
-                it["should return AssertBuilderAsync instance"] = () =>
-                {
-                    var spec = new TestSpecification();
-                    var builder = spec.ItAsync;
-                    Check.That(builder).IsInstanceOf<specs.BDD.AssertBuilderAsync>();
-                };
+                        It["should return AssertBuilderAsync instance"] = () =>
+                        {
+                            var spec = new TestSpecification();
+                            var builder = spec.ItAsync;
+                            Check.That(builder).IsInstanceOf<specs.BDD.AssertBuilderAsync>();
+                        };
 
-                        it["should return new instance each time"] = () =>
+                        It["should return new instance each time"] = () =>
                         {
                             var first = subject.ItAsync;
                             var second = subject.ItAsync;
                             Check.That(first).Not.IsSameReferenceAs(second);
                         };
 
-                        it["should support indexer syntax"] = () =>
+                        It["should support indexer syntax"] = () =>
                         {
                             Check.ThatCode(() => subject.ItAsync["test async assertion"] = async () => await Task.CompletedTask).DoesNotThrow();
                         };
                     };
                 };
 
-                context["pending specs"] = () =>
+                Context["pending specs"] = () =>
                 {
                     TestSpecification subject = null!;
                     IContextualTestCase built = null!;
                     bool bodyInvoked = false;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject = new TestSpecification();
                         bodyInvoked = false;
-                    };
+                    });
 
-                    act = () => built = subject.CoreBuilder.Build();
+                    Act(() => built = subject.CoreBuilder.Build());
 
-                    context["It assigned TODO"] = () =>
+                    Context["It assigned TODO"] = () =>
                     {
-                        beforeEach = () =>
+                        BeforeEach(() =>
                         {
                             subject.It["runnable"] = () => { };
                             subject.It["todo"] = BDD.Specifications.TODO;
-                        };
+                        });
 
-                        it["should mark only the TODO spec as pending"] = () =>
+                        It["should mark only the TODO spec as pending"] = () =>
                             Check.That(built.PendingTests).ContainsExactly("todo");
 
-                        it["should still register both specs"] = () =>
+                        It["should still register both specs"] = () =>
                             Check.That(built.Tests.Select(t => t.description)).ContainsExactly("runnable", "todo");
                     };
 
-                    context["ItAsync assigned TODOAsync"] = () =>
+                    Context["ItAsync assigned TODOAsync"] = () =>
                     {
-                        beforeEach = () =>
+                        BeforeEach(() =>
                         {
                             subject.ItAsync["runnable"] = () => Task.CompletedTask;
                             subject.ItAsync["todo"] = BDD.Specifications.TODOAsync;
-                        };
+                        });
 
-                        it["should mark only the TODOAsync spec as pending"] = () =>
+                        It["should mark only the TODOAsync spec as pending"] = () =>
                             Check.That(built.PendingTests).ContainsExactly("todo");
                     };
 
-                    context["xIt"] = () =>
+                    Context["xIt"] = () =>
                     {
-                        beforeEach = () => subject.xIt["excluded"] = () => bodyInvoked = true;
+                        BeforeEach(() => subject.xIt["excluded"] = () => bodyInvoked = true);
 
-                        it["should mark the spec as pending"] = () =>
+                        It["should mark the spec as pending"] = () =>
                             Check.That(built.PendingTests).ContainsExactly("excluded");
 
-                        it["should keep the body without invoking it"] = () =>
+                        It["should keep the body without invoking it"] = () =>
                         {
                             Check.That(bodyInvoked).IsFalse();
                             built.Tests[0].test();
@@ -377,17 +372,17 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["xItAsync"] = () =>
+                    Context["xItAsync"] = () =>
                     {
-                        beforeEach = () => subject.xItAsync["excluded"] = () => Task.CompletedTask;
+                        BeforeEach(() => subject.xItAsync["excluded"] = () => Task.CompletedTask);
 
-                        it["should mark the spec as pending"] = () =>
+                        It["should mark the spec as pending"] = () =>
                             Check.That(built.PendingTests).ContainsExactly("excluded");
                     };
 
-                    context["xContext"] = () =>
+                    Context["xContext"] = () =>
                     {
-                        beforeEach = () =>
+                        BeforeEach(() =>
                         {
                             subject.xContext["pending context"] = () =>
                             {
@@ -395,71 +390,71 @@ namespace specs.BDD.UnitTests
                                 subject.Describe["nested"] = () => subject.It["nested inner"] = () => { };
                             };
                             subject.Context["normal context"] = () => subject.It["normal"] = () => { };
-                        };
+                        });
 
-                        it["should mark its specs as pending"] = () =>
+                        It["should mark its specs as pending"] = () =>
                             Check.That(built.ChildContexts[0].PendingTests).ContainsExactly("inner");
 
-                        it["should mark nested specs as pending"] = () =>
+                        It["should mark nested specs as pending"] = () =>
                         {
                             var pendingContext = (IContextualTestCase)built.ChildContexts[0];
                             Check.That(pendingContext.ChildContexts[0].PendingTests).ContainsExactly("nested inner");
                         };
 
-                        it["should not affect sibling contexts"] = () =>
+                        It["should not affect sibling contexts"] = () =>
                             Check.That(built.ChildContexts[1].PendingTests).IsEmpty();
                     };
 
-                    context["xDescribe"] = () =>
+                    Context["xDescribe"] = () =>
                     {
-                        beforeEach = () => subject.xDescribe["pending describe"] = () => subject.It["inner"] = () => { };
+                        BeforeEach(() => subject.xDescribe["pending describe"] = () => subject.It["inner"] = () => { });
 
-                        it["should mark its specs as pending"] = () =>
+                        It["should mark its specs as pending"] = () =>
                             Check.That(built.ChildContexts[0].PendingTests).ContainsExactly("inner");
                     };
                 };
 
-                context["ShouldThrow"] = () =>
+                Context["ShouldThrow"] = () =>
                 {
                     Action throwingAct = () => throw new DivideByZeroException("Attempted to divide by zero.");
                     Action quietAct = () => { };
 
-                    it["should reject a null verifier"] = () =>
+                    It["should reject a null verifier"] = () =>
                         Check.ThatCode(() => BDD.Specifications.ShouldThrow<DivideByZeroException>(null!))
                             .Throws<ArgumentNullException>();
 
-                    it["should bind the returned test to the verifier"] = () =>
+                    It["should bind the returned test to the verifier"] = () =>
                     {
                         Action<DivideByZeroException> verify = _ => { };
                         Check.That(BDD.Specifications.ShouldThrow(verify).Target).IsSameReferenceAs(verify);
                     };
 
-                    it["should pass when Act throws an assignable exception"] = () =>
+                    It["should pass when Act throws an assignable exception"] = () =>
                         Check.ThatCode(() => ActExceptionContext.Run(throwingAct, BDD.Specifications.ShouldThrow<ArithmeticException>()))
                             .DoesNotThrow();
 
-                    it["should pass the Act exception to the verifier"] = () =>
+                    It["should pass the Act exception to the verifier"] = () =>
                     {
                         string? message = null;
                         ActExceptionContext.Run(throwingAct, BDD.Specifications.ShouldThrow<DivideByZeroException>(ex => message = ex.Message));
                         Check.That(message).IsEqualTo("Attempted to divide by zero.");
                     };
 
-                    it["should fail when Act does not throw"] = () =>
+                    It["should fail when Act does not throw"] = () =>
                         Check.ThatCode(() => ActExceptionContext.Run(quietAct, BDD.Specifications.ShouldThrow<DivideByZeroException>()))
                             .Throws<ExpectedExceptionNotThrownException>();
                 };
 
-                context["full lifecycle integration"] = () =>
+                Context["full lifecycle integration"] = () =>
                 {
                     TestSpecification subject = null!;
 
-                    beforeEach = () =>
+                    BeforeEach(() =>
                     {
                         subject = new TestSpecification();
-                    };
+                    });
 
-                    it["should allow complete lifecycle registration"] = () =>
+                    It["should allow complete lifecycle registration"] = () =>
                     {
                         Check.ThatCode(() =>
                         {
@@ -471,7 +466,7 @@ namespace specs.BDD.UnitTests
                         }).DoesNotThrow();
                     };
 
-                    it["should allow async lifecycle registration"] = () =>
+                    It["should allow async lifecycle registration"] = () =>
                     {
                         Check.ThatCode(() =>
                         {
@@ -483,7 +478,7 @@ namespace specs.BDD.UnitTests
                         }).DoesNotThrow();
                     };
 
-                    it["should allow mixed sync and async lifecycle"] = () =>
+                    It["should allow mixed sync and async lifecycle"] = () =>
                     {
                         Check.ThatCode(() =>
                         {
@@ -501,6 +496,9 @@ namespace specs.BDD.UnitTests
         // Helper class to test inheritance
         private class TestSpecification : BDD.Specifications
         {
+            // Discovered by the Specs adapter; an empty [Describe] avoids the "no [Describe] method" warning.
+            [Describe]
+            public void Empty() { }
         }
     }
 }

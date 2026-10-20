@@ -1,11 +1,10 @@
 ﻿using NFluent;
 using specs.core.Framework.Processors.TestCases;
 using System.Reflection;
-using yozepi;
 
 namespace specs.BDD.UnitTests
 {
-    public abstract class BaseAssertBuilderSpecs<TSubject, TDelegate> : nSpecTestHarness
+    public abstract class BaseAssertBuilderSpecs<TSubject, TDelegate> : Specifications
         where TDelegate : Delegate
         where TSubject : class
     {
@@ -23,48 +22,48 @@ namespace specs.BDD.UnitTests
         {
             IAssertProvider<TDelegate> asIAssertProvider = null!;
 
-            beforeEach = () =>
+            BeforeEach(() =>
             {
                 Subject = Construct(new ContextualTestCaseBuilder());
                 asIAssertProvider = (IAssertProvider<TDelegate>)Subject;
-            };
+            });
 
-            context["constructor"] = () =>
+            Context["constructor"] = () =>
             {
-                it["should throw ArgumentNullException when builder is null"] = () =>
+                It["should throw ArgumentNullException when builder is null"] = () =>
                 {
                     Check.ThatCode(() => Construct(null!))
                         .Throws<ArgumentNullException>()
                         .WithProperty(ex => ex.ParamName, "builder");
                 };
 
-                it["should accept valid IContextualTestCaseBuilder"] = () =>
+                It["should accept valid IContextualTestCaseBuilder"] = () =>
                 {
                     Check.ThatCode(() => Construct(new ContextualTestCaseBuilder())).DoesNotThrow();
                 };
             };
 
 
-            context["when using indexer syntax"] = () =>
+            Context["when using indexer syntax"] = () =>
             {
-                context["with valid description"] = () =>
+                Context["with valid description"] = () =>
                 {
-                    it["should accept the description"] = () =>
+                    It["should accept the description"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider["valid description"] = EmptyAction()).DoesNotThrow();
                     };
                 };
 
-                context["with null description"] = () =>
+                Context["with null description"] = () =>
                 {
-                    it["should throw ArgumentNullException"] = () =>
+                    It["should throw ArgumentNullException"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider[null!] = EmptyAction())
                             .Throws<ArgumentNullException>()
                             .WithProperty(ex => ex.ParamName, "description");
                     };
 
-                    it["should have descriptive error message"] = () =>
+                    It["should have descriptive error message"] = () =>
                     {
                         try
                         {
@@ -77,16 +76,16 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["with empty description"] = () =>
+                Context["with empty description"] = () =>
                 {
-                    it["should throw ArgumentException"] = () =>
+                    It["should throw ArgumentException"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider[""] = EmptyAction())
                             .Throws<ArgumentException>()
                             .WithProperty(ex => ex.ParamName, "description");
                     };
 
-                    it["should have descriptive error message"] = () =>
+                    It["should have descriptive error message"] = () =>
                     {
                         try
                         {
@@ -99,30 +98,30 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["with whitespace description"] = () =>
+                Context["with whitespace description"] = () =>
                 {
-                    it["should throw ArgumentException for spaces"] = () =>
+                    It["should throw ArgumentException for spaces"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider["   "] = EmptyAction())
                             .Throws<ArgumentException>()
                             .WithProperty(ex => ex.ParamName, "description");
                     };
 
-                    it["should throw ArgumentException for tabs"] = () =>
+                    It["should throw ArgumentException for tabs"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider["\t\t"] = EmptyAction())
                             .Throws<ArgumentException>()
                             .WithProperty(ex => ex.ParamName, "description");
                     };
 
-                    it["should throw ArgumentException for newlines"] = () =>
+                    It["should throw ArgumentException for newlines"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider["\r\n"] = EmptyAction())
                             .Throws<ArgumentException>()
                             .WithProperty(ex => ex.ParamName, "description");
                     };
 
-                    it["should throw ArgumentException for mixed whitespace"] = () =>
+                    It["should throw ArgumentException for mixed whitespace"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider[" \t\r\n "] = EmptyAction())
                             .Throws<ArgumentException>()
@@ -132,11 +131,11 @@ namespace specs.BDD.UnitTests
             };
 
 
-            context["usage patterns"] = () =>
+            Context["usage patterns"] = () =>
             {
-                context[$"when {typeof(TDelegate).Name} is null"] = () =>
+                Context[$"when {typeof(TDelegate).Name} is null"] = () =>
                 {
-                    it[$"should throw ArgumentNullException"] = () =>
+                    It[$"should throw ArgumentNullException"] = () =>
                     {
                         Check.ThatCode(() => asIAssertProvider[$"Test {ActionVerb} Assertion"] = null!)
                             .Throws<ArgumentNullException>()
@@ -144,9 +143,9 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context[$"when multiple assertions are used"] = () =>
+                Context[$"when multiple assertions are used"] = () =>
                 {
-                    it[$"should accept multiple assertion blocks"] = () =>
+                    It[$"should accept multiple assertion blocks"] = () =>
                     {
                         Check.ThatCode(() =>
                         {
@@ -160,15 +159,15 @@ namespace specs.BDD.UnitTests
                 ExtendedUsePatterns();
             };
 
-            context["type characteristics"] = () =>
+            Context["type characteristics"] = () =>
             {
-                it["should be public class"] = () =>
+                It["should be public class"] = () =>
                 {
                     var type = typeof(TSubject);
                     Check.That(type.IsPublic).IsTrue();
                 };
 
-                it["should have internal constructor"] = () =>
+                It["should have internal constructor"] = () =>
                 {
                     var type = typeof(TSubject);
                     var constructors = type.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic);
@@ -176,35 +175,35 @@ namespace specs.BDD.UnitTests
                     Check.That(internalConstructor).IsNotNull();
                 };
 
-                it["should not have public constructor"] = () =>
+                It["should not have public constructor"] = () =>
                 {
                     var type = typeof(TSubject);
                     var publicConstructors = type.GetConstructors(BindingFlags.Instance |   BindingFlags.Public);
                     Check.That(publicConstructors).IsEmpty();
                 };
 
-                it["should have indexer property"] = () =>
+                It["should have indexer property"] = () =>
                 {
                     var type = typeof(TSubject);
                     var indexer = type.GetProperty("Item");
                     Check.That(indexer).IsNotNull();
                 };
 
-                it[$"should have {typeof(TDelegate).Name} type indexer"] = () =>
+                It[$"should have {typeof(TDelegate).Name} type indexer"] = () =>
                 {
                     var type = typeof(TSubject);
                     var indexer = type.GetProperty("Item");
                     Check.That(indexer!.PropertyType).IsEqualTo(typeof(TDelegate));
                 };
 
-                it["should have setter on indexer"] = () =>
+                It["should have setter on indexer"] = () =>
                 {
                     var type = typeof(TSubject);
                     var indexer = type.GetProperty("Item");
                     Check.That(indexer!.CanWrite).IsTrue();
                 };
 
-                it["should not have getter on indexer"] = () =>
+                It["should not have getter on indexer"] = () =>
                 {
                     var type = typeof(TSubject);
                     var indexer = type.GetProperty("Item");

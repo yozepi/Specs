@@ -64,13 +64,19 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 
 The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, and `Examples/ConsoleExample` were deleted (22 files, 1,395 lines). Decision #31 in `systemPatterns.md`.
 
+### 📌 NEW — Repo layout + test hosting
+
+- ✅ `Specs.sln` at the repo root; deliverables in `src/`, test projects in `tests/`.
+- ✅ `TestHarness` (nspec bridge) deleted; NUnit referenced only by `specs.BDD.VSTestAdapter.Tests`.
+- ✅ Three of four test projects run on Specs itself. Decision #33 in `systemPatterns.md`.
+
 ### Testing
 
-- ✅ `specs.core.UnitTests` — **📌 333 results**, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter` suite runs grouped (27 `It`s → 1 result). 📌 Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs.
-- ✅ `specs.BDD.UnitTests` — 5 NUnit tests covering the BDD API surface (📌 harness specs now include the pending syntax and `ShouldThrow`).
+- ✅ `specs.core.UnitTests` — 333 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs.
+- ✅ `specs.BDD.UnitTests` — 📌 147 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `DescribeAttribute`.
 - ✅ `specs.BDD.VSTestAdapter.Tests` — 272 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
-- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 28 end-to-end results (`CalculatorSpecs` grouped at class level with a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, 📌 `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and 📌 `ShouldThrow`; 5 pending specs Skipped.
-- ✅ All 📌 638 results green (625 passed, 13 pending skipped); build is clean.
+- ✅ `specs.BDD.VSTestAdapter.IntegrationTests` — 📌 34 end-to-end results (`CalculatorSpecs` — 📌 class-level `PerSpec` with a grouped `Subtraction` describe and a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and `ShouldThrow`; 5 pending specs Skipped.
+- ✅ All 📌 786 results green (773 passed, 13 pending skipped); build is clean.
 
 ## Evolution Timeline
 
@@ -199,6 +205,16 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` decision #32.
 
+#### 📌 NEW — Follow-up — `src/` + `tests/` split, BDD self-hosting, `TestHarness` retired (Oct 2026)
+
+- **Layout**: `src/Specs.sln` → `Specs.sln`; four test projects moved to `tests/` (`specs.specification.UnitTests` folder → `specs.BDD.UnitTests`); `.vscode` tasks / launch / settings, `.clinerules`, and `README.md` updated; `watch` task and TestHarness launch config dropped.
+- **Self-hosting**: `specs.BDD.UnitTests` rewritten from nspec syntax on `nSpecTestHarness` to `Specifications` + `[Describe]`; files/classes renamed `<Type>_Tests` (also `TestContextAdapter_Tests` in core).
+- **Removed**: `TestHarness` project (`nspec 3.1.0`); every NUnit reference outside the adapter tests (global `Using`, stray `using`s, `AssertionException` in `TestCaseExecutor_Tests`).
+- **Integration**: `CalculatorSpecs` class-level `PerDescribe` → `PerSpec`.
+- **Tests**: BDD 5 → 147, integration 28 → 34; solution 638 → 786 results; 8 → 7 projects.
+
+> **📌 See**: `systemPatterns.md` section "Test Hosting" and decision #33.
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -210,7 +226,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; 📌 `ContextPathFormat.Separator` is settable if a project must change it |
 | `AfterAll` failures are swallowed by the selection walker, the grouped runner, and the root teardown in `TestInvoker` | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
 | 📌 Grouped mode is root-`[Describe]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
-| 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
+| 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20, 📌 reversed to 34 when `CalculatorSpecs` went back to `PerSpec`); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
 | 📌 Marker style detection relies on `VSAPPIDNAME` | Other hosts that cannot render ANSI show raw escapes | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` |
 | 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly still runs pending bodies | Use the adapter; see `activeContext.md` open question #9 |
 | 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
@@ -224,17 +240,18 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 - Roslyn analyzers for common authoring mistakes (missing `[Describe]`, etc.).
 - `dotnet new` templates.
 - Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package.
-- Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.
+- ~~Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.~~ 📌 DONE.
 
 ## Success Metrics
 
 | Metric | Status |
 |--------|--------|
-| Build cleanliness across all 8 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
-| Test pass rate | ✅ 100% of runnable results (625 passed, 13 pending skipped, 0 failed of 638) |
+| Build cleanliness across all 📌 7 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
+| Test pass rate | ✅ 100% of runnable results (📌 773 passed, 13 pending skipped, 0 failed of 786) |
 | Self-hosted core tests | ✅ 333 results passing via the Specs adapter |
+| Self-hosted BDD tests | ✅ 📌 147 results passing via the Specs adapter |
 | Adapter unit tests | ✅ 272 results (264 passed, 8 pending fixtures skipped) |
-| Adapter integration tests | ✅ 28 results (23 passed, 5 pending skipped) |
+| Adapter integration tests | ✅ 📌 34 results (29 passed, 5 pending skipped) |
 | `specs.core` external dependencies | ✅ Zero |
 | Known open bugs | ✅ None |
 | Documentation accuracy | ✅ Refreshed (October 2026) |
@@ -247,8 +264,8 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | `specs.BDD` | ✅ Production-ready |
 | `specs.BDD.VSTestAdapter` | ✅ Production-ready |
 | Legacy `Spec` class | 📌 Removed |
-| `TestHarness` | 🔧 Internal-only; retirement candidate now that the core self-hosts |
+| `TestHarness` | � Removed |
 | Examples | 📌 `ConsoleExample` removed |
 | Memory bank | ✅ Refreshed October 2026 |
 
-Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with a single method-based API, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Describe]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core that tests itself.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with a single method-based API, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Describe]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core and authoring API that test themselves.

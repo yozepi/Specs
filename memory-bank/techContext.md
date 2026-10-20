@@ -10,8 +10,8 @@ title: "C4 Level 2 — Container: Specs tech stack"
 flowchart TD
     subgraph TEST["Test stack — net10.0 · Microsoft.NET.Test.Sdk 17.8"]
         direction TB
-        SELF["<b>Specs itself</b><br/>[Container: specs.core.UnitTests]<br/>Self-hosted core tests"]:::app
-        NU["<b>NUnit 3.14</b><br/>[Library: NUnit3TestAdapter]<br/>BDD + adapter tests"]:::external
+        SELF["<b>Specs itself</b><br/>[Container: Specs-hosted tests]<br/>Core, BDD, integration"]:::app
+        NU["<b>NUnit 3.14</b><br/>[Library: NUnit3TestAdapter]<br/>Adapter tests only"]:::external
         NF["<b>NFluent 3.x</b><br/>[Library: NuGet]<br/>Fluent assertions"]:::external
         MQ["<b>Moq 4.20</b><br/>[Library: NuGet]<br/>+ Autofac.Extras.Moq 7.0"]:::external
     end
@@ -23,13 +23,6 @@ flowchart TD
         ADP["<b>specs.BDD.VSTestAdapter</b><br/>[Container: VSTest adapter]<br/>Discovery + execution"]:::app
     end
 
-    subgraph LEG["Internal bridge — not shipped"]
-        direction TB
-        TH["<b>TestHarness</b><br/>[Container: .NET library]<br/>Retirement candidate"]:::deprecated
-        NSPEC["<b>nspec 3.1</b><br/>[Library: NuGet]<br/>Legacy runner"]:::deprecated
-        TH -->|"Wraps [NuGet]"| NSPEC
-    end
-
     subgraph ADEPS["Adapter dependencies"]
         direction TB
         MTP["<b>TestPlatform.ObjectModel</b><br/>[Library: NuGet 17.8]<br/>VSTest contracts"]:::external
@@ -37,30 +30,28 @@ flowchart TD
     end
 
     TEST -->|"Tests [project refs]"| DEL
-    TEST -.->|"Scaffolds [project ref]"| LEG
     DEL -->|"Adapter references [NuGet]"| ADEPS
 
     subgraph LEGEND["Legend"]
         direction TB
         L1["App-owned"]:::app
         L2["Third-party"]:::external
-        L3["Deprecated"]:::deprecated
     end
 
     ADEPS ~~~ LEGEND
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef external fill:#E8A838,stroke:#B07D20,color:#fff
-    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
 ```
+
+> 📌 UPDATED — the "Internal bridge" layer (`TestHarness` + `nspec 3.1`) was removed; see `systemPatterns.md` section "Test Hosting".
 
 ## Target Frameworks
 
 | Project type | TFM | Notes |
 |--------------|-----|-------|
 | Deliverables (core, BDD, VSTestAdapter) | `netstandard2.1` | Broad compatibility — runs on .NET Core 3.0+, .NET 5+, .NET Framework support via netstandard2.1 polyfills |
-| All test projects | `net10.0` 📌 UPDATED (was `net8.0`) | NUnit + NFluent + Microsoft.NET.Test.Sdk; the redundant `System.Text.Encodings.Web` pin was dropped from `specs.core.UnitTests` and `specs.BDD.UnitTests` |
-| TestHarness (internal) | `netstandard2.1` | Bridges to nspec for internal scaffolding |
+| All test projects | `net10.0` 📌 UPDATED (was `net8.0`) | NFluent + Microsoft.NET.Test.Sdk (NUnit in the adapter tests only); the redundant `System.Text.Encodings.Web` pin was dropped from `specs.core.UnitTests` and `specs.BDD.UnitTests` |
 
 ## Language
 
@@ -72,34 +63,42 @@ flowchart TD
 ## Project Dependency Graph
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    CORE["specs.core"]:::app
-    BDD["specs.BDD<br/>(specs.specification)"]:::app
-    ADP["specs.BDD.VSTestAdapter"]:::app
-    TH["TestHarness"]:::deprecated
-    CUT["specs.core.UnitTests"]:::data
-    BUT["specs.BDD.UnitTests"]:::data
-    AUT["specs.BDD.VSTestAdapter.Tests"]:::data
-    AIT["specs.BDD.VSTestAdapter.IntegrationTests"]:::data
+---
+title: "C4 Level 2 — Container: Project references (📌 UPDATED)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    subgraph TESTS["Folder: tests/"]
+        direction LR
+        CUT["<b>specs.core.UnitTests</b><br/>[Container: Specs-hosted]<br/>Core specs"]:::app
+        BUT["<b>specs.BDD.UnitTests</b><br/>[Container: Specs-hosted]<br/>Authoring API specs"]:::app
+        AUT["<b>specs.BDD.VSTestAdapter.Tests</b><br/>[Container: NUnit tests]<br/>Adapter components"]:::app
+        AIT["<b>...IntegrationTests</b><br/>[Container: Specs-hosted]<br/>End-to-end VSTest"]:::app
+    end
 
-    BDD --> CORE
-    ADP --> CORE
-    ADP --> BDD
-    CUT --> CORE
-    CUT --> BDD
-    CUT --> ADP
-    CUT --> TH
-    BUT --> BDD
-    BUT --> TH
-    AUT --> ADP
-    AUT --> BDD
-    AIT --> ADP
+    subgraph SRC["Folder: src/"]
+        direction TB
+        ADP["<b>specs.BDD.VSTestAdapter</b><br/>[Container: netstandard2.1]<br/>VSTest adapter"]:::app
+        BDD["<b>specs.BDD</b><br/>[Container: netstandard2.1]<br/>Folder specs.specification"]:::app
+        CORE["<b>specs.core</b><br/>[Container: netstandard2.1]<br/>Zero external deps"]:::app
+    end
+
+    TESTS -->|"Reference adapter + BDD [project ref]"| SRC
+    CUT -->|"Also references [project ref]"| CORE
+    ADP -->|"Builds suites [project ref]"| BDD
+    BDD -->|"Builds on [project ref]"| CORE
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["App-owned project"]:::app
+    end
+
+    CORE ~~~ LEGEND
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
-    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
-    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
 ```
+
+Every test project references `specs.BDD.VSTestAdapter` and — except `IntegrationTests` — `specs.specification`; only `specs.core.UnitTests` references `specs.core` directly. 📌 No project references `TestHarness` (deleted).
 
 ## Package References by Project
 
@@ -118,13 +117,13 @@ flowchart LR
 | Project | Test framework | Assertions | Mocking | SDK |
 |---------|---------------|------------|---------|-----|
 | `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Describe]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
-| `specs.BDD.UnitTests` | NUnit 3.14 / NUnit3TestAdapter 5.0 | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.BDD.UnitTests` | 📌 UPDATED **Specs itself** (was NUnit3TestAdapter 5.0 + `TestHarness`/nspec) | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
-> 📌 **`specs.core.UnitTests` is now self-hosted.** `NUnit3TestAdapter` and `NUnit.Analyzers` were removed from the project; every test class derives from `Specifications` and declares `[Describe]` methods, and the project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. `NUnit.Framework` remains a global `Using` (reaching the project transitively through `TestHarness`) only for residual helper types.
+> 📌 **`specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` are self-hosted.** Neither references `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, or `TestHarness`; every test class derives from `Specifications` and declares `[Describe]` methods, and each project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. 📌 The leftover global `<Using Include="NUnit.Framework" />` was removed from both.
 >
-> **📌 See**: `activeContext.md` section "Self-hosting migration".
+> **📌 See**: `systemPatterns.md` section "Test Hosting".
 
 ## 📌 Adapter Configuration (`.runsettings`)
 
@@ -154,19 +153,14 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution" for the full precedence chain.
 
-### Internal bridge
-
-| Project | Dependencies |
-|---------|--------------|
-| `TestHarness` | `nspec 3.1.0`, `NUnit 3.14.0`, `System.Text.Encodings.Web 9.0.11` |
-
 ## Solution Layout
+
+📌 UPDATED — `Specs.sln` moved to the repo root; test projects moved from `src/` to `tests/`; `specs.specification.UnitTests/` folder renamed `specs.BDD.UnitTests/` (matching its assembly); `TestHarness/` deleted.
 
 ```
 Specs/
-├── src/
-│   ├── Specs.sln
-│   │
+├── Specs.sln                               # 📌 moved from src/
+├── src/                                    # deliverables only
 │   ├── specs.core/                         # DELIVERABLE
 │   │   └── Framework/
 │   │       ├── Adapters/                   # ITestContextAdapter, ILoggingAdapter, ITestProviderAdapter, TestInstance
@@ -184,24 +178,24 @@ Specs/
 │   │   ├── IAssertProvider.cs
 │   │   └── Attributes/DescribeAttribute.cs, TestStructure.cs, TestStructureAttribute.cs
 │   │
-│   ├── specs.BDD.VSTestAdapter/            # DELIVERABLE
-│   │   ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
-│   │   │                                   #   GroupingSettings, SuiteTreeFlattener, PendingSpecs, SourceLocationReader
-│   │   ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties, ContextPathFormat
-│   │   ├── Execution/                      # SpecsTestExecutor, TestInvoker, SelectionTreeWalker,
-│   │   │                                   #   GroupedContextRunner, MarkerStyle, TestFinder, ResultReporter,
-│   │   │                                   #   VSTestLoggingAdapter, VSTestTestProvider
-│   │   └── Properties/AssemblyInfo.cs
-│   │
+│   └── specs.BDD.VSTestAdapter/            # DELIVERABLE
+│       ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
+│       │                                   #   GroupingSettings, SuiteTreeFlattener, PendingSpecs, SourceLocationReader
+│       ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties, ContextPathFormat
+│       ├── Execution/                      # SpecsTestExecutor, TestInvoker, SelectionTreeWalker,
+│       │                                   #   GroupedContextRunner, MarkerStyle, TestFinder, ResultReporter,
+│       │                                   #   VSTestLoggingAdapter, VSTestTestProvider
+│       └── Properties/AssemblyInfo.cs
+│
+├── tests/                                  # 📌 NEW — all test projects
 │   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Describe])
-│   ├── specs.specification.UnitTests/      # NUnit (asm: specs.BDD.UnitTests)
+│   ├── specs.BDD.UnitTests/                # 📌 Specs-hosted (was src/specs.specification.UnitTests, NUnit + nspec)
 │   ├── specs.BDD.VSTestAdapter.Tests/      # NUnit
-│   ├── specs.BDD.VSTestAdapter.IntegrationTests/  # VSTest via Specs adapter
-│   └── TestHarness/                        # internal-only nspec bridge
+│   └── specs.BDD.VSTestAdapter.IntegrationTests/  # VSTest via Specs adapter
 │
 ├── memory-bank/                            # documentation (this folder)
 ├── scripts/
-├── .vscode/settings.json                   # dotnet.defaultSolution = src/Specs.sln
+├── .vscode/settings.json                   # 📌 dotnet.defaultSolution = Specs.sln
 └── README.md
 ```
 
@@ -216,25 +210,26 @@ Specs/
 ### Common commands
 
 ```powershell
-# Restore + build everything
-dotnet restore src\Specs.sln
-dotnet build   src\Specs.sln -c Release
+# Restore + build everything (📌 solution is at the repo root)
+dotnet restore Specs.sln
+dotnet build   Specs.sln -c Release
 
 # Run all tests
-dotnet test src\Specs.sln
+dotnet test Specs.sln
 
-# Run a single test project
-dotnet test src\specs.core.UnitTests\specs.core.UnitTests.csproj
-dotnet test src\specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.csproj
+# Run a single test project (📌 test projects live under tests\)
+dotnet test tests\specs.core.UnitTests\specs.core.UnitTests.csproj
+dotnet test tests\specs.BDD.UnitTests\specs.BDD.UnitTests.csproj
+dotnet test tests\specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.csproj
 
 # Run integration tests (exercises the Specs VSTest adapter end-to-end)
-dotnet test src\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj
+dotnet test tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj
 
 # 📌 Run a subset of Specs tests (FullyQualifiedName, DisplayName, ContextMethod, ContextPath, TestDescription, IsPending)
-dotnet test src\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter "FullyQualifiedName~Calculator"
+dotnet test tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter "FullyQualifiedName~Calculator"
 
 # 📌 List only pending specs (or exclude them with IsPending=false)
-dotnet test src\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter IsPending=true
+dotnet test tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter IsPending=true
 
 # Pack deliverables
 dotnet pack src\specs.core\specs.core.csproj -c Release
@@ -244,7 +239,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 
 ### VS Code tasks
 
-`build`, `build-tests`, `publish`, `watch`, `clean`, `test`, `test-with-coverage`, `restore` are pre-defined in `.vscode/tasks.json`. `test` is the default test task; `build` is the default build task.
+`build`, `build-tests`, `publish`, `clean`, `test`, `test-with-coverage`, `restore` are pre-defined in `.vscode/tasks.json` and point at the root `Specs.sln` / `tests\specs.core.UnitTests`. `test` is the default test task; `build` is the default build task. 📌 The `watch` task and the `.NET Core Launch (TestHarness)` launch configuration were removed with `TestHarness`.
 
 ## Technical Constraints
 
@@ -267,12 +262,12 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 
 ## Testing Strategy
 
-- 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Describe]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
-- **NUnit still covers the outer rings.** `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` remain NUnit fixtures; the adapter cannot credibly test itself.
-- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[TestStructure(PerDescribe)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
-- **TestHarness** provides an nspec-based scaffold from the era before the framework could test itself. It is *internal infrastructure only* and is now a retirement candidate.
-- Test layout mirrors source layout (`Framework/Processors/TestCases/...` → `specs.core.UnitTests/Framework/Processors/TestCases/...`).
-- Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in the NUnit projects.
+- 📌 **Specs tests `specs.core` and `specs.BDD` with Specs.** `specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` derive from `Specifications` + `[Describe]` and are discovered/run by `specs.BDD.VSTestAdapter`.
+- **NUnit covers only the adapter.** `specs.BDD.VSTestAdapter.Tests` remains NUnit fixtures; the adapter cannot credibly test itself.
+- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — 📌 class-level `[TestStructure(PerSpec)]` with a `Subtraction (grouped)` `[Describe(Structure = PerDescribe)]` override and constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
+- 📌 **TestHarness retired** — the nspec bridge and its `nspec` / `NUnit` dependencies were deleted once `specs.BDD.UnitTests` self-hosted.
+- Test layout mirrors source layout (`src/specs.core/Framework/Processors/TestCases/...` → `tests/specs.core.UnitTests/Framework/Processors/TestCases/...`); 📌 test files and classes are named `<TypeUnderTest>_Tests`.
+- Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted projects; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in `specs.BDD.VSTestAdapter.Tests`.
 
 ## VSTest Adapter Deployment
 

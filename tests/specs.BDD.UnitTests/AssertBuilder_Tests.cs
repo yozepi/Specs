@@ -1,16 +1,10 @@
-// NFluent and specs imports
+using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
 
 namespace specs.BDD.UnitTests
 {
-    public class AssertBuilder : BaseAssertBuilderSpecs<BDD.AssertBuilder, Action>
+    public class AssertBuilder_Tests : BaseAssertBuilderSpecs<BDD.AssertBuilder, Action>
     {
-        [Test]
-        public void Specs()
-        {
-            RunMySpecs();   
-        }
-
         protected override BDD.AssertBuilder Construct(IContextualTestCaseBuilder coreBuilder)
         {
             return new BDD.AssertBuilder(coreBuilder);
@@ -18,10 +12,10 @@ namespace specs.BDD.UnitTests
 
         protected override Action EmptyAction() => () => { };
 
-        private void AssertBuilder_Specs()
+        [Describe]
+        public void AssertBuilder()
         {
             SetSharedSpecs();
         }
-
     }
 }

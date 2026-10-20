@@ -26,7 +26,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Solution Structure
 
-The solution contains **8 projects**.
+The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **7 projects** — deliverables under `src/`, test projects under `tests/`.
 
 ### Deliverable Projects (3)
 
@@ -40,16 +40,12 @@ The solution contains **8 projects**.
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | `src/specs.core.UnitTests/` | 📌 333 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
-| **specs.BDD.UnitTests** | `src/specs.specification.UnitTests/` | BDD API unit tests (NUnit) |
-| **specs.BDD.VSTestAdapter.Tests** | `src/specs.BDD.VSTestAdapter.Tests/` | 📌 272 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
-| **specs.BDD.VSTestAdapter.IntegrationTests** | `src/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 28 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs class-level grouped |
+| **specs.core.UnitTests** | 📌 `tests/specs.core.UnitTests/` | 📌 333 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
+| **specs.BDD.UnitTests** | 📌 `tests/specs.BDD.UnitTests/` | 📌 147 BDD API spec results — **written in Specs itself** (was 5 NUnit wrappers over nspec) |
+| **specs.BDD.VSTestAdapter.Tests** | 📌 `tests/specs.BDD.VSTestAdapter.Tests/` | 📌 272 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
+| **specs.BDD.VSTestAdapter.IntegrationTests** | 📌 `tests/specs.BDD.VSTestAdapter.IntegrationTests/` | 📌 34 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs per spec except its `Subtraction (grouped)` describe |
 
-### Internal (1)
-
-| Project | Folder | Purpose |
-|---------|--------|---------|
-| **TestHarness** | `src/TestHarness/` | **Internal-only** nspec bridge from the era before the framework could test itself; not a deliverable, now a retirement candidate |
+> 📌 REMOVED: the internal-only `TestHarness` project (nspec bridge). See `systemPatterns.md` decision #33.
 
 > 📌 REMOVED: the legacy `Specs` stub project (`src/Specs.csproj`, `Spec` class, `Domain/` layer) and the `Examples/ConsoleExample` sample. See `systemPatterns.md` decision #31.
 
@@ -95,9 +91,8 @@ public class CalculatorSpecs : Specifications      // Suite
 ## Technology Stack
 
 - **Deliverables**: .NET Standard 2.1, C# 8.0, nullable enabled.
-- **Tests**: net10.0 📌 UPDATED. `specs.core.UnitTests` runs on **Specs itself**; the BDD and adapter test projects use NUnit 3.x. NFluent 3.x for assertions, Autofac.Extras.Moq 7.0 in core tests only.
+- **Tests**: net10.0 📌 UPDATED. 📌 `specs.core.UnitTests`, `specs.BDD.UnitTests`, and the integration tests run on **Specs itself**; only the adapter test project uses NUnit 3.x. NFluent 3.x for assertions, Autofac.Extras.Moq 7.0 in core tests, Moq 4.20 in adapter tests.
 - **Adapter dependencies**: Microsoft.TestPlatform.ObjectModel 17.8.0, System.Reflection.Metadata 6.0.0.
-- **Legacy bridge**: nspec 3.1.0 (TestHarness only — not shipped).
 
 ## Scope
 

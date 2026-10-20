@@ -133,8 +133,8 @@ Test that verifies a single unit of code (typically a method or class) in isolat
 ### nSpec
 Behavior-Driven Development framework for .NET. The Specs framework builds on top of NSpec to provide enhanced test case building capabilities.
 
-### nSpecTestHarness
-Base class provided by the Specs framework that integrates with NSpec and NUnit. Provides methods for loading and running specs with tag filtering and formatting support.
+### nSpecTestHarness — 📌 REMOVED
+Former base class (in the deleted `TestHarness` project) that ran nspec-syntax specs under NUnit. All Specs test projects except the adapter's own tests now derive from `Specifications`.
 
 ### Specification (Spec)
 A test class that describes the behavior of a system. In NSpec, specs are classes that inherit from `nspec` or `nSpecTestHarness`.
@@ -195,13 +195,13 @@ NSpec's fluent assertion extensions. Example: `result.should_be(42)` or `value.s
 Core library project containing the Specs framework implementation. Targets .NET Standard 2.1. Provides the builder pattern-based architecture with `IContextualTestCaseBuilder` and related components.
 
 ### specs.core.UnitTests
-Unit test project that tests the functionality of the specs.core library using NUnit and NSpec.
+Unit test project (📌 `tests/specs.core.UnitTests/`) that tests specs.core; written in Specs itself and run by `specs.BDD.VSTestAdapter`.
 
 ### specs.BDD (specs.specification)
 High-level BDD specification library built on top of specs.core. Provides the method-based API through the `Specifications` base class with methods like `BeforeAll()`, `BeforeEach()`, `Act()`, and properties like `Describe`, `Context`, `It`.
 
 ### specs.BDD.UnitTests
-Unit test project that tests the functionality of the specs.BDD library.
+Unit test project (📌 `tests/specs.BDD.UnitTests/`) that tests the specs.BDD library; 📌 written in Specs itself and run by `specs.BDD.VSTestAdapter`.
 
 ### Specifications (specs.BDD)
 Abstract base class in the specs.BDD library providing a method-based DSL for writing BDD-style tests. Modern approach that uses method calls for lifecycle hooks and builder properties for test organization.
@@ -212,8 +212,8 @@ Former property-based base class (`src/Spec.cs`). Deleted; use `Specifications`.
 ### Domain Layer — 📌 REMOVED
 Former legacy runtime layer in `src/Domain/` (`IRunContext`, spec definitions, `ActionRunner` / `TaskRunner`). Deleted together with `Spec`.
 
-### TestHarness
-Project containing the `nSpecTestHarness` base class for integrating the Specs framework with NSpec and NUnit.
+### TestHarness — 📌 REMOVED
+Former internal project containing `nSpecTestHarness` (nspec + NUnit bridge). Deleted; see `systemPatterns.md` decision #33.
 
 ---
 

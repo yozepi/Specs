@@ -1,5 +1,4 @@
 ﻿using NFluent;
-using NUnit.Framework;
 using specs.core.Framework.Processors.TestCases;
 using specs.BDD;
 using specs.BDD.Attributes;

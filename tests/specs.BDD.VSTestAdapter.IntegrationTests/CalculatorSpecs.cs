@@ -9,7 +9,7 @@ namespace specs.BDD.VSTestAdapter.IntegrationTests;
 /// Integration specs for Calculator — demonstrates multi-context discovery
 /// and hierarchical test execution via the specs.BDD.VSTestAdapter.
 /// </summary>
-[TestStructure(TestStructure.PerDescribe)]
+[TestStructure(TestStructure.PerSpec)]
 public class CalculatorSpecs : Specifications
 {
     Calculator calculator = null!;

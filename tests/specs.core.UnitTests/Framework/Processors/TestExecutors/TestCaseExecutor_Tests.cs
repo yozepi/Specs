@@ -1,7 +1,6 @@
 ﻿using Autofac.Extras.Moq;
 using Moq;
 using NFluent;
-using NUnit.Framework.Internal;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.Processors.TestExecutors;
 using System.ComponentModel;
@@ -154,7 +153,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 {
                     BeforeEach(() =>
                     {
-                        testCaseTest = () => throw new AssertionException("Test Failed");
+                        testCaseTest = () => throw new InvalidOperationException("Test Failed");
                         var test = new TestInstance(testCaseDescription, testCaseTest);
                         tests.Clear();
                         tests.AddRange(new TestInstance[] { test });
@@ -163,7 +162,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     It["should log the failure"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogAssertFailure(Moq.It.IsAny<AssertionException>(), testCaseDescription), Times.Once());
+                            .Verify(x => x.LogAssertFailure(Moq.It.IsAny<InvalidOperationException>(), testCaseDescription), Times.Once());
                     };
 
                     Context["when configured to stop on an assertion failure..."] = () =>
@@ -176,7 +175,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         It["should throw the exception"] = () =>
                         {
                             Check.That(_caughtActException).IsNotNull();
-                            Check.That(_caughtActException).IsInstanceOf<AssertionException>();
+                            Check.That(_caughtActException).IsInstanceOf<InvalidOperationException>();
                         };
                     };
                 };

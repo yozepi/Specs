@@ -1,43 +1,37 @@
 using NFluent;
+using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
-using yozepi;
 using static specs.BDD.ContextBuilder;
 
 namespace specs.BDD.UnitTests
 {
-    public class ContextBuilder : nSpecTestHarness
+    public class ContextBuilder_Tests : Specifications
     {
-        [Test]
-        public void Specs()
+        [Describe]
+        public void ContextBuilder()
         {
-            RunMySpecs();
-        }
-
-        private void ContextBuilder_Specs()
-        {
-            describe["ContextBuilder"] = () =>
+            Describe["ContextBuilder"] = () =>
             {
                 BDD.ContextBuilder subject = null!;
                 ContextCallBack callBack = null!;
 
-                base.act = () => subject = new BDD.ContextBuilder(new ContextualTestCaseBuilder(), callBack);
+                BeforeEach(() => callBack = (childBuilder, action) => { });
 
-                context["when using indexer syntax"] = () =>
+                Act(() => subject = new BDD.ContextBuilder(new ContextualTestCaseBuilder(), callBack));
+
+                Context["when using indexer syntax"] = () =>
                 {
-
-                    beforeEach = () => callBack = (childBuilder, action) => { };
-
-                    context["with valid description"] = () =>
+                    Context["with valid description"] = () =>
                     {
-                        it["should accept the description"] = () =>
+                        It["should accept the description"] = () =>
                         {
                             Check.ThatCode(() => subject["valid description"] = () => { }).DoesNotThrow();
                         };
                     };
 
-                    context["with null description"] = () =>
+                    Context["with null description"] = () =>
                     {
-                        it["should throw ArgumentNullException"] = () =>
+                        It["should throw ArgumentNullException"] = () =>
                         {
                             Check.ThatCode(() => subject[null!] = () => { })
                                 .Throws<ArgumentNullException>()
@@ -45,9 +39,9 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["with empty description"] = () =>
+                    Context["with empty description"] = () =>
                     {
-                        it["should throw ArgumentException"] = () =>
+                        It["should throw ArgumentException"] = () =>
                         {
                             Check.ThatCode(() => subject[""] = () => { })
                                 .Throws<ArgumentException>()
@@ -55,23 +49,23 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["with whitespace description"] = () =>
+                    Context["with whitespace description"] = () =>
                     {
-                        it["should throw ArgumentException for spaces"] = () =>
+                        It["should throw ArgumentException for spaces"] = () =>
                         {
                             Check.ThatCode(() => subject["   "] = () => { })
                                 .Throws<ArgumentException>()
                                 .WithProperty(ex => ex.ParamName, "description");
                         };
 
-                        it["should throw ArgumentException for tabs"] = () =>
+                        It["should throw ArgumentException for tabs"] = () =>
                         {
                             Check.ThatCode(() => subject["\t\t"] = () => { })
                                 .Throws<ArgumentException>()
                                 .WithProperty(ex => ex.ParamName, "description");
                         };
 
-                        it["should throw ArgumentException for newlines"] = () =>
+                        It["should throw ArgumentException for newlines"] = () =>
                         {
                             Check.ThatCode(() => subject["\r\n"] = () => { })
                                 .Throws<ArgumentException>()
@@ -80,19 +74,16 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["usage patterns"] = () =>
+                Context["usage patterns"] = () =>
                 {
-                    beforeEach = () => callBack = (childBuilder, action) => { };
-
-
-                    it["should throw when setting null action"] = () =>
+                    It["should throw when setting null action"] = () =>
                     {
                         Check.ThatCode(() => subject["Test Context"] = null!).Throws<ArgumentNullException>();
                     };
 
-                    context["when multiple contexts are set"] = () =>
+                    Context["when multiple contexts are set"] = () =>
                     {
-                        it["should create multiple context blocks blocks"] = () =>
+                        It["should create multiple context blocks blocks"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -103,9 +94,9 @@ namespace specs.BDD.UnitTests
                         };
                     };
 
-                    context["with nested context structure"] = () =>
+                    Context["with nested context structure"] = () =>
                     {
-                        it["should compile and execute nested contexts"] = () =>
+                        It["should compile and execute nested contexts"] = () =>
                         {
                             Check.ThatCode(() =>
                             {
@@ -118,22 +109,22 @@ namespace specs.BDD.UnitTests
                     };
                 };
 
-                context["type characteristics"] = () =>
+                Context["type characteristics"] = () =>
                 {
-                    it["should be public class"] = () =>
+                    It["should be public class"] = () =>
                     {
                         var type = typeof(BDD.ContextBuilder);
                         Check.That(type.IsPublic).IsTrue();
                     };
 
-                    it["should have indexer property"] = () =>
+                    It["should have indexer property"] = () =>
                     {
                         var type = typeof(BDD.ContextBuilder);
                         var indexer = type.GetProperty("Item");
                         Check.That(indexer).IsNotNull();
                     };
 
-                    it["should have Action type indexer"] = () =>
+                    It["should have Action type indexer"] = () =>
                     {
                         var type = typeof(BDD.ContextBuilder);
                         var indexer = type.GetProperty("Item");
@@ -142,6 +133,5 @@ namespace specs.BDD.UnitTests
                 };
             };
         }
-
     }
 }

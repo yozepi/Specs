@@ -24,14 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\specs.core\specs.core.csproj" />
-    <ProjectReference Include="..\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
-    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
-    <ProjectReference Include="..\TestHarness\TestHarness.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="NUnit.Framework" />
+    <ProjectReference Include="..\..\src\specs.core\specs.core.csproj" />
+    <ProjectReference Include="..\..\src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
+    <ProjectReference Include="..\..\src\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
 </Project>
