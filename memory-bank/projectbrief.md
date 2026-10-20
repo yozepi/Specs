@@ -107,7 +107,7 @@ public class CalculatorSpecs : Specifications      // Suite
 - BDD authoring API with async support.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting + 📌 `dotnet test --filter` support.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
-- 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the `SpecReporting` enum at method (`[Describe(Reporting = ...)]`), class or assembly (`[SpecReporting(...)]`), or `.runsettings` level.
+- 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the 📌 `TestStructure` enum (`PerSpec` / `PerDescribe`) at method (`[Describe(Structure = ...)]`), class or assembly (`[TestStructure(...)]`), or `.runsettings` level.
 - 📌 Class-level (constructor-registered) `BeforeAll` / `AfterAll` running once per suite.
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.

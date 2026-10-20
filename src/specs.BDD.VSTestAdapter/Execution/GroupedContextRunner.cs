@@ -159,7 +159,7 @@ namespace specs.BDD.VSTestAdapter.Execution
                     foreach (var child in contextualNode.ChildContexts)
                     {
                         if (cancellationToken.IsCancellationRequested) return;
-                        var childPath = path + TestStructureExtractor.PathSeparator + child.Description;
+                        var childPath = path + ContextPathFormat.Separator + child.Description;
                         RunNode(child, childPath, depth + 1, state, cancellationToken);
                     }
                 }
@@ -210,7 +210,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             else
             {
                 var cause = ResultReporter.Unwrap(failure);
-                state.Failures.Add((path + TestStructureExtractor.PathSeparator + description, cause));
+                state.Failures.Add((path + ContextPathFormat.Separator + description, cause));
                 state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED:");
                 AppendLocation(test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
@@ -237,7 +237,7 @@ namespace specs.BDD.VSTestAdapter.Execution
                     continue;
                 }
 
-                state.Failures.Add((path + TestStructureExtractor.PathSeparator + description, cause));
+                state.Failures.Add((path + ContextPathFormat.Separator + description, cause));
                 state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED: BeforeAll failed:");
                 AppendLocation(test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
@@ -248,7 +248,7 @@ namespace specs.BDD.VSTestAdapter.Execution
                 foreach (var child in contextualNode.ChildContexts)
                 {
                     state.Output.AppendLine($"{Indent(depth)}{child.Description}");
-                    var childPath = path + TestStructureExtractor.PathSeparator + child.Description;
+                    var childPath = path + ContextPathFormat.Separator + child.Description;
                     FailSubtree(child, childPath, depth + 1, cause, state);
                 }
             }

@@ -15,7 +15,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
     /// </summary>
     /// <remarks>
     /// This is the single source of truth for tree construction — used by both discovery
-    /// (via <see cref="TestStructureExtractor"/>) and execution (via the selection-tree walker).
+    /// (via <see cref="SuiteTreeFlattener"/>) and execution (via the selection-tree walker).
     /// </remarks>
     internal static class SuiteTreeBuilder
     {

@@ -9,7 +9,7 @@ namespace specs.core.UnitTests.Framework.Adapters
 {
     public class TestContextAdapter : Specifications
     {
-        [Describe(Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe(Structure = TestStructure.PerDescribe)]
         public void Specs()
         {
             core.Framework.Adapters.TestContextAdapter subject = null!;

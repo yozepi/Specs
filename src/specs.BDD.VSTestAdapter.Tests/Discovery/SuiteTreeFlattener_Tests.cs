@@ -1,6 +1,7 @@
 ﻿using NFluent;
 using NUnit.Framework;
 using specs.BDD.Attributes;
+using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using System.Linq;
@@ -9,7 +10,7 @@ using System.Reflection;
 namespace specs.BDD.VSTestAdapter.Tests.Discovery
 {
     [TestFixture]
-    public class TestStructureExtractor_Tests
+    public class SuiteTreeFlattener_Tests
     {
         private static MethodInfo GetContextMethod<T>(string methodName)
             => typeof(T).GetMethod(methodName,
@@ -19,14 +20,14 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void SimpleSpec_ReturnsOneSpecTestPerItAssertion()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             Check.That(tests).HasSize(2);
         }
 
         [Test]
         public void SimpleSpec_TestDescriptionsMatchItLabels()
         {
-            var descriptions = TestStructureExtractor.ExtractTests(typeof(SimpleSpec))
+            var descriptions = SuiteTreeFlattener.Flatten(typeof(SimpleSpec))
                 .Select(t => t.TestDescription).ToList();
             Check.That(descriptions).Contains("test one");
             Check.That(descriptions).Contains("test two");
@@ -35,7 +36,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void UsesDescribeAttributeDescriptionAsRootContextPath()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
                 Check.That(test.ContextPath).IsEqualTo("simple context");
         }
@@ -43,7 +44,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void UsesMethodNameAsContextPathWhenAttributeHasNoDescription()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SpecWithNoContextDescription)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SpecWithNoContextDescription)).ToList();
             Check.That(tests).HasSize(1);
             Check.That(tests[0].ContextPath).IsEqualTo("describe_addition");
         }
@@ -51,7 +52,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void SpecTestCarriesCorrectSpecificationClass()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
                 Check.That(test.SpecificationClass).IsEqualTo(typeof(SimpleSpec));
         }
@@ -60,7 +61,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         public void SpecTestCarriesCorrectContextMethod()
         {
             var method = GetContextMethod<SimpleSpec>("describe_something");
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
                 Check.That(test.ContextMethod).IsEqualTo(method);
         }
@@ -68,17 +69,17 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void NestedContext_ContextPathIncludesArrowSeparator()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(NestedContextSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(NestedContextSpec)).ToList();
             Check.That(tests).HasSize(2);
             var paths = tests.Select(t => t.ContextPath).ToList();
-            Check.That(paths).Contains($"root context{TestStructureExtractor.PathSeparator}when doing X");
-            Check.That(paths).Contains($"root context{TestStructureExtractor.PathSeparator}when doing Y");
+            Check.That(paths).Contains($"root context{ContextPathFormat.Separator}when doing X");
+            Check.That(paths).Contains($"root context{ContextPathFormat.Separator}when doing Y");
         }
 
         [Test]
         public void NestedContext_TestDescriptionsArePreserved()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(NestedContextSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(NestedContextSpec)).ToList();
             var descriptions = tests.Select(t => t.TestDescription).ToList();
             Check.That(descriptions).Contains("should work for X");
             Check.That(descriptions).Contains("should work for Y");
@@ -87,26 +88,26 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void DeeplyNestedContext_BuildsFullPathWithMultipleArrows()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(DeeplyNestedContextSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(DeeplyNestedContextSpec)).ToList();
             Check.That(tests).HasSize(1);
-            Check.That(tests[0].ContextPath).IsEqualTo($"root{TestStructureExtractor.PathSeparator}level one{TestStructureExtractor.PathSeparator}level two");
+            Check.That(tests[0].ContextPath).IsEqualTo($"root{ContextPathFormat.Separator}level one{ContextPathFormat.Separator}level two");
             Check.That(tests[0].TestDescription).IsEqualTo("deep test");
         }
 
         [Test]
         public void MixedDepth_ReturnsTestsAtAllLevels()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(MixedDepthSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(MixedDepthSpec)).ToList();
             Check.That(tests).HasSize(2);
             var paths = tests.Select(t => t.ContextPath).ToList();
             Check.That(paths).Contains("mixed depth");
-            Check.That(paths).Contains($"mixed depth{TestStructureExtractor.PathSeparator}nested context");
+            Check.That(paths).Contains($"mixed depth{ContextPathFormat.Separator}nested context");
         }
 
         [Test]
         public void MixedDepth_TestDescriptionsMatchItLabels()
         {
-            var descriptions = TestStructureExtractor.ExtractTests(typeof(MixedDepthSpec))
+            var descriptions = SuiteTreeFlattener.Flatten(typeof(MixedDepthSpec))
                 .Select(t => t.TestDescription).ToList();
             Check.That(descriptions).Contains("root level test");
             Check.That(descriptions).Contains("nested test");
@@ -115,7 +116,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void MultipleContextMethods_EachMethodProducesItsOwnTests()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(MultiContextSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(MultiContextSpec)).ToList();
             var firstTests = tests.Where(t => t.ContextPath == "feature one").ToList();
             var secondTests = tests.Where(t => t.ContextPath == "feature two").ToList();
             Check.That(firstTests).HasSize(1);
@@ -125,7 +126,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void MultipleContextMethods_ContextPathsAreScopedToTheirOwnMethod()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(MultiContextSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(MultiContextSpec)).ToList();
             var paths = tests.Select(t => t.ContextPath).Distinct().ToList();
             Check.That(paths).Contains("feature one");
             Check.That(paths).Contains("feature two");
@@ -136,7 +137,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void EverySpecTest_HasItActionPopulated()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
                 Check.That(test.ItAction).IsNotNull();
         }
@@ -145,7 +146,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         public void ItAction_Method_IsDifferentFromContextMethod()
         {
             var contextMethod = GetContextMethod<SimpleSpec>("describe_something");
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
                 Check.That(test.ItAction!.Method).IsNotEqualTo(contextMethod);
         }
@@ -153,7 +154,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void ItAction_EachTestHasDistinctMethod()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             Check.That(tests).HasSize(2);
             Check.That(tests[0].ItAction!.Method).IsNotEqualTo(tests[1].ItAction!.Method);
         }
@@ -163,7 +164,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void GroupedContext_YieldsSingleGroupedSpecTest()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(GroupedSpec)).ToList();
 
             Check.That(tests).HasSize(1);
             Check.That(tests[0].IsGrouped).IsTrue();
@@ -172,7 +173,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void GroupedSpecTest_ContextPathIsRootContextDescription()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(GroupedSpec)).ToList();
 
             Check.That(tests[0].ContextPath).IsEqualTo("grouped feature");
             Check.That(tests[0].TestDescription).IsEmpty();
@@ -182,7 +183,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void GroupedSpecTest_CarriesContextMethodForNavigation()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(GroupedSpec)).ToList();
 
             Check.That(tests[0].ContextMethod).IsEqualTo(GetContextMethod<GroupedSpec>("describe_grouped"));
         }
@@ -190,7 +191,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void MixedGrouping_GroupedAndFlatMethodsCoexist()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(MixedGroupingSpec)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(MixedGroupingSpec)).ToList();
 
             var grouped = tests.Where(t => t.IsGrouped).ToList();
             var flat = tests.Where(t => !t.IsGrouped).ToList();
@@ -204,7 +205,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void RunSettingsGrouping_AppliesToContextsWithoutExplicitSetting()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SimpleSpec), runSettingsGrouping: SpecReporting.GroupedByRootContext).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec), runSettingsGrouping: TestStructure.PerDescribe).ToList();
 
             Check.That(tests).HasSize(1);
             Check.That(tests[0].IsGrouped).IsTrue();
@@ -216,7 +217,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void Pending_SpecsAreStillDiscovered()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SpecWithPending)).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SpecWithPending)).ToList();
 
             Check.That(tests.Select(t => t.TestDescription)).ContainsExactly(
                 "runnable", "todo", "todo async", "excluded", "inside pending context");
@@ -225,7 +226,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void Pending_IsPendingSetForTodoXItAndPendingContext()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(SpecWithPending))
+            var tests = SuiteTreeFlattener.Flatten(typeof(SpecWithPending))
                 .ToDictionary(t => t.TestDescription, t => t.IsPending);
 
             Check.That(tests["runnable"]).IsFalse();
@@ -238,7 +239,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void Pending_GroupedContext_IsPendingOnlyWhenAllSpecsArePending()
         {
-            var tests = TestStructureExtractor.ExtractTests(typeof(GroupedSpecWithPending))
+            var tests = SuiteTreeFlattener.Flatten(typeof(GroupedSpecWithPending))
                 .ToDictionary(t => t.ContextPath, t => t.IsPending);
 
             Check.That(tests["grouped with pending"]).IsFalse();

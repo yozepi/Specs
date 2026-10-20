@@ -1,4 +1,4 @@
-using specs.BDD.VSTestAdapter.Discovery;
+using specs.BDD.VSTestAdapter.Conversion;
 using specs.core.Framework.Processors.TestCases;
 using System;
 using System.Linq;
@@ -38,7 +38,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             string contextPath,
             string testDescription)
         {
-            var segments = contextPath.Split(TestStructureExtractor.PathSeparator, StringSplitOptions.None);
+            var segments = contextPath.Split(ContextPathFormat.Separator, StringSplitOptions.None);
 
             // Navigate ALL segments from root.ChildContexts downward.
             // The tree root (built by SuiteTreeBuilder) has no description of its own;

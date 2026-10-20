@@ -21,8 +21,8 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         private static TestCase MakeGroupedTestCase<TSpec>(string contextPath)
             where TSpec : specs.BDD.Specifications
         {
-            var specTest = TestStructureExtractor
-                .ExtractTests(typeof(TSpec))
+            var specTest = SuiteTreeFlattener
+                .Flatten(typeof(TSpec))
                 .Single(t => t.IsGrouped && t.ContextPath == contextPath);
 
             return TestCaseConverter.ToVSTestCase(specTest, typeof(TSpec).Assembly.Location);

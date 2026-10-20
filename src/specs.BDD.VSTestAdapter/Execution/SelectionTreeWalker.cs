@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using specs.BDD.VSTestAdapter.Conversion;
-using specs.BDD.VSTestAdapter.Discovery;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.Processors.TestCases;
 using specs.core.Framework.Processors.TestExecutors;
@@ -130,7 +129,7 @@ namespace specs.BDD.VSTestAdapter.Execution
                     // When nodePath is empty (root), child paths are just the child description.
                     var childPath = string.IsNullOrEmpty(nodePath)
                         ? child.Description
-                        : nodePath + TestStructureExtractor.PathSeparator + child.Description;
+                        : nodePath + ContextPathFormat.Separator + child.Description;
 
                     if (_livePaths.Contains(childPath) && child is IContextualTestCase contextualChild)
                         WalkNode(contextualChild, childPath);
@@ -256,7 +255,7 @@ namespace specs.BDD.VSTestAdapter.Execution
         private static bool IsAtOrUnder(string path, string prefix) =>
             string.IsNullOrEmpty(prefix) || // empty = root = every path is under it
             path == prefix ||
-            path.StartsWith(prefix + TestStructureExtractor.PathSeparator, StringComparison.Ordinal);
+            path.StartsWith(prefix + ContextPathFormat.Separator, StringComparison.Ordinal);
 
         /// <summary>
         /// Marks every ancestor path of <paramref name="path"/> (including itself) as live.
@@ -266,11 +265,11 @@ namespace specs.BDD.VSTestAdapter.Execution
             // Always mark the root (empty string) as live so WalkNode can enter the tree.
             _livePaths.Add("");
 
-            var parts = path.Split(TestStructureExtractor.PathSeparator, StringSplitOptions.None);
+            var parts = path.Split(ContextPathFormat.Separator, StringSplitOptions.None);
             var prefix = "";
             for (int i = 0; i < parts.Length; i++)
             {
-                prefix = i == 0 ? parts[0] : prefix + TestStructureExtractor.PathSeparator + parts[i];
+                prefix = i == 0 ? parts[0] : prefix + ContextPathFormat.Separator + parts[i];
                 _livePaths.Add(prefix);
             }
         }

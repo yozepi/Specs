@@ -139,7 +139,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var testCase = MakeTestCase<NestedContextSpec>(
                 "describe_something",
-                $"root context{TestStructureExtractor.PathSeparator}when doing X",
+                $"root context{ContextPathFormat.Separator}when doing X",
                 "should work for X");
 
             var result = TestInvoker.Invoke(testCase);
@@ -152,7 +152,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var testCase = MakeTestCase<DeeplyNestedContextSpec>(
                 "describe_something",
-                $"root{TestStructureExtractor.PathSeparator}level one{TestStructureExtractor.PathSeparator}level two",
+                $"root{ContextPathFormat.Separator}level one{ContextPathFormat.Separator}level two",
                 "deep test");
 
             var result = TestInvoker.Invoke(testCase);
@@ -199,8 +199,8 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             where TSpec : specs.BDD.Specifications
         {
             var source = typeof(TSpec).Assembly.Location;
-            var tests = TestStructureExtractor
-                .ExtractTests(typeof(TSpec))
+            var tests = SuiteTreeFlattener
+                .Flatten(typeof(TSpec))
                 .Select(t => TestCaseConverter.ToVSTestCase(t, source))
                 .ToList();
 
@@ -343,7 +343,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         private static TestResult InvokeShouldThrow(string context, string description) =>
             TestInvoker.Invoke(MakeTestCase<ShouldThrowSpec>(
                 "describe_should_throw",
-                $"should throw{TestStructureExtractor.PathSeparator}{context}",
+                $"should throw{ContextPathFormat.Separator}{context}",
                 description));
 
         private static TestResult InvokeShouldThrowWithFailure(string context, string description)
@@ -424,7 +424,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
                     .Select(r => r.TestCase.GetPropertyValue<string>(TestProperties.ContextPath, null)!)
                     .ToList();
 
-                var separator = TestStructureExtractor.PathSeparator;
+                var separator = ContextPathFormat.Separator;
                 Check.That(failed).IsEquivalentTo(
                     $"should throw{separator}when the verifier may fail",
                     $"should throw{separator}when Act may not throw",

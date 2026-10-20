@@ -9,7 +9,7 @@ namespace specs.BDD.VSTestAdapter.IntegrationTests;
 /// Integration specs for Calculator — demonstrates multi-context discovery
 /// and hierarchical test execution via the specs.BDD.VSTestAdapter.
 /// </summary>
-[SpecReporting(SpecReporting.GroupedByRootContext)]
+[TestStructure(TestStructure.PerDescribe)]
 public class CalculatorSpecs : Specifications
 {
     Calculator calculator = null!;
@@ -133,7 +133,7 @@ public class CalculatorSpecs : Specifications
         };
     }
     
-    [Describe("Subtraction (grouped)", Reporting = SpecReporting.GroupedByRootContext)]
+    [Describe("Subtraction (grouped)", Structure = TestStructure.PerDescribe)]
     public void describe_subtraction()
     {
         Act(() => { result = calculator.Subtract(num1, num2); });

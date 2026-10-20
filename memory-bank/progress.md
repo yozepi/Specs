@@ -31,19 +31,19 @@ All three deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`) ar
 - ✅ `[Describe]` attribute marking feature-set methods.
 - ✅ 📌 Pending specs: `TODO` / `TODOAsync` placeholders, `xIt` / `xItAsync` / `xContext` / `xDescribe`.
 - ✅ 📌 Expected-exception specs: `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T> verify)` (assignability match, null verifier rejected).
-- ✅ 📌 `SpecReporting` enum, `DescribeAttribute.Reporting` (nullable-backed) and `[SpecReporting]` (assembly or class, not inherited) opt-in metadata for grouped execution — replaces `Grouped` / `GroupSpecsByRootContext`.
+- ✅ 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure` (nullable-backed) and `[TestStructure]` (assembly or class, not inherited) opt-in metadata for grouped execution — renamed from `SpecReporting` / `Reporting` / `[SpecReporting]`, which had replaced `Grouped` / `GroupSpecsByRootContext`.
 - ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
 
 ### specs.BDD.VSTestAdapter
 
-- ✅ **Discovery**: `SpecsTestDiscoverer`, `SpecificationClassScanner`, `ContextMethodScanner`, `SuiteTreeBuilder`, `GroupingSettings` 📌, `TestStructureExtractor`, `PendingSpecs` 📌, `SourceLocationReader`.
-- ✅ **Conversion**: `SpecTest` POCO (with `IsGrouped` / `IsPending` 📌), `TestCaseConverter`, `TestProperties` (custom `TestProperty` registry incl. `IsGrouped` / `IsPending` 📌).
+- ✅ **Discovery**: `SpecsTestDiscoverer`, `SpecificationClassScanner`, `ContextMethodScanner`, `SuiteTreeBuilder`, `GroupingSettings` 📌, `SuiteTreeFlattener` 📌 (was `TestStructureExtractor`), `PendingSpecs` 📌, `SourceLocationReader`.
+- ✅ **Conversion**: `SpecTest` POCO (with `IsGrouped` / `IsPending` 📌), `TestCaseConverter`, `TestProperties` (custom `TestProperty` registry incl. `IsGrouped` / `IsPending` 📌), 📌 `ContextPathFormat` (shared `ContextPath` delimiter).
 - ✅ **Execution**: `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner` 📌, `MarkerStyle` 📌, `TestFinder`, `ResultReporter`, `VSTestLoggingAdapter`, `VSTestTestProvider`.
 - ✅ Once-per-node `BeforeAll` / `AfterAll` for arbitrary test selections.
 - ✅ 📌 Root (constructor-registered) `BeforeAll` / `AfterAll` run once per class via `TestInvoker`; a failing root `BeforeAll` fails every selected test and skips root `AfterAll`.
-- ✅ 📌 Grouped root-context execution: one `TestCase` / `TestResult` per opted-in `[Describe]`, NSpec-style tree + failure list in the result output, precedence method → class → assembly → `.runsettings` → `Individual`.
+- ✅ 📌 Grouped root-context execution: one `TestCase` / `TestResult` per opted-in `[Describe]`, NSpec-style tree + failure list in the result output, precedence method → class → assembly → `.runsettings` → `PerSpec`.
 - ✅ 📌 Grouped report formatting: host-aware markers (ANSI / emoji in Visual Studio / plain) and optional per-`It` source locations.
-- ✅ 📌 `.runsettings` support (`<SpecsBDD>` `SpecReporting`, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
+- ✅ 📌 `.runsettings` support (`<SpecsBDD>` `TestStructure` 📌, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
 - ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property; display names embed `ContextPath` for VS Code 📌.
 - ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), falling back to the `[Describe]` method.
 - ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
@@ -191,6 +191,14 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` decision #30.
 
+#### 📌 NEW — Follow-up — `SpecReporting` → `TestStructure` rename (Oct 2026)
+
+- **Breaking API rename**: `SpecReporting.Individual` / `GroupedByRootContext` → `TestStructure.PerSpec` / `PerDescribe`; `SpecReportingAttribute` → `TestStructureAttribute`; `DescribeAttribute.Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`; `.runsettings` `<SpecsBDD><SpecReporting>` → `<SpecsBDD><TestStructure>`.
+- **Adapter**: `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`; `TestStructureExtractor.PathSeparator` → new `Conversion.ContextPathFormat.Separator`, used by `SelectionTreeWalker`, `GroupedContextRunner`, and `TestFinder`.
+- **Tests**: `TestStructureExtractor_Tests` → `SuiteTreeFlattener_Tests`; fixtures, integration suites, and the self-hosted `TestContextAdapter` suite migrated. No behaviour or count change.
+
+> **📌 See**: `systemPatterns.md` decision #32.
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -199,7 +207,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | Async hooks block on `GetAwaiter().GetResult()` | Async-only deadlocks possible if user code captures sync context without `ConfigureAwait(false)` | Use `ConfigureAwait(false)` in libraries under test |
 | No built-in data-driven tests | Must hand-roll loops or generate `It[...]` programmatically | Possible future enhancement |
 | Discovery materializes the full test tree | Slightly heavier than attribute-only discovery, but enables full `It[...]` granularity | Acceptable; the tree is built once per class per run |
-| `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; `TestStructureExtractor.PathSeparator` is settable if a project must change it |
+| `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; 📌 `ContextPathFormat.Separator` is settable if a project must change it |
 | `AfterAll` failures are swallowed by the selection walker, the grouped runner, and the root teardown in `TestInvoker` | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
 | 📌 Grouped mode is root-`[Describe]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
 | 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |

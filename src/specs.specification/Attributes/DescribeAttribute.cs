@@ -31,7 +31,7 @@ namespace specs.BDD.Attributes
     public class DescribeAttribute : Attribute
     {
         // Nullable backing distinguishes "not specified" from an explicit value.
-        private SpecReporting? _reporting;
+        private TestStructure? _structure;
 
         /// <summary>
         /// Gets the optional description for this context.
@@ -44,21 +44,21 @@ namespace specs.BDD.Attributes
         public string? Description { get; }
 
         /// <summary>
-        /// How the results of this context are reported.
+        /// How this context's specs map to test cases in the test runner.
         /// When set, overrides the class- and assembly-level
-        /// <see cref="SpecReportingAttribute"/> and any .runsettings value.
+        /// <see cref="TestStructureAttribute"/> and any .runsettings value.
         /// </summary>
-        public SpecReporting Reporting
+        public TestStructure Structure
         {
-            get => _reporting ?? SpecReporting.Individual;
-            set => _reporting = value;
+            get => _structure ?? TestStructure.PerSpec;
+            set => _structure = value;
         }
 
         /// <summary>
-        /// The explicit <see cref="Reporting"/> setting, or <c>null</c> when not specified
+        /// The explicit <see cref="Structure"/> setting, or <c>null</c> when not specified
         /// on the attribute (meaning lower-priority configuration applies).
         /// </summary>
-        public SpecReporting? ReportingSetting => _reporting;
+        public TestStructure? StructureSetting => _structure;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DescribeAttribute"/> class

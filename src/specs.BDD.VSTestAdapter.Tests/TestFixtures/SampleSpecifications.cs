@@ -183,7 +183,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class GroupedSpec : Specifications
     {
-        [Describe("grouped feature", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped feature", Structure = TestStructure.PerDescribe)]
         public void describe_grouped()
         {
             It["direct test"] = () => { };
@@ -198,7 +198,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// <summary>A grouped spec with an async It[...] test.</summary>
     public class GroupedAsyncSpec : Specifications
     {
-        [Describe("grouped async", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped async", Structure = TestStructure.PerDescribe)]
         public void describe_grouped_async()
         {
             ItAsync["async test"] = async () =>
@@ -211,7 +211,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// <summary>
     /// A spec that opts into grouped execution at the class level.
     /// </summary>
-    [SpecReporting(SpecReporting.GroupedByRootContext)]
+    [TestStructure(TestStructure.PerDescribe)]
     public class ClassGroupedSpec : Specifications
     {
         [Describe("class grouped feature")]
@@ -220,7 +220,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             It["class grouped test"] = () => { };
         }
 
-        [Describe("class grouped opt-out", Reporting = SpecReporting.Individual)]
+        [Describe("class grouped opt-out", Structure = TestStructure.PerSpec)]
         public void describe_opt_out()
         {
             It["opt-out test"] = () => { };
@@ -239,7 +239,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class MixedGroupingSpec : Specifications
     {
-        [Describe("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
         public void grouped_part()
         {
             It["grouped test"] = () => { };
@@ -261,7 +261,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>When <c>true</c>, "a failing spec" throws. Reset after use.</summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Describe("grouped with failure", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped with failure", Structure = TestStructure.PerDescribe)]
         public void describe_grouped_failure()
         {
             It["a passing spec"] = () => { };
@@ -296,7 +296,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             AfterAll(() => Log.Add("root-AfterAll"));
         }
 
-        [Describe("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
         public void grouped_part()
         {
             It["grouped test"] = () => Log.Add("test:grouped");
@@ -331,7 +331,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             AfterAll(() => AfterAllRan = true);
         }
 
-        [Describe("grouped part", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
         public void grouped_part()
         {
             It["grouped test"] = () => { };
@@ -438,7 +438,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
 
         public static void ClearLog() => Log.Clear();
 
-        [Describe("grouped with pending", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped with pending", Structure = TestStructure.PerDescribe)]
         public void describe_grouped_pending()
         {
             It["a passing spec"] = () => { };
@@ -451,7 +451,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             };
         }
 
-        [Describe("grouped all pending", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped all pending", Structure = TestStructure.PerDescribe)]
         public void describe_grouped_all_pending()
         {
             BeforeAll(() => Log.Add("all-pending-BeforeAll"));
@@ -547,7 +547,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>When <c>true</c>, the plain spec's Act throws. Reset after use.</summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Describe("grouped should throw", Reporting = SpecReporting.GroupedByRootContext)]
+        [Describe("grouped should throw", Structure = TestStructure.PerDescribe)]
         public void describe_grouped_should_throw()
         {
             Context["when Act throws"] = () =>

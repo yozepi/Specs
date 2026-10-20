@@ -1,5 +1,6 @@
 ﻿using NFluent;
 using NUnit.Framework;
+using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 using specs.BDD.VSTestAdapter.Execution;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
@@ -71,7 +72,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<NestedContextSpec>();
 
-            var found = TestFinder.Find(root, $"root context{TestStructureExtractor.PathSeparator}when doing X", "should work for X");
+            var found = TestFinder.Find(root, $"root context{ContextPathFormat.Separator}when doing X", "should work for X");
 
             Check.That(found).IsNotNull();
         }
@@ -81,7 +82,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<NestedContextSpec>();
 
-            var found = TestFinder.Find(root, $"root context{TestStructureExtractor.PathSeparator}when doing Y", "should work for Y");
+            var found = TestFinder.Find(root, $"root context{ContextPathFormat.Separator}when doing Y", "should work for Y");
 
             Check.That(found).IsNotNull();
         }
@@ -91,7 +92,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<NestedContextSpec>();
 
-            var found = TestFinder.Find(root, $"root context{TestStructureExtractor.PathSeparator}nonexistent child", "should work for X");
+            var found = TestFinder.Find(root, $"root context{ContextPathFormat.Separator}nonexistent child", "should work for X");
 
             Check.That(found).IsNull();
         }
@@ -102,7 +103,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<DeeplyNestedContextSpec>();
 
-            var found = TestFinder.Find(root, $"root{TestStructureExtractor.PathSeparator}level one{TestStructureExtractor.PathSeparator}level two", "deep test");
+            var found = TestFinder.Find(root, $"root{ContextPathFormat.Separator}level one{ContextPathFormat.Separator}level two", "deep test");
 
             Check.That(found).IsNotNull();
         }
@@ -113,7 +114,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
             var root = BuildRoot<DeeplyNestedContextSpec>();
 
             // "deep test" lives 2 levels down; looking at level one should not find it.
-            var found = TestFinder.Find(root, $"root{TestStructureExtractor.PathSeparator}level one", "deep test");
+            var found = TestFinder.Find(root, $"root{ContextPathFormat.Separator}level one", "deep test");
 
             Check.That(found).IsNull();
         }
@@ -134,7 +135,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<MixedDepthSpec>();
 
-            var found = TestFinder.Find(root, $"mixed depth{TestStructureExtractor.PathSeparator}nested context", "nested test");
+            var found = TestFinder.Find(root, $"mixed depth{ContextPathFormat.Separator}nested context", "nested test");
 
             Check.That(found).IsNotNull();
         }
@@ -156,7 +157,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         {
             var root = BuildRoot<NestedContextSpec>();
 
-            var found = TestFinder.Find(root, $"root context{TestStructureExtractor.PathSeparator}when doing X", "should work for X");
+            var found = TestFinder.Find(root, $"root context{ContextPathFormat.Separator}when doing X", "should work for X");
 
             // Child context has 1 test.
             Check.That(found!.Value.Context.Tests).HasSize(1);

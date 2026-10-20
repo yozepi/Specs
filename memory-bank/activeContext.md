@@ -2,11 +2,13 @@
 
 ## Current Focus
 
+**📌 NEW — `SpecReporting` → `TestStructure` rename** — the grouping switch is renamed to say what it actually controls: how specs map to VSTest test cases. **Breaking**: `SpecReporting` (`Individual` / `GroupedByRootContext`) → `TestStructure` (`PerSpec` / `PerDescribe`), `[SpecReporting]` → `[TestStructure]`, `DescribeAttribute.Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `<SpecsBDD><SpecReporting>` → `<SpecsBDD><TestStructure>`. In the adapter, `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, and the `ContextPath` delimiter moved from `TestStructureExtractor.PathSeparator` to the new `Conversion.ContextPathFormat.Separator`, so execution no longer reaches into `Discovery` for path formatting. No behaviour change. See `systemPatterns.md` decision #32.
+
 **📌 NEW — .NET 10 test-project upgrade (commits `ba0a0f9`, `b496376`, `a4ad8cc`, `4affb1b`)** — the four `net8.0` test projects (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `specs.BDD.VSTestAdapter.Tests`, `specs.BDD.VSTestAdapter.IntegrationTests`) now target `net10.0`, upgraded top-down one project at a time and validated with a full solution build/test. The `netstandard2.1` deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`, `TestHarness`) are unchanged, so no multi-targeting was needed. The explicit `System.Text.Encodings.Web 9.0.11` reference was removed from `specs.core.UnitTests` and `specs.BDD.UnitTests`. Upgrade assessment, plan, and per-task logs live under `.github/upgrades/scenarios/dotnet-version-upgrade/`. See `techContext.md` section "Target Frameworks".
 
 **📌 NEW — Legacy `Spec` API removed** — the property-based `Spec` class, its `Domain/` runtime layer (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`, `IRunContainer`, `ISpecDefinition`, `IndexedRunnerDelegate`, `Runner`, `Action/TaskSpecDefinition`, `Exceptions/*`), `Global.cs`, the `Specs.csproj` stub, and the `Examples/ConsoleExample` sample are deleted (22 files, 1,395 lines). `Specifications` is now the only authoring API. See `systemPatterns.md` decision #31.
 
-**📌 NEW — `[Context]` → `[Describe]` attribute rename** — `ContextAttribute` is now `DescribeAttribute` across `specs.BDD`, the VSTest adapter, tests, integration fixtures, and `README.md`. The members (`Description`, `Reporting`, `ReportingSetting`) and the `Context[...]` indexers are unchanged; a suite still needs at least one `[Describe]` method to be discovered. This memory bank uses the new name throughout (older entries describing past commits were rewritten to match). See `systemPatterns.md` decision #30.
+**📌 NEW — `[Context]` → `[Describe]` attribute rename** — `ContextAttribute` is now `DescribeAttribute` across `specs.BDD`, the VSTest adapter, tests, integration fixtures, and `README.md`. The members (`Description`, `Reporting`, `ReportingSetting` — 📌 since renamed `Structure` / `StructureSetting`) and the `Context[...]` indexers are unchanged; a suite still needs at least one `[Describe]` method to be discovered. This memory bank uses the new name throughout (older entries describing past commits were rewritten to match). See `systemPatterns.md` decision #30.
 
 **📌 NEW — Public execution surface in `specs.core`** — `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, and `TestInstance` are now `public`, so custom runners can drive the canonical lifecycle without `InternalsVisibleTo`. `specs.core` no longer grants the adapter internals access; `TestContextAdapter` gained `FromTestCase(ITestCase)` and lost its unused `test` parameter; the dead `Settings/TestSettings` class was deleted.
 
@@ -37,14 +39,30 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 | Area | State |
 |------|-------|
 | `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException`; 📌 public `TestCaseExecutor` + adapter types, `TestContextAdapter.FromTestCase`, no `InternalsVisibleTo` for the adapter |
-| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 `SpecReporting` enum, `DescribeAttribute.Reporting`, `SpecReportingAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 28 integration results passing (13 Skipped = pending) |
+| `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure`, `TestStructureAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 `SuiteTreeFlattener` + `ContextPathFormat`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 28 integration results passing (13 Skipped = pending) |
 | `specs.core.UnitTests` | Self-hosted; 📌 333 results passing (`TestContextAdapter` suite runs grouped, collapsing 27 `It`s into 1 result) |
 | Legacy `Spec` API | 📌 REMOVED — `Specifications` is the only API; `Examples/ConsoleExample` removed too |
 | TestHarness | Internal-only; now a retirement candidate (core no longer needs it to self-test) |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
+
+### 📌 NEW — `SpecReporting` → `TestStructure` rename, 21 files)
+
+Pure rename/relocation — discovery output, FQNs (`Class::Method::[grouped]`), precedence, and runtime behaviour are unchanged. Decision #32 in `systemPatterns.md` records the rationale.
+
+| Layer | File(s) | What changed |
+|-------|---------|--------------|
+| `specs.BDD` | `Attributes/TestStructure.cs` 📌 NEW (replaces deleted `SpecReporting.cs`) | Enum `TestStructure { PerSpec, PerDescribe }` (was `SpecReporting { Individual, GroupedByRootContext }`) |
+| `specs.BDD` | `Attributes/TestStructureAttribute.cs` (renamed from `SpecReportingAttribute.cs`) | `TestStructureAttribute(TestStructure structure)` with `Structure` property; still `Assembly \| Class`, `Inherited = false` |
+| `specs.BDD` | `Attributes/DescribeAttribute.cs` | `Reporting` / `ReportingSetting` → `Structure` / `StructureSetting` (nullable `TestStructure?` backing, default `PerSpec`) |
+| Adapter / Conversion | `ContextPathFormat.cs` 📌 NEW | Public static `Separator` (`" → "`, settable) — the single `ContextPath` delimiter for discovery and execution |
+| Adapter / Discovery | `SuiteTreeFlattener.cs` (renamed from `TestStructureExtractor.cs`) | `ExtractTests(type, SpecReporting?)` → `Flatten(type, TestStructure?)`; `PathSeparator` removed in favour of `ContextPathFormat.Separator` |
+| Adapter / Discovery | `GroupingSettings.cs`, `SpecsTestDiscoverer.cs`, `SuiteTreeBuilder.cs` | `TestStructure?` signatures; `ReadRunSettings` reads `SpecsBDD/TestStructure`; `Resolve` reads `StructureSetting` / `[TestStructure]` and returns `true` for `PerDescribe` |
+| Adapter / Execution | `SelectionTreeWalker.cs`, `GroupedContextRunner.cs`, `TestFinder.cs` | Split / join `ContextPath` with `ContextPathFormat.Separator`; `SelectionTreeWalker` and `TestFinder` drop their `Discovery` namespace import |
+| Tests | `SuiteTreeFlattener_Tests.cs` (renamed from `TestStructureExtractor_Tests.cs`), `GroupingSettings_Tests`, `TestFinder_Tests`, `TestInvoker_Tests`, `GroupedContextRunner_Tests`, `SampleSpecifications.cs` | Renamed APIs, constants (`PerSpec` / `PerDescribe`) and test names; counts unchanged |
+| Integration / self-hosted | `CalculatorSpecs.cs`, `PendingSpecs.cs`, `specs.core.UnitTests/.../TestContextAdapter.cs` | `[TestStructure(TestStructure.PerDescribe)]` / `[Describe(..., Structure = TestStructure.PerDescribe)]` |
 
 ### 📌 NEW — Public execution surface in `specs.core`
 
@@ -114,7 +132,7 @@ Verified end-to-end: `--filter "FullyQualifiedName~Calculator"` on the integrati
 
 ### 📌 `SpecReporting` API, root lifecycle, report polish (committed `124ba8c`, 25 files)
 
-BEFORE/AFTER diagrams live in `systemPatterns.md` sections "Root (class-level) Lifecycle" and "Grouped Root-Context Execution → Configuration API"; `.runsettings` keys in `techContext.md` section "Adapter Configuration".
+BEFORE/AFTER diagrams live in `systemPatterns.md` sections "Root (class-level) Lifecycle" and "Grouped Root-Context Execution → Configuration API"; `.runsettings` keys in `techContext.md` section "Adapter Configuration". *(📌 The `SpecReporting` names below were later renamed to `TestStructure` — see above.)*
 
 | Layer | What changed |
 |-------|--------------|
@@ -263,8 +281,9 @@ Removed as redundant or superseded:
 - Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` / `IsPending` filters through the real VSTest pipeline).
 - Decide whether the leftover `<Using Include="NUnit.Framework" />` and transitive NUnit dependency can be dropped from `specs.core.UnitTests`.
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
-- Refresh `glossary.md` / `test-patterns.md` with the reporting vocabulary (`SpecReporting`, `Reporting =`, `[SpecReporting]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), 📌 `ShouldThrow<T>` / `ActExceptionContext`, and a class-level `BeforeAll` example.
-- Update the root `README.md` / user docs for the breaking attribute rename.
+- Refresh `glossary.md` / `test-patterns.md` with the 📌 test-structure vocabulary (`TestStructure`, `Structure =`, `[TestStructure]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), 📌 `ShouldThrow<T>` / `ActExceptionContext`, and a class-level `BeforeAll` example.
+- Update the root `README.md` / user docs for the breaking attribute renames (`[Describe]`, 📌 `TestStructure`).
+- 📌 Rename the stale `SpecReporting` / `TestStructureExtractor` / `PathSeparator` references in the supplementary references (`architecture.md`, `core-components.md`).
 
 ### Short term
 
@@ -308,10 +327,16 @@ Removed as redundant or superseded:
 - Its failure policy differs from per-`It` mode (keep running after a failed test; aggregate into one result) and its output channel differs (tree in `StandardOutCategory`), so a dedicated `GroupedContextRunner` is clearer than threading a mode flag through `SelectionTreeWalker` and `TestCaseExecutor`.
 - `specs.core` stays unaware of VSTest granularity; `specs.BDD` only carries pure metadata attributes.
 
-### 📌 UPDATED — Why `DescribeAttribute.Reporting` has a nullable backing
+### 📌 UPDATED — Why `DescribeAttribute.Structure` has a nullable backing
 
-- A class, assembly, or `.runsettings` opt-in needs a per-context escape hatch; a non-nullable default of `Individual` cannot distinguish "author said Individual" from "author said nothing".
-- `ReportingSetting` (`SpecReporting?`) feeds `GroupingSettings.Resolve`; the public `Reporting` property keeps attribute syntax simple.
+- A class, assembly, or `.runsettings` opt-in needs a per-context escape hatch; a non-nullable default of `PerSpec` cannot distinguish "author said PerSpec" from "author said nothing".
+- `StructureSetting` (`TestStructure?`) feeds `GroupingSettings.Resolve`; the public `Structure` property keeps attribute syntax simple.
+
+### 📌 NEW — Why `TestStructure` instead of `SpecReporting`
+
+- The switch changes **test-case granularity** (how many VSTest `TestCase`s discovery emits), not just how results are reported; `PerSpec` / `PerDescribe` name the unit that becomes a test case.
+- `ContextPathFormat` lives in `Conversion` because the delimiter is part of the `SpecTest.ContextPath` contract shared by discovery and execution; owning it in a discovery class forced execution to depend on `Discovery`.
+- `SuiteTreeFlattener` describes what the class does (flatten the `SuiteTreeBuilder` tree) and avoids clashing with the new `TestStructure` enum.
 
 ### 📌 Why the root once-lifecycle lives in `TestInvoker`
 
@@ -350,8 +375,8 @@ Removed as redundant or superseded:
 | Describe | `Describe["..."] = () => { }` |
 | Context (block) | `Context["..."] = () => { }` |
 | Context (feature set) | `[Describe("...")] public void M()` |
-| Grouped feature set 📌 | `[Describe("...", Reporting = SpecReporting.GroupedByRootContext)] public void M()` |
-| Grouped suite / assembly 📌 | `[SpecReporting(SpecReporting.GroupedByRootContext)]` on class or `[assembly: ...]` |
+| Grouped feature set 📌 UPDATED | `[Describe("...", Structure = TestStructure.PerDescribe)] public void M()` |
+| Grouped suite / assembly 📌 UPDATED | `[TestStructure(TestStructure.PerDescribe)]` on class or `[assembly: ...]` |
 | Assertion | `It["..."] = () => { }` / `ItAsync[...] = async () => { }` |
 | Pending spec 📌 | `It["..."] = TODO` / `ItAsync["..."] = TODOAsync` / `xIt[...]` / `xItAsync[...]` |
 | Pending scope 📌 | `xContext["..."] = () => { }` / `xDescribe["..."] = () => { }` |

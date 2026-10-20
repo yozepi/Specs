@@ -8,13 +8,11 @@ using specs.BDD.VSTestAdapter.Conversion;
 namespace specs.BDD.VSTestAdapter.Discovery
 {
     /// <summary>
-    /// Extracts the flat list of <see cref="SpecTest"/> items from a specification class by
-    /// building the full suite tree via <see cref="SuiteTreeBuilder"/> and flattening it.
+    /// Flattens the suite tree built by <see cref="SuiteTreeBuilder"/> for a specification class
+    /// into a list of <see cref="SpecTest"/> items.
     /// </summary>
-    public static class TestStructureExtractor
+    public static class SuiteTreeFlattener
     {
-        public static string PathSeparator { get; set; } = " \u2192 ";
-
         /// <summary>
         /// Builds the complete suite tree for <paramref name="specClass"/> and flattens all
         /// <see cref="SpecTest"/> items from the resulting hierarchy.
@@ -23,13 +21,13 @@ namespace specs.BDD.VSTestAdapter.Discovery
         /// </summary>
         /// <param name="specClass">The specification class to extract tests from.</param>
         /// <param name="runSettingsGrouping">
-        /// The .runsettings <c>SpecReporting</c> value, or <c>null</c> when not configured.
+        /// The .runsettings <c>TestStructure</c> value, or <c>null</c> when not configured.
         /// </param>
         /// <returns>A flat enumerable of all discovered tests.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the specification class cannot be instantiated.
         /// </exception>
-        public static IEnumerable<SpecTest> ExtractTests(Type specClass, SpecReporting? runSettingsGrouping = null)
+        public static IEnumerable<SpecTest> Flatten(Type specClass, TestStructure? runSettingsGrouping = null)
         {
             // Build name → MethodInfo lookup so each SpecTest knows which [Describe] method
             // it belongs to (used for source-location navigation in Test Explorer).
@@ -95,7 +93,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             // Recurse into each child context ([Describe] method or nested Describe block).
             foreach (var child in testCase.ChildContexts)
             {
-                var childPath = $"{rootPath}{PathSeparator}{child.Description}";
+                var childPath = $"{rootPath}{ContextPathFormat.Separator}{child.Description}";
                 methodByContextName.TryGetValue(child.Description, out var ctxMethod);
                 foreach (var test in FlattenChildContext(child, specClass, childPath, ctxMethod))
                     yield return test;
@@ -130,7 +128,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
                 foreach (var grandChild in contextualChild.ChildContexts)
                 {
                     //var grandChildPath = $"{contextPath}.{grandChild.Description.Replace(".", "")}";
-                    var grandChildPath = $"{contextPath}{PathSeparator}{grandChild.Description}";
+                    var grandChildPath = $"{contextPath}{ContextPathFormat.Separator}{grandChild.Description}";
                     foreach (var test in FlattenChildContext(grandChild, specClass, grandChildPath, contextMethod))
                         yield return test;
                 }

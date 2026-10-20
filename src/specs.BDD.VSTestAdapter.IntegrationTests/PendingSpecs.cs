@@ -28,7 +28,7 @@ public class PendingSpecs : Specifications
         };
     }
 
-    [Describe("grouped pending specs", Reporting = SpecReporting.GroupedByRootContext)]
+    [Describe("grouped pending specs", Structure = TestStructure.PerDescribe)]
     public void describe_grouped_pending_specs()
     {
         It["runs a regular spec"] = () => { };

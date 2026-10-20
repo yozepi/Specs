@@ -136,7 +136,7 @@ Specs
 1 passed, 1 failed, 2 total
 ```
 
-It is opt-in and layered via the `SpecReporting` enum (`Individual` / `GroupedByRootContext`): `[Describe(Reporting = ...)]` on a method wins over `[SpecReporting(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: SpecReporting(...)]`, which wins over `<SpecsBDD><SpecReporting>` in `.runsettings`. The default remains one result per `It[...]`.
+It is opt-in and layered via the 📌 `TestStructure` enum (`PerSpec` / `PerDescribe`): `[Describe(Structure = ...)]` on a method wins over `[TestStructure(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: TestStructure(...)]`, which wins over `<SpecsBDD><TestStructure>` in `.runsettings`. The default remains one result per `It[...]` (`PerSpec`).
 
 📌 The report adapts to its host: green/red ANSI markers in VS Code and the CLI, emoji markers in Visual Studio (which cannot render ANSI), plain markers when `<ColorOutput>false</ColorOutput>`. `<ShowSourceLocations>true</ShowSourceLocations>` adds an `at <file>:line <n>` line under every spec, including `ItAsync[...]` specs.
 

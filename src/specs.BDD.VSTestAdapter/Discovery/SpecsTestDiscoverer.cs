@@ -57,7 +57,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             string source,
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink,
-            SpecReporting? runSettingsGrouping)
+            TestStructure? runSettingsGrouping)
         {
             Assembly assembly;
             try
@@ -99,7 +99,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             string source,
             IMessageLogger logger,
             ITestCaseDiscoverySink discoverySink,
-            SpecReporting? runSettingsGrouping)
+            TestStructure? runSettingsGrouping)
         {
             // Validate: every Specification class must have at least one [Describe] method.
             ContextMethodScanner.ValidateHasContextMethods(specClass);
@@ -107,7 +107,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             IEnumerable<SpecTest> specTests;
             try
             {
-                specTests = TestStructureExtractor.ExtractTests(specClass, runSettingsGrouping);
+                specTests = SuiteTreeFlattener.Flatten(specClass, runSettingsGrouping);
             }
             catch (Exception ex)
             {

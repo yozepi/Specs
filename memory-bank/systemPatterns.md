@@ -43,8 +43,8 @@ flowchart TD
 | Container | Key components |
 |-----------|---------------|
 | `specs.core` | `IContextualTestCaseBuilder` / `ContextualTestCaseBuilder` (📌 `AddPendingTest`, `ChildTestCase(..., isPending)`), immutable `ContextualTestCase` (📌 `PendingTests`), `TestCaseExecutor` (📌 public), 📌 `ActExceptionContext`, 📌 `ActExceptionAssertions` / `ExpectedExceptionNotThrownException`, `TestContextAdapter` (📌 public, `FromTestCase`), adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter` — 📌 all public) |
-| `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`, 📌 `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T>)`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Describe]` attribute (with `Reporting`), 📌 `SpecReporting` enum, 📌 `[SpecReporting]` assembly/class attribute |
-| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, `TestStructureExtractor`, 📌 `PendingSpecs`, `SourceLocationReader`, `TestCaseConverter`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
+| `specs.BDD` | `Specifications` base class (📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`, 📌 `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T>)`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, `[Describe]` attribute (with 📌 `Structure`), 📌 `TestStructure` enum, 📌 `[TestStructure]` assembly/class attribute |
+| `specs.BDD.VSTestAdapter` | `SpecsTestDiscoverer`, `SuiteTreeBuilder`, `GroupingSettings`, 📌 `SuiteTreeFlattener`, 📌 `PendingSpecs`, `SourceLocationReader`, `TestCaseConverter`, 📌 `ContextPathFormat`, `SpecsTestExecutor`, `TestInvoker`, `SelectionTreeWalker`, `GroupedContextRunner`, 📌 `MarkerStyle`, `TestFinder`, `VSTestLoggingAdapter`, `VSTestTestProvider`, `ResultReporter` |
 
 ## Core Design Patterns
 
@@ -264,7 +264,7 @@ flowchart TD
         D1["<b>SpecsTestDiscoverer</b><br/>[Component: ITestDiscoverer]<br/>Discovery entry point"]:::app
         D2["<b>SpecificationClassScanner</b><br/>[Component: C# static class]<br/>Finds Specifications subclasses"]:::app
         D3["<b>SuiteTreeBuilder</b><br/>[Component: C# static class]<br/>Builds whole-class suite tree"]:::app
-        D4["<b>TestStructureExtractor</b><br/>[Component: C# static class]<br/>Flattens tree into SpecTest list"]:::app
+        D4["<b>SuiteTreeFlattener</b><br/>[Component: C# static class]<br/>Flattens tree into SpecTest list"]:::app
     end
 
     subgraph CONV["Component boundary: Conversion"]
@@ -341,15 +341,16 @@ flowchart TD
 
 | Layer | Class | Responsibility |
 |-------|-------|---------------|
-| Discovery | `SpecsTestDiscoverer` | Entry point declared by `[FileExtension(".dll" / ".exe")]` and `[DefaultExecutorUri("executor://SpecsTestExecutor/v1")]`; reads the `.runsettings` `SpecReporting` value from `IDiscoveryContext.RunSettings` 📌 |
+| Discovery | `SpecsTestDiscoverer` | Entry point declared by `[FileExtension(".dll" / ".exe")]` and `[DefaultExecutorUri("executor://SpecsTestExecutor/v1")]`; reads the `.runsettings` `TestStructure` value from `IDiscoveryContext.RunSettings` 📌 |
 | Discovery | `SpecificationClassScanner` | Reflects assemblies to find non-abstract `Specifications` subclasses |
 | Discovery | `ContextMethodScanner` | Finds `[Describe]`-decorated methods; throws `InvalidSpecificationException` if none |
 | Discovery | **`SuiteTreeBuilder`** | Instantiates the suite once and registers every `[Describe]` method as a **named child context** via `instance.Context[name] = () => method.Invoke(...)`, then returns `CoreBuilder.Build()`. Shared by discovery *and* execution |
-| Discovery | **`GroupingSettings`** 📌 UPDATED | Resolves the effective `SpecReporting` per root `[Describe]`: `DescribeAttribute.ReportingSetting` → class `[SpecReporting]` (not inherited) → assembly `[SpecReporting]` → `.runsettings` `<SpecsBDD><SpecReporting>` → `Individual`. Also reads `ShowSourceLocations` / `ColorOutput` and picks the grouped-report `MarkerStyle` |
-| Discovery | `TestStructureExtractor` | Flattens the suite tree into `SpecTest` records; owns `PathSeparator` (`" → "`); emits a single `IsGrouped` record for grouped root contexts 📌; 📌 sets `IsPending` per spec (grouped record: pending only when the subtree has specs and all are pending) |
+| Discovery | **`GroupingSettings`** 📌 UPDATED | Resolves the effective `TestStructure` per root `[Describe]`: `DescribeAttribute.StructureSetting` → class `[TestStructure]` (not inherited) → assembly `[TestStructure]` → `.runsettings` `<SpecsBDD><TestStructure>` → `PerSpec`; grouped when the result is `PerDescribe`. Also reads `ShowSourceLocations` / `ColorOutput` and picks the grouped-report `MarkerStyle` |
+| Discovery | `SuiteTreeFlattener` 📌 RENAMED | `Flatten(type, TestStructure?)` (was `TestStructureExtractor.ExtractTests`) flattens the suite tree into `SpecTest` records, joining context names with `ContextPathFormat.Separator`; emits a single `IsGrouped` record for grouped root contexts 📌; 📌 sets `IsPending` per spec (grouped record: pending only when the subtree has specs and all are pending) |
 | Discovery | `PendingSpecs` 📌 NEW | Internal static helpers over a built tree: `IsPending(node, description)`, `HasRunnableTests(node)` (any non-pending spec at or below), `HasAnyTests(node)`. Shared by discovery, `TestInvoker`, and `GroupedContextRunner` |
 | Discovery | `SourceLocationReader` | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Describe]` method). 📌 `GetTestMethod(Action)` walks the whole `Delegate.Target` chain, unwrapping async `It` wrappers to the user's `Func<Task>` and 📌 `ShouldThrow` delegates to the user's verifier; async bodies resolve via the state machine's `MoveNext`; methods from a different assembly than the PDB return `null` |
 | Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW |
+| Conversion | `ContextPathFormat` 📌 NEW | Public static `Separator` (`" → "`, settable) — the one `ContextPath` delimiter used by `SuiteTreeFlattener`, `SelectionTreeWalker`, `GroupedContextRunner`, and `TestFinder` (moved from `TestStructureExtractor.PathSeparator`) |
 | Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` that embeds `ContextPath` (VS Code ignores `Hierarchy`) 📌, the RFC-0033 `TestCase.Hierarchy` property, and source location |
 | Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW — `SpecsBDD.IsPending`, `bool`) preserving metadata across VSTest serialization |
 | Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)`; 📌 resolves `ShowSourceLocations` and `MarkerStyle` once per run; 📌 NEW applies the `dotnet test --filter` expression to re-discovered cases in `RunTests(sources)` (see "Test Case Filtering") |
@@ -357,7 +358,7 @@ flowchart TD
 | Execution | **`SelectionTreeWalker`** | Depth-first walk of the suite tree firing `OwnSetupOnce` / `OwnTeardownOnce` **exactly once per live non-root node** (the root is owned by `TestInvoker`); delegates per-test loops to `TestCaseExecutor` |
 | Execution | **`GroupedContextRunner`** 📌 | Runs an entire root `[Describe]` subtree as **one** `TestResult`; mirrors the walker's once-per-node lifecycle but keeps running after per-test failures so the report is complete; emits an NSpec-style tree + failure list to `StandardOutCategory` using the run's `MarkerStyle`, optional per-`It` `at file:line N` locations, and a fully failed tree when the root `BeforeAll` failed. 📌 Renders pending specs as `○ ... - PENDING` without running them, skips the once-actions of any node with no runnable specs, and reports an all-pending context as Skipped |
 | Execution | `MarkerStyle` 📌 NEW | Internal enum (`Plain` / `Ansi` / `Emoji`) selecting grouped-report pass/fail glyphs |
-| Execution | `TestFinder` | Splits `ContextPath` on `" → "` and walks the immutable test tree |
+| Execution | `TestFinder` | Splits `ContextPath` on 📌 `ContextPathFormat.Separator` and walks the immutable test tree |
 | Execution | `ResultReporter` | Builds `TestResult` objects for pass/fail/skip outcomes (📌 `Skipped(..., message = PendingMessage)` with `PendingMessage = "Pending"`); `Unwrap` (now `internal`) strips `TargetInvocationException` layers for both runners |
 | Execution | `VSTestLoggingAdapter` | `ILoggingAdapter` over `IFrameworkHandle`; tracks `ReportedDescriptions` so unreached tests can be failed explicitly |
 | Execution | `VSTestTestProvider` | `ITestProviderAdapter` wrapping `(TestCase, description, Action)` triples as `TestInstance[]` |
@@ -502,7 +503,7 @@ Benefits / contract:
 
 ## 📌 Grouped Root-Context Execution
 
-By default every `It[...]` is its own VSTest `TestCase`. A root `[Describe]` can instead opt into **grouped mode** (`SpecReporting.GroupedByRootContext`), where the whole subtree is discovered as one `TestCase` and executed by `GroupedContextRunner` into one `TestResult`.
+By default every `It[...]` is its own VSTest `TestCase`. A root `[Describe]` can instead opt into **grouped mode** (📌 `TestStructure.PerDescribe`), where the whole subtree is discovered as one `TestCase` and executed by `GroupedContextRunner` into one `TestResult`.
 
 ### 📌 MODERNIZED — Configuration API
 
@@ -541,7 +542,9 @@ flowchart TD
 
 Problems: no class-level switch; `bool` naming did not describe *what* was being chosen; assembly attribute name was mode-specific.
 
-#### AFTER (`SpecReporting` enum, four layers)
+#### AFTER (📌 UPDATED — `TestStructure` enum, four layers)
+
+> 📌 Introduced as `SpecReporting` (`Individual` / `GroupedByRootContext`, `Reporting =`) in `124ba8c`; renamed to `TestStructure` (`PerSpec` / `PerDescribe`, `Structure =`) by decision #32. Layers and precedence are unchanged.
 
 ```mermaid
 ---
@@ -549,12 +552,12 @@ title: "Decision flow — GroupingSettings.Resolve (AFTER)"
 ---
 %%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
 flowchart TD
-    A{"[Describe(Reporting = ...)]<br/>set on method?"}:::app
-    B{"[SpecReporting] on<br/>reflected class?"}:::app
-    C{"[assembly: SpecReporting]<br/>present?"}:::app
-    D{".runsettings<br/>SpecsBDD/SpecReporting?"}:::app
-    V(["Use that SpecReporting"]):::data
-    I(["Individual (default)"]):::data
+    A{"[Describe(Structure = ...)]<br/>set on method?"}:::app
+    B{"[TestStructure] on<br/>reflected class?"}:::app
+    C{"[assembly: TestStructure]<br/>present?"}:::app
+    D{".runsettings<br/>SpecsBDD/TestStructure?"}:::app
+    V(["Use that TestStructure"]):::data
+    I(["PerSpec (default)"]):::data
 
     A -->|"no"| B
     B -->|"no"| C
@@ -575,21 +578,21 @@ flowchart TD
 ```
 
 ```csharp
-[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]
+[assembly: TestStructure(TestStructure.PerDescribe)]
 
-[SpecReporting(SpecReporting.GroupedByRootContext)]          // class-level, NOT inherited
+[TestStructure(TestStructure.PerDescribe)]                   // class-level, NOT inherited
 public class CalculatorSpecs : Specifications
 {
-    [Describe("Addition", Reporting = SpecReporting.Individual)] // per-method override
+    [Describe("Addition", Structure = TestStructure.PerSpec)]   // per-method override
     public void describe_addition() { /* ... */ }
 }
 ```
 
 Benefits:
 
-- One vocabulary (`SpecReporting.Individual` / `GroupedByRootContext`) across method, class, assembly, and `.runsettings`; extensible to future modes.
+- One vocabulary (`TestStructure.PerSpec` / `PerDescribe`) across method, class, assembly, and `.runsettings`; extensible to future modes.
 - Class-level opt-in (`AttributeTargets.Assembly | Class`, `Inherited = false`) — read from the method's `ReflectedType`, so a derived suite does **not** inherit its base's setting.
-- `DescribeAttribute` keeps a nullable backing (`SpecReporting?`, exposed as `ReportingSetting`) so an explicit `Reporting = Individual` overrides any lower layer.
+- `DescribeAttribute` keeps a nullable backing (`TestStructure?`, exposed as `StructureSetting`) so an explicit `Structure = PerSpec` overrides any lower layer.
 - `.runsettings` parsing accepts enum **names** only (case-insensitive, trimmed); numeric strings and undefined values yield `null`.
 
 ### Runtime contract
@@ -718,11 +721,11 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 10 | 📌 **Cancellation is a `CancellationToken` parameter, not an executor setting** | Matches BCL conventions; the token flows straight from `ITestExecutor.Cancel()` through `SpecsTestExecutor`'s `CancellationTokenSource` | `TestCaseExecutorSettings.IsCancelled` was removed; `ProcessTestCase(CancellationToken)` checks the token before each test |
 | 11 | 📌 **Once-actions exposed separately as `OwnSetupOnce` / `OwnTeardownOnce`** | The walker needs a node's *own* once-actions without the ancestor cascade that `SetupOnce` / `TeardownOnce` provide | Two extra members on `ITestCase`; `TestCaseExecutor` behaviour unchanged |
 | 12 | **Navigate to the `It[...]` lambda, not the `[Describe]` method** | "Go to Source" should land on the assertion the developer clicked | `SpecTest.ItAction` captured at discovery; `SourceLocationReader` accepts any `MethodBase` |
-| 13 | 📌 **Grouped mode is a discovery-time decision, resolved in the adapter** | The core stays unaware of VSTest granularity; the flag must be fixed before `TestCase`s are serialized so discovery and execution agree | `GroupingSettings` lives in the adapter; `DescribeAttribute.Reporting` / `SpecReportingAttribute` / `SpecReporting` live in `specs.BDD` as pure metadata |
+| 13 | 📌 **Grouped mode is a discovery-time decision, resolved in the adapter** | The core stays unaware of VSTest granularity; the flag must be fixed before `TestCase`s are serialized so discovery and execution agree | `GroupingSettings` lives in the adapter; `DescribeAttribute.Structure` / `TestStructureAttribute` / `TestStructure` 📌 live in `specs.BDD` as pure metadata |
 | 14 | 📌 **Grouped runner is separate from `SelectionTreeWalker`, not a mode flag on it** | Grouped mode has a different failure policy (continue after per-test failure, aggregate into one result) and a different output channel | `GroupedContextRunner` duplicates the small once-per-node walk rather than threading a mode through the walker and `TestCaseExecutor` |
-| 15 | 📌 UPDATED **Explicit `Reporting = Individual` must beat class/assembly/runsettings opt-in** | Authors need a per-context escape hatch when a class or assembly is grouped by default | `DescribeAttribute` uses a nullable `SpecReporting?` backing field exposed as `ReportingSetting` |
-| 16 | 📌 NEW **Reporting is an enum, not a `bool`** | Names the choice (`Individual` / `GroupedByRootContext`) and leaves room for future modes | Breaking rename: `Grouped` → `Reporting`, `GroupSpecsByRootContextAttribute` → `SpecReportingAttribute`, `GroupByRootContext` → `SpecReporting` in `.runsettings` |
-| 17 | 📌 NEW **Class-level `[SpecReporting]` is not inherited** | A base suite's reporting choice should not silently change a derived suite's test granularity | `Inherited = false`; resolved from `MethodInfo.ReflectedType` |
+| 15 | 📌 UPDATED **Explicit `Structure = PerSpec` must beat class/assembly/runsettings opt-in** | Authors need a per-context escape hatch when a class or assembly is grouped by default | `DescribeAttribute` uses a nullable `TestStructure?` backing field exposed as `StructureSetting` |
+| 16 | 📌 **Reporting is an enum, not a `bool`** (📌 renamed by #32) | Names the choice (`Individual` / `GroupedByRootContext`) and leaves room for future modes | Breaking rename: `Grouped` → `Reporting`, `GroupSpecsByRootContextAttribute` → `SpecReportingAttribute`, `GroupByRootContext` → `SpecReporting` in `.runsettings` |
+| 17 | 📌 **Class-level `[TestStructure]` is not inherited** | A base suite's test-structure choice should not silently change a derived suite's test granularity | `Inherited = false`; resolved from `MethodInfo.ReflectedType` |
 | 18 | 📌 NEW **`TestInvoker` owns the root once-lifecycle** | Constructor-registered `BeforeAll` / `AfterAll` must run exactly once per class regardless of how the selection splits between runners | Walker still skips the root; `GroupedContextRunner` receives `rootSetupFailure` |
 | 19 | 📌 NEW **Async test wrapper is bound to the original `Func<Task>`** | Source location needs the user's lambda, not a compiler closure | `AsyncTestExtensions.RunSync` in `specs.core`; `SourceLocationReader.GetTestMethod` unwraps `Action.Target` |
 | 20 | 📌 NEW **Marker style depends on the host** | Visual Studio's Test Explorer shows raw ANSI escapes; VS Code / CLI render them | `VSAPPIDNAME=devenv.exe` → emoji; `ColorOutput=false` → plain |
@@ -735,8 +738,9 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 27 | 📌 NEW **`ShouldThrow<T>` matches by assignability and returns a bound delegate** | Base-type expectations (`ArithmeticException`) are idiomatic; a bound delegate keeps "Go to Source" on the verifier lambda | `GetTestMethod` walks the full `Target` chain; wrong type / no exception → `ExpectedExceptionNotThrownException` (wrong type kept as `InnerException`) |
 | 28 | 📌 NEW **No `ShouldThrowAsync`** | The `Act` exception (sync or async `Act`) is already captured before `It` runs; an async verifier adds nothing | `ShouldThrow` returns `Action` and is used with `It[...]`, not `ItAsync[...]` |
 | 29 | 📌 NEW **`specs.core`'s execution surface is public; the adapter gets no `InternalsVisibleTo`** | `specs.core` is an extensibility library; custom runners need the canonical executor, and the in-repo adapter should prove the public surface is sufficient | `TestCaseExecutor`, `ITestContextAdapter`, `ITestProviderAdapter`, `TestContextAdapter`, `TestInstance` public; `TestContextAdapter` ctor trimmed to 5 args + `FromTestCase`; `TestSettings` deleted. Decision #8 still applies to `specs.BDD` (`CoreBuilder`) |
-| 30 | 📌 NEW **Context-builder attribute renamed `[Context]` → `[Describe]`** | Matches the `Describe[...]` vocabulary and the BDD idiom; the attribute marks the root describe block of a suite | **Breaking**: `ContextAttribute` → `DescribeAttribute` (same members: `Description`, `Reporting`, `ReportingSetting`); scanners, extractor, grouping resolver, error message, README and all fixtures updated. `Context[...]` / `xContext` indexers are unchanged |
+| 30 | 📌 NEW **Context-builder attribute renamed `[Context]` → `[Describe]`** | Matches the `Describe[...]` vocabulary and the BDD idiom; the attribute marks the root describe block of a suite | **Breaking**: `ContextAttribute` → `DescribeAttribute` (same members: `Description`, `Reporting`, `ReportingSetting` — 📌 since renamed by #32); scanners, extractor, grouping resolver, error message, README and all fixtures updated. `Context[...]` / `xContext` indexers are unchanged |
 | 31 | 📌 NEW **Legacy `Spec` API, `Domain/` layer, `Specs.csproj` and `Examples/ConsoleExample` removed** | Two API styles doubled the documentation and maintenance burden; the modern `Specifications` API + `specs.core` fully replace it, and the core now self-hosts | **Breaking**: `Spec`, `Global.cs`, `Domain/*` (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`/`IRunContainer`, spec definitions, `Exceptions/*`) and the `ConsoleExample` sample are deleted (1,395 lines). Migrate by deriving from `Specifications` and using `[Describe]` methods; `ShouldThrow<T>()` now lives on `Specifications` (see #25–28) |
+| 32 | 📌 NEW **`SpecReporting` renamed `TestStructure` (`PerSpec` / `PerDescribe`); `ContextPath` delimiter moved to `Conversion.ContextPathFormat`** | The switch decides how specs map to VSTest test cases (granularity), not merely how results are reported; the delimiter is part of the `SpecTest.ContextPath` contract shared by discovery and execution, so execution should not depend on a discovery class for it | **Breaking**: `SpecReporting` → `TestStructure`, `SpecReportingAttribute` → `TestStructureAttribute`, `Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `SpecReporting` → `TestStructure`. Adapter: `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, `PathSeparator` → `ContextPathFormat.Separator`. Behaviour, FQNs, and precedence unchanged |
 
 ## Critical Execution Paths
 
@@ -1051,6 +1055,6 @@ Benefits:
 | Template Method | `TestCaseExecutor` | Fixed, predictable lifecycle order |
 | Pipeline | VSTest adapter (Discovery → Conversion → Execution) | Cleanly separated responsibilities |
 | Visitor / tree walk | `SelectionTreeWalker`, `GroupedContextRunner` | Once-per-node lifecycle over an arbitrary test selection / an entire root context |
-| Chain of responsibility (config) | `GroupingSettings.Resolve` | Layered opt-in: method → class → assembly → `.runsettings` → `Individual` |
+| Chain of responsibility (config) | `GroupingSettings.Resolve` | Layered opt-in: method → class → assembly → `.runsettings` → `PerSpec` |
 | Callback (scope switch) | `Specifications.contextCallBack` | Nested context definition without thread-local state |
 | 📌 Ambient context | `ActExceptionContext` (`AsyncLocal<Outcome>`) | Exposes the `Act` exception to `It` without changing the `Action` signature |

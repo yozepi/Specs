@@ -3,47 +3,51 @@
 ## Tech Stack Overview
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
+---
+title: "C4 Level 2 — Container: Specs tech stack"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
 flowchart TD
-    subgraph Runtimes["Target Runtimes"]
-        NS21["netstandard2.1<br/>(deliverables)"]:::app
-        N8["net10.0<br/>(test projects)"]:::app
+    subgraph TEST["Test stack — net10.0 · Microsoft.NET.Test.Sdk 17.8"]
+        direction TB
+        SELF["<b>Specs itself</b><br/>[Container: specs.core.UnitTests]<br/>Self-hosted core tests"]:::app
+        NU["<b>NUnit 3.14</b><br/>[Library: NUnit3TestAdapter]<br/>BDD + adapter tests"]:::external
+        NF["<b>NFluent 3.x</b><br/>[Library: NuGet]<br/>Fluent assertions"]:::external
+        MQ["<b>Moq 4.20</b><br/>[Library: NuGet]<br/>+ Autofac.Extras.Moq 7.0"]:::external
     end
 
-    subgraph Lang["Language"]
-        CS8["C# 8.0 + Nullable enabled"]:::app
+    subgraph DEL["Deliverables — netstandard2.1 · C# 8 · nullable"]
+        direction TB
+        CORE["<b>specs.core</b><br/>[Container: .NET library]<br/>Zero external deps"]:::app
+        BDD["<b>specs.BDD</b><br/>[Container: .NET library]<br/>Authoring API"]:::app
+        ADP["<b>specs.BDD.VSTestAdapter</b><br/>[Container: VSTest adapter]<br/>Discovery + execution"]:::app
     end
 
-    subgraph Deliverables["Deliverables (zero external deps in core)"]
-        CORE["specs.core"]:::app
-        BDD["specs.BDD"]:::app
-        ADP["specs.BDD.VSTestAdapter"]:::app
+    subgraph LEG["Internal bridge — not shipped"]
+        direction TB
+        TH["<b>TestHarness</b><br/>[Container: .NET library]<br/>Retirement candidate"]:::deprecated
+        NSPEC["<b>nspec 3.1</b><br/>[Library: NuGet]<br/>Legacy runner"]:::deprecated
+        TH -->|"Wraps [NuGet]"| NSPEC
     end
 
-    subgraph Test["Test Stack"]
-        SELF["Specs itself<br/>(specs.core.UnitTests)"]:::app
-        NU["NUnit 3.14<br/>+ NUnit3TestAdapter<br/>(adapter + BDD tests)"]:::external
-        NF["NFluent 3.x"]:::external
-        MQ["Autofac.Extras.Moq 7.0<br/>Moq 4.20 (adapter tests)"]:::external
-        TS["Microsoft.NET.Test.Sdk 17.8"]:::external
+    subgraph ADEPS["Adapter dependencies"]
+        direction TB
+        MTP["<b>TestPlatform.ObjectModel</b><br/>[Library: NuGet 17.8]<br/>VSTest contracts"]:::external
+        SRM["<b>System.Reflection.Metadata</b><br/>[Library: NuGet 6.0]<br/>Portable PDB reader"]:::external
     end
 
-    subgraph AdapterDeps["Adapter Deps"]
-        MTP["Microsoft.TestPlatform.ObjectModel 17.8"]:::external
-        SRM["System.Reflection.Metadata 6.0"]:::external
+    TEST -->|"Tests [project refs]"| DEL
+    TEST -.->|"Scaffolds [project ref]"| LEG
+    DEL -->|"Adapter references [NuGet]"| ADEPS
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned"]:::app
+        L2["Third-party"]:::external
+        L3["Deprecated"]:::deprecated
     end
 
-    subgraph Legacy["Internal Bridge (not shipped)"]
-        NSPEC["nspec 3.1"]:::deprecated
-        TH["TestHarness"]:::deprecated
-    end
-
-    CORE --> NS21
-    BDD --> NS21
-    ADP --> NS21
-    ADP --> MTP
-    ADP --> SRM
-    TH --> NSPEC
+    ADEPS ~~~ LEGEND
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef external fill:#E8A838,stroke:#B07D20,color:#fff
@@ -129,7 +133,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 ```xml
 <RunSettings>
   <SpecsBDD>
-    <SpecReporting>GroupedByRootContext</SpecReporting>
+    <TestStructure>PerDescribe</TestStructure>
     <ShowSourceLocations>true</ShowSourceLocations>
     <ColorOutput>false</ColorOutput>
   </SpecsBDD>
@@ -138,7 +142,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
-| `SpecsBDD/SpecReporting` 📌 UPDATED | `SpecReporting` name (`Individual` / `GroupedByRootContext`, case-insensitive) | unset (→ `Individual`) | Lowest-priority reporting layer; overridden by assembly `[SpecReporting]`, class `[SpecReporting]`, or `[Describe(Reporting = ...)]`. Replaces the former `GroupByRootContext` bool |
+| `SpecsBDD/TestStructure` 📌 UPDATED | `TestStructure` name (`PerSpec` / `PerDescribe`, case-insensitive) | unset (→ `PerSpec`) | Lowest-priority test-structure layer; overridden by assembly `[TestStructure]`, class `[TestStructure]`, or `[Describe(Structure = ...)]`. Renamed from `SpecReporting` (which replaced the former `GroupByRootContext` bool) |
 | `SpecsBDD/ShowSourceLocations` 📌 NEW | `bool` | `false` | Grouped reports add `at <file>:line <n>` under each `It` |
 | `SpecsBDD/ColorOutput` 📌 NEW | `bool` | `true` | `false` forces plain `✓` / `✗` markers in grouped reports |
 
@@ -146,7 +150,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 |----------------------|--------|
 | `VSAPPIDNAME` 📌 NEW | When `devenv.exe` (Visual Studio host) and color is enabled, grouped reports use emoji markers (`✅` / `❌`) instead of ANSI escapes |
 
-`GroupingSettings` parses the XML defensively — missing or malformed XML falls back to the defaults above. For `SpecReporting`, numeric strings and undefined names yield `null` and fall through to the default. `SpecReporting` is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded); `ShowSourceLocations` / `ColorOutput` are read at execution time.
+`GroupingSettings` parses the XML defensively — missing or malformed XML falls back to the defaults above. For `TestStructure`, numeric strings and undefined names yield `null` and fall through to the default. `TestStructure` is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded); `ShowSourceLocations` / `ColorOutput` are read at execution time.
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution" for the full precedence chain.
 
@@ -178,12 +182,12 @@ Specs/
 │   │   ├── AssertBuilder.cs
 │   │   ├── AssertBuilderAsync.cs
 │   │   ├── IAssertProvider.cs
-│   │   └── Attributes/DescribeAttribute.cs, SpecReporting.cs, SpecReportingAttribute.cs
+│   │   └── Attributes/DescribeAttribute.cs, TestStructure.cs, TestStructureAttribute.cs
 │   │
 │   ├── specs.BDD.VSTestAdapter/            # DELIVERABLE
 │   │   ├── Discovery/                      # SpecsTestDiscoverer, scanners, SuiteTreeBuilder,
-│   │   │                                   #   GroupingSettings, TestStructureExtractor, PendingSpecs, SourceLocationReader
-│   │   ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties
+│   │   │                                   #   GroupingSettings, SuiteTreeFlattener, PendingSpecs, SourceLocationReader
+│   │   ├── Conversion/                     # SpecTest, TestCaseConverter, TestProperties, ContextPathFormat
 │   │   ├── Execution/                      # SpecsTestExecutor, TestInvoker, SelectionTreeWalker,
 │   │   │                                   #   GroupedContextRunner, MarkerStyle, TestFinder, ResultReporter,
 │   │   │                                   #   VSTestLoggingAdapter, VSTestTestProvider
@@ -255,7 +259,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 | Test FullyQualifiedName must be stable across runs | VSTest expects stable IDs for re-runs / filtering |
 | 📌 `RunTests(sources)` must apply the VSTest filter itself | VSTest passes `--filter` to source-based runs only via `IRunContext.GetTestCaseFilter`; ignoring it runs the whole assembly |
 | 📌 Discovery and execution must build the suite tree through `SuiteTreeBuilder` | Any divergence in node descriptions or ordering makes `TestFinder` / `SelectionTreeWalker` unable to match discovered `ContextPath` values |
-| 📌 `TestStructureExtractor.PathSeparator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
+| 📌 `ContextPathFormat.Separator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
 | 📌 Pending specs must never invoke any lifecycle action | A parked `xContext` may contain deliberately broken setup; execution derives pending state from the rebuilt tree, not the serialized `IsPending` flag |
 | 📌 Pending state is keyed by spec description within a node | `ContextualTestCase.PendingTests` is an ordinal `HashSet<string>`; sibling specs must keep unique descriptions (already required by `TestFinder`) |
 | 📌 Every execution path must run `Act` + test via `ActExceptionContext.Run(act, test)` | `ShouldThrow<T>` reads the ambient `Act` exception; a path that calls `Act()` directly makes exception specs fail and lets an `Act` throw skip teardown |
@@ -265,7 +269,7 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 
 - 📌 **Specs tests `specs.core` with Specs.** `specs.core.UnitTests` was migrated off NUnit fixtures onto `Specifications` + `[Describe]` and is discovered/run by `specs.BDD.VSTestAdapter` — the framework is self-hosting for the core.
 - **NUnit still covers the outer rings.** `specs.BDD.UnitTests` and `specs.BDD.VSTestAdapter.Tests` remain NUnit fixtures; the adapter cannot credibly test itself.
-- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[SpecReporting(GroupedByRootContext)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
+- **`specs.BDD.VSTestAdapter.IntegrationTests`** exercises the real VSTest pipeline end to end (`CalculatorSpecs` — class-level `[TestStructure(PerDescribe)]` with constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
 - **TestHarness** provides an nspec-based scaffold from the era before the framework could test itself. It is *internal infrastructure only* and is now a retirement candidate.
 - Test layout mirrors source layout (`Framework/Processors/TestCases/...` → `specs.core.UnitTests/Framework/Processors/TestCases/...`).
 - Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted core tests; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in the NUnit projects.
@@ -293,7 +297,8 @@ The adapter behaves like any other VSTest extension:
 | 📌 Grouped output shows raw `ESC[32m` escape sequences | Host does not render ANSI escapes and was not detected as Visual Studio | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` in `.runsettings` |
 | 📌 `ItAsync[...]` "Go to Source" lands on the `[Describe]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
 | 📌 `dotnet test --filter` runs every Specs test | Adapter versions before the filtering fix ignored `IRunContext.GetTestCaseFilter` in `RunTests(sources)` | Fixed: `SpecsTestExecutor` applies the filter; an invalid expression is logged as an error and runs nothing |
-| 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `SpecReporting` API | Use `Reporting = SpecReporting.GroupedByRootContext` / `[assembly: SpecReporting(SpecReporting.GroupedByRootContext)]` |
+| 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `TestStructure` API | Use `Structure = TestStructure.PerDescribe` / `[assembly: TestStructure(TestStructure.PerDescribe)]` |
+| 📌 `SpecReporting` / `Reporting =` / `[SpecReporting]` no longer compile; `<SpecReporting>` in `.runsettings` is ignored | Renamed to `TestStructure` (decision #32) | `Individual` → `PerSpec`, `GroupedByRootContext` → `PerDescribe`; `Reporting =` → `Structure =`; use `<SpecsBDD><TestStructure>` |
 | 📌 A spec fails with the `Act` exception instead of its own assertion message | `Act` threw and the `It` did not verify it; the unverified `Act` exception replaces any `It` failure | Assert it with `It[...] = ShouldThrow<T>(...)`, or fix the `Act` |
 | 📌 `ShouldThrow<T>` fails with `ExpectedExceptionNotThrownException` | `Act` threw nothing, or a type not assignable to `T` (see `InnerException`) | Check the `Act` under that context and the expected type |
 | 📌 `ItAsync[...] = ShouldThrow<T>()` does not compile | `ShouldThrow` returns `Action`; there is no async variant by design | Use `It[...]` — the `Act` exception (sync or async) is already captured |
