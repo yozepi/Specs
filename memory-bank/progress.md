@@ -70,6 +70,18 @@ The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, a
 - ✅ `TestHarness` (nspec bridge) deleted; NUnit referenced only by `specs.BDD.VSTestAdapter.Tests`.
 - ✅ Three of four test projects run on Specs itself. Decision #33 in `systemPatterns.md`.
 
+### 📌 NEW — Build & release infrastructure
+
+- ✅ One shared `Directory.Build.props` (nullable, implicit usings, NuGet metadata, `.snupkg` symbols, XML docs, deterministic CI builds) plus `tests/Directory.Build.props` (test projects not packable).
+- ✅ Central package management (`Directory.Packages.props`): one version per package, and the NFluent 3.0/3.1 drift is resolved.
+- ✅ SDK pinned by `global.json` (`10.0.400`, `latestFeature`).
+- ✅ All deliverables on C# 10.
+- ✅ MinVer tag-based versioning (`v1.2.0` → `1.2.0`).
+- ✅ GitHub Actions CI on `main` / PRs (build, test, pack, artifact upload). Release workflow on `v*` tags (nuget.org via Trusted Publishing, plus a GitHub Release).
+- ⏳ First release pending: no `v*` tag yet, and the nuget.org trust policy and `NUGET_USER` secret still need setting up.
+
+Decisions #34–35 in `systemPatterns.md`.
+
 ### Testing
 
 - ✅ `specs.core.UnitTests` — 333 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs.
@@ -95,9 +107,10 @@ flowchart TD
     P10["Phase 10<br/>SpecReporting API + root lifecycle"]:::app
     P11["Phase 11<br/>--filter + pending specs"]:::app
     P12["Phase 12<br/>ShouldThrow + Act capture"]:::app
+    P13["Phase 13<br/>Build + release pipeline"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -215,6 +228,18 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` section "Test Hosting" and decision #33.
 
+### 📌 NEW — Phase 13 — Build configuration + release pipeline (Oct 2026)
+
+- **Central MSBuild config**: root `Directory.Build.props` (shared props, package metadata, symbols, XML docs, MinVer) and `tests/Directory.Build.props` (`IsPackable=false`, no XML docs).
+- **Central package management**: `Directory.Packages.props`, with every `Version=` removed from `PackageReference`s. Adapter tests NFluent 3.0.0 → 3.1.0.
+- **Toolchain**: `global.json` pins SDK `10.0.400`. Deliverables `LangVersion` → 10 (adapter was 8.0), which `ImplicitUsings` requires.
+- **Versioning**: MinVer with tag prefix `v`. Untagged builds are `0.0.0-alpha.0.N`.
+- **CI/CD**: `ci.yml` (push to `main` / PR → build, test, pack, artifact) and `release.yml` (`v*` tag → build, test, pack, nuget.org push via OIDC Trusted Publishing, GitHub Release, prerelease for `-` tags).
+- **Source**: XML doc additions and `cref` / `paramref` fixes only (`SourceLocationReader`, `Specifications`, `ContextBuilder`, `VSTestLoggingAdapter`). The Release build stays at 0 warnings with docs generated.
+- **Tests**: no change. 786 results (773 passed, 13 pending skipped).
+
+> **📌 See**: `systemPatterns.md` section "Build Configuration & Release Pipeline" and decisions #34–35; `techContext.md` sections "Build Configuration" and "Packaging & Release".
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -232,6 +257,8 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
 | 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Describe]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | Use `ShouldThrow<T>(verify)` when precise navigation matters |
 | 📌 Legacy `Spec` API removed | Downstream code on `Spec` must migrate | See `architecture.md` "Migration Strategy" |
+| 📌 NEW — Not yet published to nuget.org | Consumers must use project references or locally packed `0.0.0-alpha.*` packages | Push the first `v*` tag once the trust policy and `NUGET_USER` secret exist |
+| 📌 NEW — Packages carry no `Description` / `PackageTags` / readme | nuget.org listing would be bare | Add per-package metadata to each deliverable `.csproj` |
 
 ## Future Enhancements (Not Committed)
 
@@ -239,14 +266,15 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 - Data-driven specifications.
 - Roslyn analyzers for common authoring mistakes (missing `[Describe]`, etc.).
 - `dotnet new` templates.
-- Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package.
+- Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package. 📌 Release pipeline in place; the first tagged release is still pending.
 - ~~Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.~~ 📌 DONE.
 
 ## Success Metrics
 
 | Metric | Status |
 |--------|--------|
-| Build cleanliness across all 📌 7 projects | ✅ Clean — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time) |
+| Build cleanliness across all 📌 7 projects | ✅ Clean: 0 errors and 0 build warnings (📌 including with XML doc generation on the deliverables). One discovery warning is expected at test time, from the `SpecWithNoContextMethods` fixture |
+| 📌 Continuous integration | ✅ `ci.yml` builds, tests, and packs every push to `main` and every PR |
 | Test pass rate | ✅ 100% of runnable results (📌 773 passed, 13 pending skipped, 0 failed of 786) |
 | Self-hosted core tests | ✅ 333 results passing via the Specs adapter |
 | Self-hosted BDD tests | ✅ 📌 147 results passing via the Specs adapter |
@@ -264,7 +292,8 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | `specs.BDD` | ✅ Production-ready |
 | `specs.BDD.VSTestAdapter` | ✅ Production-ready |
 | Legacy `Spec` class | 📌 Removed |
-| `TestHarness` | � Removed |
+| `TestHarness` | 📌 Removed |
+| 📌 NuGet packaging | ✅ Pipeline ready; ⏳ first `v*` release pending |
 | Examples | 📌 `ConsoleExample` removed |
 | Memory bank | ✅ Refreshed October 2026 |
 

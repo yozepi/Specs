@@ -16,7 +16,7 @@ flowchart TD
         MQ["<b>Moq 4.20</b><br/>[Library: NuGet]<br/>+ Autofac.Extras.Moq 7.0"]:::external
     end
 
-    subgraph DEL["Deliverables — netstandard2.1 · C# 8 · nullable"]
+    subgraph DEL["Deliverables — netstandard2.1 · C# 10 · nullable"]
         direction TB
         CORE["<b>specs.core</b><br/>[Container: .NET library]<br/>Zero external deps"]:::app
         BDD["<b>specs.BDD</b><br/>[Container: .NET library]<br/>Authoring API"]:::app
@@ -45,6 +45,8 @@ flowchart TD
 ```
 
 > 📌 UPDATED — the "Internal bridge" layer (`TestHarness` + `nspec 3.1`) was removed; see `systemPatterns.md` section "Test Hosting".
+>
+> 📌 NEW — every project also takes the build-time-only `MinVer 8.0.0` package (`PrivateAssets=all`) from the root `Directory.Build.props`; it computes the package version and adds no runtime dependency. See "Build Configuration" below.
 
 ## Target Frameworks
 
@@ -55,10 +57,12 @@ flowchart TD
 
 ## Language
 
-- **C# 8.0** (`<LangVersion>8.0</LangVersion>` on adapter; default on others)
-- `<Nullable>enable</Nullable>` everywhere — all public APIs use nullable reference type annotations
+- 📌 UPDATED — **C# 10** on the deliverables: `<LangVersion>10</LangVersion>` in `specs.core`, `specs.BDD`, and `specs.BDD.VSTestAdapter` (the adapter was pinned to `8.0`; core and BDD used the netstandard2.1 default, C# 8). C# 10 is required because the root `Directory.Build.props` turns on `ImplicitUsings`, which generates `global using` directives. Test projects use the `net10.0` default.
+- `<Nullable>enable</Nullable>` everywhere — all public APIs use nullable reference type annotations (📌 now also set centrally in `Directory.Build.props`)
+- 📌 NEW — `<ImplicitUsings>enable</ImplicitUsings>` everywhere: `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Net.Http`, `System.Threading`, `System.Threading.Tasks` are global usings in every project
+- 📌 NEW — `<GenerateDocumentationFile>true</GenerateDocumentationFile>` on the deliverables: XML docs ship in the packages, and a public member without a `///` comment raises CS1591 (the build is warning-free; test projects opt out)
 - Async/await throughout
-- No records / no `init` accessors (netstandard2.1 + C# 8 constraint)
+- No records / no `init` accessors — 📌 C# 10 allows the syntax, but `netstandard2.1` lacks `IsExternalInit`, so they would need a polyfill
 
 ## Project Dependency Graph
 
@@ -106,9 +110,11 @@ Every test project references `specs.BDD.VSTestAdapter` and — except `Integrat
 
 | Project | Package references | Project references |
 |---------|-------------------|--------------------|
-| `specs.core` | **None** | — |
-| `specs.specification` (specs.BDD) | **None** | `specs.core` |
-| `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` | `specs.core`, `specs.specification` |
+| `specs.core` | **None** at runtime (📌 `MinVer`, build-time only) | — |
+| `specs.specification` (specs.BDD) | **None** at runtime (📌 `MinVer`, build-time only) | `specs.core` |
+| `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` (📌 `MinVer`, build-time only) | `specs.core`, `specs.specification` |
+
+📌 UPDATED — versions are no longer written in the `.csproj` files; they come from `Directory.Packages.props` (see "Build Configuration").
 
 📌 UPDATED — `InternalsVisibleTo("specs.BDD.VSTestAdapter")` is declared **only** on `specs.specification` (for `Specifications.CoreBuilder`). `specs.core` dropped it: the adapter uses the public `TestCaseExecutor` / adapter-interface surface, and `specs.core` grants internals only to its test assemblies (`specs.core.UnitTests`, `specs.BDD.UnitTests`, `DynamicProxyGenAssembly2`) via `GlobalAttributes.cs`.
 
@@ -118,12 +124,102 @@ Every test project references `specs.BDD.VSTestAdapter` and — except `Integrat
 |---------|---------------|------------|---------|-----|
 | `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Describe]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | 📌 UPDATED **Specs itself** (was NUnit3TestAdapter 5.0 + `TestHarness`/nspec) | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
-| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.0 | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.1 📌 (was 3.0; unified by central package management) | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.IntegrationTests` | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 
 > 📌 **`specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` are self-hosted.** Neither references `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, or `TestHarness`; every test class derives from `Specifications` and declares `[Describe]` methods, and each project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. 📌 The leftover global `<Using Include="NUnit.Framework" />` was removed from both.
 >
 > **📌 See**: `systemPatterns.md` section "Test Hosting".
+
+## 📌 NEW — Build Configuration
+
+Shared MSBuild settings live in four files rather than in each `.csproj`. BEFORE/AFTER diagrams and rationale: `systemPatterns.md` section "Build Configuration & Release Pipeline" (decisions #34–35).
+
+| File | Applies to | Settings |
+|------|-----------|----------|
+| `global.json` | SDK selection (local + CI) | SDK `10.0.400`, `rollForward: latestFeature`, `allowPrerelease: false` |
+| `Directory.Build.props` | Every project (auto-imported) | `Nullable`, `ImplicitUsings`; package metadata (`Authors` = Joe Cleland, `PackageLicenseExpression` = MIT, `RepositoryUrl` / `PackageProjectUrl` = github.com/yozepi/Specs); `MinVerTagPrefix` = `v`; `IncludeSymbols` + `SymbolPackageFormat` = `snupkg`; `GenerateDocumentationFile`; `ContinuousIntegrationBuild` when `GITHUB_ACTIONS == true`; `PackageReference` to `MinVer` (`PrivateAssets=all`) |
+| `tests/Directory.Build.props` | The four test projects | Imports the root file (`GetPathOfFileAbove`), then `IsPackable=false` and `GenerateDocumentationFile=false` |
+| `Directory.Packages.props` | Every project | `ManagePackageVersionsCentrally=true`; one `PackageVersion` per package (table below) |
+
+Centrally managed versions:
+
+| Package | Version | Used by |
+|---------|---------|---------|
+| `Microsoft.TestPlatform.ObjectModel` | 17.8.0 | Adapter |
+| `System.Reflection.Metadata` | 6.0.0 | Adapter |
+| `MinVer` | 8.0.0 | All projects (build-time) |
+| `Microsoft.NET.Test.Sdk` | 17.8.0 | Test projects |
+| `NFluent` | 3.1.0 | Test projects |
+| `NUnit` / `NUnit3TestAdapter` | 3.14.0 / 4.5.0 | Adapter tests |
+| `Moq` | 4.20.72 | Adapter tests |
+| `Autofac.Extras.Moq` | 7.0.0 | Core tests |
+| `coverlet.collector` | 6.0.4 | Core + BDD tests |
+
+Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `PackageId` / `Description` / `PackageTags` belong in each deliverable's `.csproj` (none are set yet, so package IDs default to the assembly names `specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`).
+
+## 📌 NEW — Packaging & Release
+
+```mermaid
+---
+title: "Deployment — CI and release pipeline"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    DEV(["<b>Maintainer</b><br/>[Person]"]):::external
+    GH["<b>GitHub repo</b><br/>[Software System: GitHub]<br/>main, PRs, v* tags"]:::external
+
+    subgraph RUNNER["Deployment Node: GitHub Actions ubuntu-latest"]
+        direction TB
+        CI["<b>CI workflow</b><br/>[Container: ci.yml]<br/>build, test, pack"]:::app
+        REL["<b>Release workflow</b><br/>[Container: release.yml]<br/>build, test, pack, publish"]:::app
+    end
+
+    ART[("<b>packages artifact</b><br/>[Container: Actions artifact]<br/>.nupkg + .snupkg")]:::data
+    NUGET["<b>nuget.org</b><br/>[Software System: NuGet]<br/>Trusted Publishing (OIDC)"]:::external
+    GHR["<b>GitHub Release</b><br/>[Software System: GitHub]<br/>Notes + .nupkg assets"]:::external
+
+    DEV -->|"Pushes commits, tags [git]"| GH
+    GH -.->|"main push / PR [trigger]"| CI
+    GH -.->|"v* tag [trigger]"| REL
+    CI ==>|"Uploads [upload-artifact]"| ART
+    REL ==>|"Pushes [dotnet nuget push]"| NUGET
+    REL -->|"Creates release [gh CLI]"| GHR
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned workflow"]:::app
+        L2["External system / person"]:::external
+        L3[("Build output")]:::data
+    end
+
+    GHR ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+| Workflow | Trigger | Steps |
+|----------|---------|-------|
+| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → `pack -o artifacts` → upload `packages` artifact |
+| `.github/workflows/release.yml` | Push of a `v*` tag | Same build/test/pack, then `NuGet/login@v1` (OIDC → 1-hour API key) → `dotnet nuget push artifacts/*.nupkg --skip-duplicate` (`.snupkg` go up alongside) → `gh release create <tag> --generate-notes` (`--prerelease` when the tag contains `-`) |
+
+Versioning (MinVer, tag prefix `v`):
+
+| Git state | Package version |
+|-----------|-----------------|
+| Commit tagged `v1.2.0` | `1.2.0` |
+| Commit tagged `v1.3.0-beta.1` | `1.3.0-beta.1` (GitHub Release marked prerelease) |
+| N commits after `v1.2.0` | `1.2.1-alpha.0.N` |
+| No `v*` tag reachable (📌 current state) | `0.0.0-alpha.0.N` (e.g. a local pack produced `0.0.0-alpha.0.33`) |
+
+One-time repo setup required before the first release:
+
+- Repository secret `NUGET_USER` = the nuget.org **profile name** (not email).
+- A nuget.org Trusted Publishing policy for this repository and `release.yml`. No API key is stored.
+- Optional `nuget` GitHub environment with required reviewers as a manual approval gate (the job already targets `environment: nuget`).
+- Workflow permissions: `contents: write` (GitHub Release) and `id-token: write` (OIDC), both declared in `release.yml`.
 
 ## 📌 Adapter Configuration (`.runsettings`)
 
@@ -160,6 +256,11 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 ```
 Specs/
 ├── Specs.sln                               # 📌 moved from src/
+├── global.json                             # 📌 NEW — SDK 10.0.400 pin
+├── Directory.Build.props                   # 📌 NEW — shared props, package metadata, MinVer
+├── Directory.Packages.props                # 📌 NEW — central package versions
+├── .github/workflows/                      # 📌 NEW — ci.yml, release.yml
+├── artifacts/                              # 📌 pack output (gitignored)
 ├── src/                                    # deliverables only
 │   ├── specs.core/                         # DELIVERABLE
 │   │   └── Framework/
@@ -188,6 +289,7 @@ Specs/
 │       └── Properties/AssemblyInfo.cs
 │
 ├── tests/                                  # 📌 NEW — all test projects
+│   ├── Directory.Build.props               # 📌 NEW — imports root, IsPackable=false
 │   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Describe])
 │   ├── specs.BDD.UnitTests/                # 📌 Specs-hosted (was src/specs.specification.UnitTests, NUnit + nspec)
 │   ├── specs.BDD.VSTestAdapter.Tests/      # NUnit
@@ -203,7 +305,8 @@ Specs/
 
 ### Prerequisites
 
-- **.NET SDK 10.0+** 📌 UPDATED (required for the net10.0 test projects; SDK can build netstandard2.1 deliverables)
+- **.NET SDK 10.0.400+** 📌 UPDATED — pinned by `global.json` (`rollForward: latestFeature`, no previews); required for the net10.0 test projects and can build the netstandard2.1 deliverables
+- 📌 A **full git clone** (not shallow) when packing — MinVer derives the version from tags and commit height
 - **Visual Studio 2022 17.8+**, **VS Code with C#/C# Dev Kit**, or **Rider 2023+**
 - **Git**
 
@@ -231,10 +334,12 @@ dotnet test tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapt
 # 📌 List only pending specs (or exclude them with IsPending=false)
 dotnet test tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj --filter IsPending=true
 
-# Pack deliverables
-dotnet pack src\specs.core\specs.core.csproj -c Release
-dotnet pack src\specs.specification\specs.BDD.csproj -c Release
-dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Release
+# 📌 UPDATED — Pack all deliverables (test projects are IsPackable=false) — same command CI uses
+dotnet pack -c Release -o artifacts
+
+# 📌 NEW — Cut a release (triggers .github/workflows/release.yml)
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 ### VS Code tasks
@@ -246,7 +351,11 @@ dotnet pack src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj -c Releas
 | Constraint | Reason |
 |------------|--------|
 | Deliverables must remain `netstandard2.1` | Broad consumer compatibility |
-| `specs.core` must have **zero** external NuGet references | Keeps the core framework-agnostic and trivial to embed |
+| `specs.core` must have **zero** external NuGet references | Keeps the core framework-agnostic and trivial to embed. 📌 Build-time-only packages with `PrivateAssets=all` (currently `MinVer`) are allowed — they never appear in the `.nuspec` |
+| 📌 Package versions live only in `Directory.Packages.props` | Central package management is on; a `Version=` on a `PackageReference` fails restore (NU1008) |
+| 📌 Package versions come only from `v*` git tags | MinVer computes `Version`; never set `<Version>` / `<PackageVersion>` in a project |
+| 📌 Deliverables need `LangVersion` ≥ 10 | `ImplicitUsings` emits `global using` directives |
+| 📌 Every public member of a deliverable needs an XML doc comment | `GenerateDocumentationFile` is on; missing docs raise CS1591 and the build is kept warning-free |
 | Nullable reference types must be enabled | Better null safety for public API |
 | `IContextualTestCase` must be immutable after `Build()` | Thread-safety, cacheability, predictability |
 | All async hooks ultimately reduce to a synchronous `Action` | Uniform public surface; lifecycle ordering would otherwise be non-deterministic |
@@ -297,3 +406,9 @@ The adapter behaves like any other VSTest extension:
 | 📌 A spec fails with the `Act` exception instead of its own assertion message | `Act` threw and the `It` did not verify it; the unverified `Act` exception replaces any `It` failure | Assert it with `It[...] = ShouldThrow<T>(...)`, or fix the `Act` |
 | 📌 `ShouldThrow<T>` fails with `ExpectedExceptionNotThrownException` | `Act` threw nothing, or a type not assignable to `T` (see `InnerException`) | Check the `Act` under that context and the expected type |
 | 📌 `ItAsync[...] = ShouldThrow<T>()` does not compile | `ShouldThrow` returns `Action`; there is no async variant by design | Use `It[...]` — the `Act` exception (sync or async) is already captured |
+| 📌 NU1008 on restore | A `PackageReference` specifies `Version=` while central package management is on | Drop the attribute; add or bump the `PackageVersion` in `Directory.Packages.props` |
+| 📌 NU1010 on restore | A new `PackageReference` has no matching `PackageVersion` | Add a `PackageVersion` to `Directory.Packages.props` |
+| 📌 Packages built as `0.0.0-alpha.0.N` | No `v*` tag is reachable, or the clone is shallow | Tag the release commit `vX.Y.Z`; in CI keep `fetch-depth: 0` on `actions/checkout` |
+| 📌 `global using` / C# 10 feature errors in a deliverable | Its `LangVersion` was lowered below 10 while `ImplicitUsings` is on | Keep `<LangVersion>10</LangVersion>` (or higher) |
+| 📌 CS1591 "Missing XML comment for publicly visible type or member" | New public API in a deliverable without `///` docs | Document it; test projects are exempt (`tests/Directory.Build.props`) |
+| 📌 `release.yml` fails at "NuGet login" | `NUGET_USER` secret missing or no nuget.org Trusted Publishing policy for the repo/workflow | Add the secret (profile name) and create the policy on nuget.org |

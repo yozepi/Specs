@@ -16,11 +16,12 @@ namespace specs.BDD
         private readonly bool isPending;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Context"/> class.
+        /// Initializes a new instance of the <see cref="ContextBuilder"/> class.
         /// </summary>
-        /// <param name="builder">The underlying test case builder to delegate to.</param>
+        /// <param name="baseCoreBuilder">The underlying test case builder to delegate to.</param>
+        /// <param name="callBack">Invoked with the child builder and context action whenever a nested context is created.</param>
         /// <param name="isPending">When <c>true</c>, every test in the created context and its descendants is pending.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="baseCoreBuilder"/> or <paramref name="callBack"/> is null.</exception>
         internal ContextBuilder(IContextualTestCaseBuilder baseCoreBuilder, ContextCallBack callBack, bool isPending = false)
         {
             this.baseCoreBuilder = baseCoreBuilder ?? throw new ArgumentNullException(nameof(baseCoreBuilder));

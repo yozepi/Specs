@@ -2,7 +2,9 @@
 
 ## Current Focus
 
-**📌 NEW — `src/` + `tests/` split, `TestHarness` retired, `specs.BDD.UnitTests` self-hosted** — `Specs.sln` moved from `src/` to the repo root; the four test projects moved to `tests/` (`src/specs.specification.UnitTests/` became `tests/specs.BDD.UnitTests/`, matching its assembly name), leaving only the three deliverables in `src/`. `specs.BDD.UnitTests` was rewritten from nspec syntax on `nSpecTestHarness` (5 NUnit `[Test]` wrappers) to `Specifications` + `[Describe]` run by the Specs adapter (147 results). With no remaining consumer, the `TestHarness` project (`nSpecTestHarness`, `nspec 3.1.0`) was deleted, and NUnit now appears only in `specs.BDD.VSTestAdapter.Tests`. `CalculatorSpecs` switched from class-level `PerDescribe` to `PerSpec` (integration 28 → 34 results). See `systemPatterns.md` section "Test Hosting" and decision #33.
+**📌 NEW — Central build configuration + NuGet release pipeline** — shared MSBuild settings moved into the root `Directory.Build.props` (nullable, implicit usings, package metadata, symbols, XML docs, MinVer). `tests/Directory.Build.props` turns packing off for the test projects. `Directory.Packages.props` enables central package management, and `global.json` pins SDK `10.0.400`. All three deliverables are now C# 10, which implicit usings require. Versions come from `v*` git tags via MinVer. `.github/workflows/ci.yml` builds, tests, and packs every push to `main` and every PR. `.github/workflows/release.yml` publishes to nuget.org through Trusted Publishing (OIDC) and creates a GitHub Release. Doc-comment fixes keep the build at 0 warnings, and test counts are unchanged (786). See `systemPatterns.md` section "Build Configuration & Release Pipeline" and decisions #34–35.
+
+**📌 `src/` + `tests/` split, `TestHarness` retired, `specs.BDD.UnitTests` self-hosted** — `Specs.sln` moved from `src/` to the repo root; the four test projects moved to `tests/` (`src/specs.specification.UnitTests/` became `tests/specs.BDD.UnitTests/`, matching its assembly name), leaving only the three deliverables in `src/`. `specs.BDD.UnitTests` was rewritten from nspec syntax on `nSpecTestHarness` (5 NUnit `[Test]` wrappers) to `Specifications` + `[Describe]` run by the Specs adapter (147 results). With no remaining consumer, the `TestHarness` project (`nSpecTestHarness`, `nspec 3.1.0`) was deleted, and NUnit now appears only in `specs.BDD.VSTestAdapter.Tests`. `CalculatorSpecs` switched from class-level `PerDescribe` to `PerSpec` (integration 28 → 34 results). See `systemPatterns.md` section "Test Hosting" and decision #33.
 
 **📌 `SpecReporting` → `TestStructure` rename** — the grouping switch is renamed to say what it actually controls: how specs map to VSTest test cases. **Breaking**: `SpecReporting` (`Individual` / `GroupedByRootContext`) → `TestStructure` (`PerSpec` / `PerDescribe`), `[SpecReporting]` → `[TestStructure]`, `DescribeAttribute.Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `<SpecsBDD><SpecReporting>` → `<SpecsBDD><TestStructure>`. In the adapter, `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, and the `ContextPath` delimiter moved from `TestStructureExtractor.PathSeparator` to the new `Conversion.ContextPathFormat.Separator`, so execution no longer reaches into `Discovery` for path formatting. No behaviour change. See `systemPatterns.md` decision #32.
 
@@ -47,11 +49,30 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 | `specs.BDD.UnitTests` | 📌 Self-hosted (was NUnit + nspec via `TestHarness`); 147 results; moved to `tests/` |
 | Legacy `Spec` API | 📌 REMOVED — `Specifications` is the only API; `Examples/ConsoleExample` removed too |
 | TestHarness | 📌 REMOVED — no remaining consumer once `specs.BDD.UnitTests` self-hosted |
+| Build & release 📌 NEW | Central `Directory.Build.props` / `Directory.Packages.props` / `global.json`; MinVer tag versioning; CI + release workflows in place. **No `v*` tag or nuget.org release yet** |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — Repo restructure + BDD self-hosting (54 files)
+### 📌 NEW — Central build configuration + release pipeline (17 files)
+
+BEFORE/AFTER diagrams are in `systemPatterns.md` section "Build Configuration & Release Pipeline". File-level settings, the version table, workflows, and the deployment diagram are in `techContext.md` sections "Build Configuration" and "Packaging & Release". The only source changes are XML doc comments.
+
+| Area | File(s) | What changed |
+|------|---------|--------------|
+| SDK | `global.json` 📌 NEW | SDK `10.0.400`, `rollForward: latestFeature`, no prereleases |
+| Shared props | `Directory.Build.props` 📌 NEW | `Nullable` + `ImplicitUsings` on; NuGet metadata (author, MIT, repo/project URL); `MinVerTagPrefix=v`; `.snupkg` symbols; `GenerateDocumentationFile`; `ContinuousIntegrationBuild` on GitHub Actions; `MinVer` `PackageReference` (`PrivateAssets=all`) |
+| Test props | `tests/Directory.Build.props` 📌 NEW | Imports the root props; `IsPackable=false`, `GenerateDocumentationFile=false` |
+| Package versions | `Directory.Packages.props` 📌 NEW | `ManagePackageVersionsCentrally`; 10 `PackageVersion`s (adds `MinVer 8.0.0`) |
+| Deliverables | `specs.core.csproj`, `specs.BDD.csproj`, `specs.BDD.VSTestAdapter.csproj` | `<LangVersion>10</LangVersion>` (adapter was `8.0`); adapter `PackageReference`s lose `Version=` |
+| Test projects | All four `.csproj` | `PackageReference`s lose `Version=`; adapter tests move from NFluent 3.0.0 to 3.1.0 |
+| CI | `.github/workflows/ci.yml` 📌 NEW | Push to `main` / PR → restore, build, test, pack (`-c Release`), upload `packages` artifact |
+| Release | `.github/workflows/release.yml` 📌 NEW | `v*` tag → build, test, pack → `NuGet/login@v1` (OIDC) → `dotnet nuget push` → `gh release create` (prerelease when the tag contains `-`) |
+| XML docs | `SourceLocationReader.cs`, `Specifications.cs`, `ContextBuilder.cs`, `VSTestLoggingAdapter.cs` | Missing docs added (`SourceLocation` ctor, `CoreBuilder`); stale `cref` / `paramref` targets fixed |
+
+Verified: Release build 0 warnings / 0 errors; 786 results (773 passed, 13 pending skipped). A local `dotnet pack` produced `0.0.0-alpha.0.33` packages because no `v*` tag exists yet.
+
+### 📌 Repo restructure + BDD self-hosting (54 files)
 
 BEFORE/AFTER diagrams and naming conventions live in `systemPatterns.md` section "Test Hosting"; decision #33 records the rationale. No production code changed.
 
@@ -298,6 +319,10 @@ Removed as redundant or superseded:
 
 ### Immediate
 
+- 📌 NEW — Before the first release: add the `NUGET_USER` repository secret and a nuget.org Trusted Publishing policy for `release.yml`. Optionally add reviewers to the `nuget` environment. Then push the first `v*` tag.
+- 📌 NEW — Add `PackageId` / `Description` / `PackageTags` (and ideally a `PackageReadmeFile`) to each deliverable `.csproj`. Right now the packages carry only the shared metadata.
+- 📌 NEW — Remove the redundant per-project `Nullable` / `ImplicitUsings` / `IsPackable` now that the `Directory.Build.props` files set them.
+- 📌 NEW — Document the release process (tag → publish) in the root `README.md`.
 - Consider an integration-level `--filter` check (e.g. `ContextPath` / `TestDescription` / `IsPending` filters through the real VSTest pipeline).
 - Fold the remaining overlap between `architecture.md` / `core-components.md` and `systemPatterns.md`, which still describe the same material from two angles.
 - Refresh `glossary.md` / `test-patterns.md` with the 📌 test-structure vocabulary (`TestStructure`, `Structure =`, `[TestStructure]`, `ShowSourceLocations`, `ColorOutput`, `[grouped]` FQN suffix), the pending vocabulary (`TODO`, `xIt`, `xContext`, `IsPending`), 📌 `ShouldThrow<T>` / `ActExceptionContext`, and a class-level `BeforeAll` example.
@@ -313,7 +338,7 @@ Removed as redundant or superseded:
 ### Long term
 
 - Consider parallel execution support (currently sequential by design).
-- Publish the adapter as a NuGet package.
+- ~~Publish the adapter as a NuGet package.~~ 📌 The pipeline is ready (`release.yml` publishes all three packages on a `v*` tag). Only the first tag and the nuget.org trust setup remain (see Immediate).
 
 ## Active Decisions
 

@@ -742,6 +742,8 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 31 | 📌 NEW **Legacy `Spec` API, `Domain/` layer, `Specs.csproj` and `Examples/ConsoleExample` removed** | Two API styles doubled the documentation and maintenance burden; the modern `Specifications` API + `specs.core` fully replace it, and the core now self-hosts | **Breaking**: `Spec`, `Global.cs`, `Domain/*` (`AbstractSpecDefinition`, `ActionRunner`, `TaskRunner`, `IRunContext`/`IRunContainer`, spec definitions, `Exceptions/*`) and the `ConsoleExample` sample are deleted (1,395 lines). Migrate by deriving from `Specifications` and using `[Describe]` methods; `ShouldThrow<T>()` now lives on `Specifications` (see #25–28) |
 | 32 | 📌 NEW **`SpecReporting` renamed `TestStructure` (`PerSpec` / `PerDescribe`); `ContextPath` delimiter moved to `Conversion.ContextPathFormat`** | The switch decides how specs map to VSTest test cases (granularity), not merely how results are reported; the delimiter is part of the `SpecTest.ContextPath` contract shared by discovery and execution, so execution should not depend on a discovery class for it | **Breaking**: `SpecReporting` → `TestStructure`, `SpecReportingAttribute` → `TestStructureAttribute`, `Reporting` / `ReportingSetting` → `Structure` / `StructureSetting`, `.runsettings` `SpecReporting` → `TestStructure`. Adapter: `TestStructureExtractor.ExtractTests` → `SuiteTreeFlattener.Flatten`, `PathSeparator` → `ContextPathFormat.Separator`. Behaviour, FQNs, and precedence unchanged |
 | 33 | 📌 NEW **Repo split into `src/` (deliverables) + `tests/` (test projects); `Specs.sln` at the root; `TestHarness` retired; `specs.BDD.UnitTests` self-hosted** | Deliverables and test code are separated at folder level, and the nspec bridge was only kept alive by `specs.BDD.UnitTests` — once that project ran on Specs, nothing needed it | `TestHarness` project, `nspec 3.1.0`, and every NUnit dependency outside `specs.BDD.VSTestAdapter.Tests` are gone; solution goes from 8 to 7 projects. Test files take a `_Tests` suffix so the class name no longer collides with the type under test, and the `[Describe]` method is named after that type. See section "Test Hosting" |
+| 34 | 📌 NEW **Shared build settings live in `Directory.Build.props` / `Directory.Packages.props` / `global.json`, not in each `.csproj`** | Per-project settings had drifted (NFluent 3.0.0 vs 3.1.0, `LangVersion` 8.0 on one deliverable only), and packaging needs identical metadata on all three packages | Central package management is on, so a `Version=` on a `PackageReference` breaks restore. `ImplicitUsings` everywhere forces `LangVersion` 10 on the netstandard2.1 deliverables. `GenerateDocumentationFile` makes undocumented public API a CS1591 warning. Test projects opt out of packing via `tests/Directory.Build.props`. See section "Build Configuration & Release Pipeline" |
+| 35 | 📌 NEW **Versions come from git tags (MinVer); releases are cut by pushing a `v*` tag and published with nuget.org Trusted Publishing** | One source of truth for the version, so no version bump commits. All packages ship together at the same version. No long-lived NuGet API key is stored in the repo | `MinVer` is a build-time-only reference (`PrivateAssets=all`), so `specs.core` keeps zero runtime dependencies. CI needs full history (`fetch-depth: 0`). Untagged builds are `0.0.0-alpha.0.N`. `release.yml` needs the `NUGET_USER` secret plus a nuget.org trust policy, and publishes all three packages together with symbols (`.snupkg`, SourceLink) |
 
 ## Critical Execution Paths
 
@@ -1147,6 +1149,102 @@ Conventions introduced by the migration:
 | Root `[Describe]` method | Named after the type under test | `[Describe] public void ContextBuilder()` |
 | Shared spec bodies | Abstract base deriving `Specifications`, concrete `[Describe]` per subclass | `BaseAssertBuilderSpecs<TSubject, TDelegate>` → `AssertBuilder_Tests` / `AssertBuilderAsync_Tests` |
 | nspec → Specs syntax | `describe`/`context`/`it` → `Describe`/`Context`/`It`; `act = ...` / `beforeEach = ...` → `Act(...)` / `BeforeEach(...)` | — |
+
+## 📌 NEW — Build Configuration & Release Pipeline
+
+How every project gets its settings, package versions, and package version number. Decisions #34–35 record the rationale; file-level settings, versions, workflows, and the deployment view are in `techContext.md` sections "Build Configuration" and "Packaging & Release".
+
+### 📌 BEFORE (per-project settings, manual packing)
+
+```mermaid
+---
+title: "C4 Level 2 — Container: Build configuration (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    DEV(["<b>Maintainer</b><br/>[Person]"]):::external
+    CSP["<b>7 × .csproj</b><br/>[Container: MSBuild project]<br/>Own versions, LangVersion"]:::deprecated
+    PACK["<b>dotnet pack (local)</b><br/>[Container: .NET SDK, unpinned]<br/>Default version 1.0.0"]:::deprecated
+
+    DEV -->|"Edits each project [manual]"| CSP
+    DEV -->|"Packs by hand [dotnet CLI]"| PACK
+    PACK -->|"Reads settings [MSBuild]"| CSP
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Deprecated"]:::deprecated
+        L2["Person"]:::external
+    end
+
+    PACK ~~~ LEGEND
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Package versions were repeated in every `.csproj` and drifted (adapter tests on NFluent 3.0.0, the rest on 3.1.0).
+- Language version was inconsistent: `LangVersion 8.0` on the adapter, SDK default on core and BDD.
+- No package metadata (authors, license, repository), no symbols, no XML docs, and every package was `1.0.0`.
+- No CI. Build and tests ran only on developer machines, against whatever SDK was installed.
+
+### 📌 AFTER (central MSBuild config + tag-driven versions)
+
+```mermaid
+---
+title: "C4 Level 2 — Container: Build configuration (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    GHA["<b>GitHub Actions</b><br/>[Software System: CI/CD]<br/>ci.yml + release.yml"]:::external
+
+    subgraph ROOT["Repo root config"]
+        direction TB
+        GJ["<b>global.json</b><br/>[Component: SDK config]<br/>SDK 10.0.400 pin"]:::app
+        DBP["<b>Directory.Build.props</b><br/>[Component: MSBuild props]<br/>Shared props + metadata"]:::app
+        DPP["<b>Directory.Packages.props</b><br/>[Component: CPM]<br/>One version per package"]:::app
+    end
+
+    subgraph PROJ["Projects"]
+        direction TB
+        DEL["<b>3 deliverables</b><br/>[Container: netstandard2.1]<br/>Packable, C# 10, XML docs"]:::app
+        TDBP["<b>tests/Directory.Build.props</b><br/>[Component: MSBuild props]<br/>Imports root, no packing"]:::app
+        TST["<b>4 test projects</b><br/>[Container: net10.0]<br/>IsPackable=false"]:::app
+    end
+
+    MINV["<b>MinVer 8.0</b><br/>[Library: build-time NuGet]<br/>Computes Version"]:::external
+    GIT[("<b>Git tags</b><br/>[Data: v* tags]<br/>v1.2.0 → 1.2.0")]:::data
+
+    GHA -->|"Reads SDK pin [setup-dotnet]"| ROOT
+    GHA -->|"Builds, tests, packs [dotnet CLI]"| PROJ
+    ROOT -->|"Auto-imported [MSBuild]"| PROJ
+    TDBP -->|"Applies to [MSBuild]"| TST
+    PROJ -->|"Version at build [MinVer target]"| MINV
+    MINV -->|"Reads tag + height [git]"| GIT
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned"]:::app
+        L2["External"]:::external
+        L3[("Data")]:::data
+    end
+
+    GIT ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Benefits:
+
+- Each package has exactly one version, kept in `Directory.Packages.props`. The NFluent drift is gone.
+- All three deliverables share C# 10, nullable, implicit usings, MIT license metadata, XML docs, and `.snupkg` symbols with SourceLink. CI builds are deterministic (`ContinuousIntegrationBuild`).
+- The version number lives only in the git tag. Pushing `v1.2.0` builds, tests, packs, and publishes all three packages at `1.2.0`, then creates a GitHub Release.
+- Every push to `main` and every PR is built, tested, and packed on CI against the pinned SDK. The packages are kept as a downloadable run artifact.
+
+Turning on XML doc generation also meant fixing a few doc comments to keep the build warning-free. These were documentation-only changes; the file list is in `activeContext.md`.
 
 ## Pattern Summary
 

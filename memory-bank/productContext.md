@@ -185,6 +185,7 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |
+| **Install and debug from NuGet** 📌 NEW | Tag-versioned `specs.core` / `specs.BDD` / `specs.BDD.VSTestAdapter` packages ship together with XML docs (IntelliSense) and `.snupkg` symbols with SourceLink, so you can step into framework code (first release pending) |
 | **Migration path** | NSpec-style / property-based code migrates to `Specifications` (method calls instead of property assignments) |
 
 ## What Makes Specs Different

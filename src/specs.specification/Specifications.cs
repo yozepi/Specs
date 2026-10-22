@@ -14,6 +14,9 @@ namespace specs.BDD
     {
         private IContextualTestCaseBuilder coreBuilder = new ContextualTestCaseBuilder();
 
+        /// <summary>
+        /// Gets the underlying builder that records the setup, act, and assertion steps declared by this specification.
+        /// </summary>
         internal protected IContextualTestCaseBuilder CoreBuilder => coreBuilder;
 
         /// <summary>

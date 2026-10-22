@@ -25,6 +25,11 @@ namespace specs.BDD.VSTestAdapter.Discovery
             /// <summary>1-based line number of the method's first statement.</summary>
             public int LineNumber { get; }
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="SourceLocation"/> class.
+            /// </summary>
+            /// <param name="filePath">Absolute path to the source file.</param>
+            /// <param name="lineNumber">1-based line number of the method's first statement.</param>
             public SourceLocation(string filePath, int lineNumber)
             {
                 FilePath = filePath;

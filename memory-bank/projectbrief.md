@@ -7,7 +7,7 @@
 | **Name** | Specs |
 | **Type** | .NET BDD testing framework + VSTest adapter |
 | **Core Target** | .NET Standard 2.1 (deliverables) / net10.0 (tests) 📌 UPDATED |
-| **Language** | C# 8.0 with nullable reference types |
+| **Language** | C# 10 📌 UPDATED (deliverables; was C# 8) with nullable reference types and implicit usings |
 | **Repository** | <https://github.com/yozepi/Specs> |
 
 ## Core Purpose
@@ -26,7 +26,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Solution Structure
 
-The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **7 projects** — deliverables under `src/`, test projects under `tests/`.
+The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **7 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
 
 ### Deliverable Projects (3)
 
@@ -90,9 +90,10 @@ public class CalculatorSpecs : Specifications      // Suite
 
 ## Technology Stack
 
-- **Deliverables**: .NET Standard 2.1, C# 8.0, nullable enabled.
-- **Tests**: net10.0 📌 UPDATED. 📌 `specs.core.UnitTests`, `specs.BDD.UnitTests`, and the integration tests run on **Specs itself**; only the adapter test project uses NUnit 3.x. NFluent 3.x for assertions, Autofac.Extras.Moq 7.0 in core tests, Moq 4.20 in adapter tests.
+- **Deliverables**: .NET Standard 2.1, C# 10 📌, nullable enabled.
+- **Tests**: net10.0 📌 UPDATED. 📌 `specs.core.UnitTests`, `specs.BDD.UnitTests`, and the integration tests run on **Specs itself**; only the adapter test project uses NUnit 3.x. NFluent 3.1 for assertions, Autofac.Extras.Moq 7.0 in core tests, Moq 4.20 in adapter tests.
 - **Adapter dependencies**: Microsoft.TestPlatform.ObjectModel 17.8.0, System.Reflection.Metadata 6.0.0.
+- 📌 NEW — **Build & release**: .NET SDK 10.0.400 (`global.json`), central package management, MinVer (git-tag versioning, build-time only), GitHub Actions CI + tag-triggered release to nuget.org.
 
 ## Scope
 
@@ -107,6 +108,7 @@ public class CalculatorSpecs : Specifications      // Suite
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
 - Adapter pattern for swappable test-framework integration.
+- 📌 NEW — **NuGet distribution**: all three deliverables are packed with shared metadata, XML docs, and `.snupkg` symbols. They are versioned from `v*` git tags and published together to nuget.org by a GitHub Actions release workflow.
 
 **Out of scope**:
 
@@ -117,7 +119,7 @@ public class CalculatorSpecs : Specifications      // Suite
 ## Key Constraints
 
 1. Deliverables must remain `netstandard2.1`-compatible.
-2. `specs.core` must have **zero** third-party package references.
+2. `specs.core` must have **zero** third-party package references at runtime (📌 build-time-only `PrivateAssets=all` tools such as MinVer are allowed).
 3. ~~Backward compatibility with the legacy `Spec` API~~ — 📌 dropped; the legacy API was removed.
 4. `Specifications` is the single supported authoring API.
 5. Discovery must be safe (cannot execute arbitrary spec code during scan).
@@ -131,7 +133,7 @@ public class CalculatorSpecs : Specifications      // Suite
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Sync and async hooks produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
-- ✅ **The framework tests its own core with itself** — 📌 333 self-hosted test results, plus 272 adapter and 28 integration results.
+- ✅ **The framework tests its own core with itself** — 📌 333 self-hosted core results and 147 self-hosted BDD results, plus 272 adapter and 34 integration results.
 - ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).

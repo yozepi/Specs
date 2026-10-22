@@ -17,7 +17,7 @@ namespace specs.BDD.VSTestAdapter.Execution
     /// Maps test descriptions to <see cref="TestCase"/> objects so that
     /// <see cref="LogAssertSuccess"/> and <see cref="LogAssertFailure"/>
     /// can produce proper <see cref="TestResult"/> objects and report them
-    /// via <see cref="IFrameworkHandle.RecordResult"/>.
+    /// via <see cref="ITestExecutionRecorder.RecordResult(TestResult)"/>.
     /// </para>
     /// <para>
     /// Per-test timing starts when <see cref="BeginTest"/> is called (from the

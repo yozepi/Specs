@@ -1,0 +1,42 @@
+<Project>
+  <!-- Shared settings for every project. Per-package PackageId/Description/PackageTags go in each .csproj. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <Authors>Joe Cleland</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/yozepi/Specs</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/yozepi/Specs</PackageProjectUrl>
+
+    <!-- Shared tags; each .csproj appends its own via $(PackageTags) -->
+    <PackageTags>bdd;specs;specifications;testing;tdd;rspec;nspec</PackageTags>
+    <PackageReleaseNotes>https://github.com/yozepi/Specs/releases</PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(GITHUB_REF_TYPE)' == 'tag'">https://github.com/yozepi/Specs/releases/tag/$(GITHUB_REF_NAME)</PackageReleaseNotes>
+
+    <!-- Version comes from the git tag (v1.2.0 -> 1.2.0). Untagged commits get 1.2.1-alpha.0.N. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+
+    <!-- Debuggable packages: SourceLink is built into the SDK; publish symbols as .snupkg -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Deterministic builds on CI only (keeps local debugging paths normal) -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The SDK silently defaults Description to "Package Description" -->
+  <Target Name="ValidatePackageMetadata" BeforeTargets="GenerateNuspec" Condition="'$(IsPackable)' != 'false'">
+    <Error Condition="'$(Description)' == '' Or '$(Description)' == 'Package Description'"
+           Text="$(MSBuildProjectName): set a package Description in the .csproj." />
+    <Error Condition="'$(PackageTags)' == ''"
+           Text="$(MSBuildProjectName): set PackageTags." />
+  </Target>
+</Project>

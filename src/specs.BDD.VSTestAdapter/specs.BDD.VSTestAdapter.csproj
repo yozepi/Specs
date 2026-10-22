@@ -3,12 +3,14 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>10</LangVersion>
+    <Description>VSTest adapter for Specs: discovers and runs Specifications-based specs in Visual Studio Test Explorer and dotnet test, with source navigation, nested Test Explorer hierarchy, --filter support, and optional grouped execution.</Description>
+    <PackageTags>$(PackageTags);vstest;testadapter;test-explorer;dotnet-test</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.8.0" />
-    <PackageReference Include="System.Reflection.Metadata" Version="6.0.0" />
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" />                                                                
+    <PackageReference Include="System.Reflection.Metadata" />
   </ItemGroup>
 
   <ItemGroup>
