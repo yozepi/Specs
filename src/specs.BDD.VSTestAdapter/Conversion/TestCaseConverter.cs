@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-using specs.BDD.VSTestAdapter.Discovery;
+using specs.BDD.Runner;
 
 namespace specs.BDD.VSTestAdapter.Conversion
 {
@@ -63,8 +64,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
             testCase.SetPropertyValue(TestProperties.IsPending,
                 specTest.IsPending);
 
-            // Set the VSTest RFC-0033 Hierarchy property so Test Explorer renders the
-            // [Describe] method name and Describe[...] blocks as tree nodes above the It[...] leaf.
+            // Set the VSTest RFC-0033 Hierarchy property so Test Explorer nests the test under
+            // Namespace › Class › [Describe].
             testCase.SetPropertyValue(HierarchyProperty, BuildHierarchy(specTest));
 
             // Prefer the It[...] lambda's source line so Test Explorer navigates to the test
@@ -113,9 +114,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
 
         /// <summary>
         /// Builds the human-readable display name shown in Test Explorer.
-        /// VS Code ignores the RFC-0033 Hierarchy property, so the context path must be
-        /// embedded in the display name for the context to be visible.
-        /// Format: {ContextPath} → {TestDescription}
+        /// Format: {ContextPath} → {TestDescription}, so explorers that don't nest under the
+        /// [Describe] (VS Code) still show it.
         /// Grouped format: {ContextPath} (root context name only)
         /// </summary>
         private static string BuildDisplayName(SpecTest specTest)
@@ -123,9 +123,8 @@ namespace specs.BDD.VSTestAdapter.Conversion
             if (specTest.IsGrouped)
                 return specTest.ContextPath;
 
-            return string.IsNullOrEmpty(specTest.ContextPath)
-                ? specTest.TestDescription
-                : $"{specTest.ContextPath} → {specTest.TestDescription}";
+            return string.Join(ContextPathFormat.Separator,
+                SplitContextPath(specTest.ContextPath).Append(specTest.TestDescription));
         }
 
         /// <summary>
@@ -134,7 +133,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
         ///   [0] Container  — null, so VS uses the project/assembly name
         ///   [1] Namespace  — the namespace of the Specifications class
         ///   [2] Class      — the simple (unqualified) class name
-        ///   [3] TestGroup  — the full context path (e.g. "describe_addition → when adding positive numbers")
+        ///   [3] TestGroup  — the [Describe] (first segment of the context path)
         /// </summary>
         private static string[] BuildHierarchy(SpecTest specTest)
         {
@@ -143,8 +142,13 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 null!,                                             // [0] Container  — VS fills from assembly
                 specTest.SpecificationClass.Namespace ?? "",      // [1] Namespace
                 specTest.SpecificationClass.Name,                 // [2] Class
-                specTest.ContextPath                              // [3] TestGroup — [Describe] + Describe chain
+                SplitContextPath(specTest.ContextPath).FirstOrDefault() ?? "" // [3] TestGroup — [Describe]
             };
         }
+
+        private static string[] SplitContextPath(string contextPath) =>
+            string.IsNullOrEmpty(contextPath)
+                ? Array.Empty<string>()
+                : contextPath.Split(new[] { ContextPathFormat.Separator }, StringSplitOptions.None);
     }
 }

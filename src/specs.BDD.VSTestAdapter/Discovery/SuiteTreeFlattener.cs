@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using specs.BDD.Attributes;
+using specs.BDD.Runner;
 using specs.core.Framework.Processors.TestCases;
 using specs.BDD.VSTestAdapter.Conversion;
 

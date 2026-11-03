@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+    <OutputType Condition=" '$(OutputType)' == '' ">Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <TestingPlatformBuilderHook Include="B6396602-2AC9-47E9-9E2F-1390E3006AF0">
+      <DisplayName>specs.BDD.TestingPlatform</DisplayName>
+      <TypeFullName>specs.BDD.TestingPlatform.TestingPlatformBuilderHook</TypeFullName>
+    </TestingPlatformBuilderHook>
+  </ItemGroup>
+</Project>

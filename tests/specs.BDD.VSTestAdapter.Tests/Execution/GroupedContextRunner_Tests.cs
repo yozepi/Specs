@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NFluent;
 using NUnit.Framework;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 using specs.BDD.VSTestAdapter.Execution;

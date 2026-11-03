@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using specs.BDD.Attributes;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Conversion;
 
 namespace specs.BDD.VSTestAdapter.Discovery

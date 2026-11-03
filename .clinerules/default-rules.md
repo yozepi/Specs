@@ -64,7 +64,7 @@
     ├── specs.core.UnitTests/        # Self-hosted (runs on Specs itself)
     ├── specs.BDD.UnitTests/
     ├── specs.BDD.VSTestAdapter.Tests/
-    └── specs.BDD.VSTestAdapter.IntegrationTests/
+    └── specs.BDD.IntegrationTests/
 ```
 
 ## 🚫 Common Pitfalls to Avoid

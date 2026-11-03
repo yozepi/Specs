@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Moq;
 using System.Reflection;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Discovery;
 
 namespace specs.BDD.VSTestAdapter.Tests.Execution

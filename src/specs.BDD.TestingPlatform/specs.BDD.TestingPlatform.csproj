@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <!-- MTP's TestNode uses required members (C# 11). -->
+    <LangVersion>12</LangVersion>
+    <Description>Microsoft.Testing.Platform runner for Specs: discovers and runs Specifications-based specs as a fully nested tree (namespace, class, [Describe], contexts, specs) in Visual Studio, VS Code, and dotnet test, with --treenode-filter support and optional grouped execution.</Description>
+    <PackageTags>$(PackageTags);mtp;microsoft-testing-platform;test-explorer;dotnet-test</PackageTags>
+    <!-- TreeNodeFilter and IClientInfo are experimental MTP APIs. -->
+    <NoWarn>$(NoWarn);TPEXP</NoWarn>
+    <!-- MTP's build targets treat every referencing project as a test app unless told otherwise. -->
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Consumers need both packages' build assets: entry-point generation and IDE capabilities. -->
+    <PackageReference Include="Microsoft.Testing.Platform" PrivateAssets="none" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" PrivateAssets="none" />
+    <PackageReference Include="System.Reflection.Metadata" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="specs.BDD.TestingPlatform.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\specs.core\specs.core.csproj" />
+    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\shared\specs.BDD.Runner\**\*.cs" LinkBase="Runner" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\specs.BDD.TestingPlatform.props" Pack="true" PackagePath="build\;buildMultiTargeting\" />
+  </ItemGroup>
+
+</Project>

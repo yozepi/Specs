@@ -1,6 +1,6 @@
 ﻿using NFluent;
 using NUnit.Framework;
-using specs.BDD.VSTestAdapter.Discovery;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using System.Linq;
 

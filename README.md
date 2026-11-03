@@ -17,16 +17,27 @@ Supplementary references: **[Core Components](memory-bank/core-components.md)**,
 
 ## Solution Structure
 
-### Deliverables (3 projects)
+### Deliverables (4 projects)
 - **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
 - **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core
 - **specs.BDD.VSTestAdapter** - VSTest discovery + execution for Test Explorer and `dotnet test`
+- **specs.BDD.TestingPlatform** - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
 
-### Test projects (4)
+Both runners compile the runner-agnostic discovery and execution code in `src/shared/specs.BDD.Runner/`.
+
+### Test projects (4 + 2 MTP)
 - **specs.core.UnitTests** - Core framework tests, written in Specs itself
 - **specs.BDD.UnitTests** - BDD API tests
 - **specs.BDD.VSTestAdapter.Tests** - Adapter component tests
-- **specs.BDD.VSTestAdapter.IntegrationTests** - End-to-end VSTest pipeline tests
+- **specs.BDD.IntegrationTests** - End-to-end VSTest pipeline tests
+- **tests/mtp/specs.BDD.TestingPlatform.Tests** - MTP runner tests (NUnit on MTP)
+- **tests/mtp/specs.BDD.TestingPlatform.IntegrationTests** - The `specs.BDD.IntegrationTests` specs, run through MTP
+
+The MTP projects live in `tests/mtp/Specs.Mtp.slnx`; its `global.json` puts `dotnet test` in MTP mode, so run them from that folder:
+```
+cd tests/mtp
+dotnet test --solution Specs.Mtp.slnx
+```
 
 ### Legacy / internal (1)
 - **Specs** - Legacy property-based `Spec` class and `Domain/` layer
@@ -81,6 +92,31 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 ```
 An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes when it is assignable to `T` (and the optional verifier succeeds), and fails if `Act` threw nothing or another type. Any other spec whose `Act` throws fails with the `Act` exception; `AfterEach` still runs.
 
+## Running on Microsoft.Testing.Platform
+
+Reference `specs.BDD.TestingPlatform` instead of the VSTest adapter. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Describe]` → contexts → specs.
+
+Every spec has a path, which is its test ID and what `--treenode-filter` matches:
+```
+/MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message
+```
+```
+dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Describe] and everything under it
+dotnet test --treenode-filter "/*/*/*/*/when empty/*"      # specs directly inside every 'when empty' context
+```
+`/` and `%` inside names are written as `%2F` and `%25`; filter operators such as `(`, `)`, `*`, `|`, `&`, `[` and `]` must be escaped with `\`.
+
+IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Describe]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Describe(Structure = TestStructure.PerDescribe)]` and `[TestStructure]` still run a `[Describe]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__TestStructure`):
+```json
+{
+  "SpecsBDD": {
+    "TestStructure": "PerDescribe",
+    "ShowSourceLocations": true,
+    "ColorOutput": false
+  }
+}
+```
+
 ## Key Features
 - Hierarchical test organization with parent-child contexts
 - Five-phase lifecycle (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
@@ -94,7 +130,8 @@ An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes 
 
 ## Technology Stack
 - .NET Standard 2.1 (deliverables), net8.0 (tests)
-- Microsoft.TestPlatform.ObjectModel (adapter only)
+- Microsoft.TestPlatform.ObjectModel (VSTest adapter only)
+- Microsoft.Testing.Platform 2.x (MTP runner only)
 - NUnit, NFluent (tests)
 
 ## License

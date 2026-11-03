@@ -9,40 +9,59 @@ Standard .NET test frameworks (xUnit, NUnit, MSTest) treat tests as flat methods
 3. Lifecycle needs more than two phases (e.g., once-per-suite resources, once-per-test seeding, an explicit "act under test").
 4. The codebase under test is async throughout.
 
-Specs solves these problems with a hierarchical BDD model, a sophisticated lifecycle, transparent async support, and a VSTest adapter that lets developers stay inside their IDE.
+Specs solves these problems with a hierarchical BDD model, a sophisticated lifecycle, transparent async support, and 📌 two runners — a VSTest adapter and a Microsoft.Testing.Platform runner — that let developers stay inside their IDE.
 
 ## Consumer / Integration Topology
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Dev(["Developer"]):::external
-    IDE["Visual Studio / VS Code / Rider"]:::external
-    CLI(["dotnet test"]):::external
-    VST["VSTest Platform"]:::external
+---
+title: "C4 Level 1 — System Context: Specs consumers (📌 UPDATED)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    Dev(["<b>Developer</b><br/>[Person]"]):::external
 
-    subgraph Specs["Specs Framework"]
-        ADP["specs.BDD.VSTestAdapter"]:::app
-        BDD["specs.BDD<br/>(Specifications)"]:::app
-        CORE["specs.core<br/>(builder + executor)"]:::app
+    subgraph TOOLS["IDEs and CLI"]
+        direction LR
+        IDE["<b>VS / VS Code / Rider</b><br/>[Software System: IDE]<br/>Test explorers"]:::external
+        CLI(["<b>dotnet test</b><br/>[Software System: .NET SDK]<br/>VSTest or MTP mode"]):::external
     end
 
-    UTest["User Test Assembly"]:::data
+    subgraph HOSTS["Test hosts"]
+        direction LR
+        VST["<b>VSTest Platform</b><br/>[Software System: Microsoft]<br/>Loads adapters"]:::external
+        MTP["<b>Microsoft.Testing.Platform</b><br/>[Software System: Microsoft]<br/>Test app as exe"]:::external
+    end
 
-    Dev --> IDE
-    Dev --> CLI
-    IDE --> VST
-    CLI --> VST
-    VST -->|"ITestDiscoverer<br/>ITestExecutor"| ADP
-    ADP --> BDD
-    ADP --> CORE
-    UTest -->|"references"| BDD
-    UTest -->|"discovered by"| ADP
+    subgraph Specs["System: Specs"]
+        direction LR
+        ADP["<b>specs.BDD.VSTestAdapter</b><br/>[Container: VSTest adapter]<br/>Per-It or grouped results"]:::app
+        TP["<b>specs.BDD.TestingPlatform</b><br/>[Container: MTP framework]<br/>📌 Full spec tree"]:::app
+    end
+
+    UTest["<b>User Test Assembly</b><br/>[Container: .NET assembly]<br/>Specifications + specs.BDD"]:::data
+
+    Dev -->|"Runs tests [UI / CLI]"| TOOLS
+    TOOLS -->|"Starts runs [VSTest / MTP]"| HOSTS
+    VST -->|"Discover + run [VSTest contracts]"| ADP
+    MTP -->|"Discover + run [MTP API]"| TP
+    Specs -->|"Reflects over [in-process]"| UTest
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned"]:::app
+        L2["External / person"]:::external
+        L3["User code"]:::data
+    end
+
+    UTest ~~~ LEGEND
 
     classDef external fill:#E8A838,stroke:#B07D20,color:#fff
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
 ```
+
+A test project references **one** runner package; both runners build on `specs.BDD` and `specs.core` and share one execution core, so a spec behaves the same under either.
 
 ## Problems It Solves
 
@@ -122,6 +141,18 @@ The adapter also preserves the shape of the specification in the IDE:
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
 - 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
 
+### 📌 NEW — Problem 4b — VSTest can't show the whole spec tree, and `dotnet test` is moving to MTP
+
+VSTest gives Test Explorer four levels (`Namespace › Class › group › test`), so everything below the `[Describe]` had to be squeezed into the test's name. The .NET 10 SDK and C# Dev Kit can also run tests through **Microsoft.Testing.Platform** instead of VSTest. The **`specs.BDD.TestingPlatform`** runner covers both:
+
+- Every spec has a readable tree path that is also its test ID: `/MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message`.
+- `dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"` runs a `[Describe]` and everything under it; `"/*/*/*/*/when empty/*"` runs the specs directly in every `when empty` context.
+- IDEs receive the full tree. Visual Studio still nests only `namespace › class › [Describe]` and shows `describe → context → spec` beneath it; VS Code shows `namespace › class › describe → context → spec`.
+- Console runs list full paths and print an indented tree with pass / fail / pending markers.
+- Grouped `[Describe]`s, pending specs, `ShouldThrow<T>`, and the once-per-context lifecycle behave exactly as under VSTest (same execution core).
+- Settings move from `.runsettings` to `[appname].testconfig.json` (`SpecsBDD` section) or `SpecsBDD__*` environment variables.
+- 📌 The VSTest adapter now groups by `[Describe]` in Visual Studio too (one Test Explorer group per `[Describe]` rather than one per context path).
+
 ### 📌 Problem 5 — One result per `It[...]` is sometimes too noisy
 
 Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Describe]` collapse into a single test result whose output is an NSpec-style tree:
@@ -185,7 +216,8 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |
-| **Install and debug from NuGet** 📌 NEW | Tag-versioned `specs.core` / `specs.BDD` / `specs.BDD.VSTestAdapter` packages ship together with XML docs (IntelliSense) and `.snupkg` symbols with SourceLink, so you can step into framework code (first release pending) |
+| **VSTest or MTP** 📌 NEW | Reference `specs.BDD.VSTestAdapter` or `specs.BDD.TestingPlatform`; specs and results are the same either way |
+| **Install and debug from NuGet** 📌 NEW | Tag-versioned `specs.core` / `specs.BDD` / `specs.BDD.VSTestAdapter` / 📌 `specs.BDD.TestingPlatform` packages ship together with XML docs (IntelliSense) and `.snupkg` symbols with SourceLink, so you can step into framework code (first release pending) |
 | **Migration path** | NSpec-style / property-based code migrates to `Specifications` (method calls instead of property assignments) |
 
 ## What Makes Specs Different

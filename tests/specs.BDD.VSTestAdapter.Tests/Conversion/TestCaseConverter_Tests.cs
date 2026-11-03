@@ -101,7 +101,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         }
 
         [Test]
-        public void DisplayName_IsContextPathAndTestDescription_WithFlatContextPath()
+        public void DisplayName_IncludesTheDescribe_WhenTheSpecIsDirectlyInTheDescribe()
         {
             var specTest = BuildSpecTest(contextPath: "root context", testDescription: "my test");
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
@@ -338,14 +338,24 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         }
 
         [Test]
-        public void Hierarchy_TestGroupElementMatchesContextPath()
+        public void Hierarchy_TestGroupElementIsTheDescribe()
         {
             var specTest = BuildSpecTest(contextPath: "my context → sub context");
             var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
             var hierarchy = testCase.GetPropertyValue<string[]>(
                 TestProperty.Find("TestCase.Hierarchy")!, null)!;
 
-            Check.That(hierarchy[3]).IsEqualTo("my context → sub context");
+            Check.That(hierarchy[3]).IsEqualTo("my context");
+        }
+
+        [Test]
+        public void Hierarchy_Grouped_TestGroupElementIsTheDescribe()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildGroupedSpecTest(), FakeSource);
+            var hierarchy = testCase.GetPropertyValue<string[]>(
+                TestProperty.Find("TestCase.Hierarchy")!, null)!;
+
+            Check.That(hierarchy[3]).IsEqualTo("my context");
         }
 
         [Test]

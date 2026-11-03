@@ -25,6 +25,9 @@ jobs:
       - run: dotnet restore
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build
+      # tests/mtp/global.json switches dotnet test to Microsoft.Testing.Platform mode.
+      - run: dotnet test --solution Specs.Mtp.slnx -c Release
+        working-directory: tests/mtp
       - run: dotnet pack -c Release --no-build -o artifacts
 
       # Exchanges the GitHub OIDC token for a 1-hour nuget.org API key. No stored secret key.
