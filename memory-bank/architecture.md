@@ -1,5 +1,24 @@
 # Architecture: Specs Framework
 
+## Architectural Overview
+
+The Specs framework organizes tests in a **Suite → Feature Set → Specification** hierarchy:
+
+- **Suite** = A specification class (one per subject under test)
+- **Feature Set** = A `[Describe]` decorated method (one per feature/aspect)  
+- **Specification** = An `It[...]` assertion (one per expected behavior)
+
+The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Describe]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
+
+The framework has ONE API style (📌 the legacy property-based `Spec` API and `Domain/` layer were removed; see `systemPatterns.md` decision #31):
+
+1. **Method-Based API** (specs.core + specs.BDD)
+   - `Specifications` base class with method-based lifecycle (`BeforeAll()`, `BeforeEach()`)
+   - Builder-based approach, framework-agnostic through adapters
+   - Immutable test case models
+
+The API follows the Suite → Feature Set → Specification hierarchy.
+
 ## Design Patterns
 
 ### 1. Builder Pattern
@@ -160,10 +179,12 @@ builder.AddSetupOnce(action: async () => { await /* async code */ });
 
 ## Data Flow
 
+### Approach 1: Core Framework Architecture (specs.core + specs.BDD)
+
 ```
 User Code (Test Specification inheriting from Specifications)
     ↓
-specs.BDD Layer (Describe/Context/It DSL)
+specs.BDD Layer (Method-based DSL: BeforeAll/BeforeEach/Act/It)
     ↓
 IContextualTestCaseBuilder (Fluent API)
     ↓
@@ -177,6 +198,46 @@ ITestContextAdapter (Framework integration)
     ↓
 Actual Test Framework (NSpec, etc.)
 ```
+
+### Approach 3: VSTest Adapter Architecture (specs.BDD.VSTestAdapter)
+
+The VSTest adapter bridges specs.BDD specifications to the standard .NET test infrastructure
+(`dotnet test`, Visual Studio Test Explorer, Rider, VS Code).
+
+```
+dotnet test / VS Test Explorer
+    ↓ VSTest Protocol (ITestDiscoverer / ITestExecutor)
+specs.BDD.VSTestAdapter
+    ↓ Discovery
+    ├─ SpecificationClassScanner  → finds Specifications subclasses
+    ├─ ContextMethodScanner       → finds [Describe]-decorated methods, validates presence
+    ├─ SuiteTreeBuilder           → registers each [Describe] method as a named child context,
+    │                               reads Specifications.CoreBuilder (no reflection),
+    │                               calls Build() → IContextualTestCase
+    ├─ TestStructureExtractor     → recursively flattens the tree → SpecTest list
+    ├─ SourceLocationReader       → portable PDB lookup for the It[...] lambda
+    └─ TestCaseConverter          → converts SpecTest → VSTest TestCase (FQN + metadata
+                                    + RFC-0033 Hierarchy for Test Explorer nesting)
+    ↓ Execution
+    ├─ SpecsTestExecutor          → groups selected tests by (Source, ClassName)
+    ├─ TestInvoker                → resolves the type, rebuilds the suite via SuiteTreeBuilder
+    ├─ SelectionTreeWalker        → depth-first walk firing OwnSetupOnce / OwnTeardownOnce
+    │                               exactly once per live node; delegates per-test loops
+    │                               to specs.core's TestCaseExecutor
+    ├─ TestFinder                 → navigates IContextualTestCase hierarchy by context path
+    └─ ResultReporter             → creates Passed/Failed TestResult with timing
+
+Key constraint: every Specifications class MUST have at least one [Describe] method.
+  → Discovery throws InvalidSpecificationException otherwise.
+```
+
+**FQN format**: `{ClassName}::{MethodName}::{ContextPath}::{TestDescription}`  
+**Display name format**: `{MethodName} → {ContextPath} → {TestDescription}` (` → ` = space+U+2192+space)  
+**Context path format**: `root context → child context → …`
+
+### 📌 REMOVED — Legacy Runtime Architecture (Domain + Spec)
+
+The `Spec` class, `IRunContext` runtime switching, and the `ActionRunner` / `TaskRunner` Domain layer were deleted. Only the builder-based architecture above remains.
 
 ### specs.BDD Context Switching Pattern
 
@@ -203,21 +264,33 @@ This enables nested context definitions where `BeforeAll`, `BeforeEach`, `Act`, 
 
 ## Key Design Decisions
 
-### 1. Immutability After Build
+### Core Framework (specs.core + specs.BDD)
+
+#### 1. Immutability After Build
 Once `Build()` is called, the test case becomes immutable. All modifications must be done through the builder.
 
-### 2. Action Aggregation
+#### 2. Action Aggregation
 Actions are collected at build time, not execution time, allowing for optimization and validation.
 
-### 3. Hierarchical Contexts
+#### 3. Hierarchical Contexts
 Child contexts inherit and extend parent behavior, enabling powerful test organization patterns.
 
-### 4. Separation of Concerns
+#### 4. Separation of Concerns
 Clear separation between:
 - Test definition (Builder)
 - Test representation (TestCase)
 - Test execution (Executor)
 - Framework integration (Adapters)
 
-### 5. Framework Agnostic Core
+#### 5. Framework Agnostic Core
 The core is independent of specific test frameworks, with integration provided through adapters.
+
+## Migration Strategy
+
+Code written against the removed `Spec` class migrates to `Specifications` by:
+1. Change base class from `Spec` to `Specifications`
+2. Convert property assignments to method calls:
+   - `BeforeEach = () => {}` → `BeforeEach(() => {})`
+   - `Act = () => {}` → `Act(() => {})`
+3. Move definitions into `[Describe("...")]`-decorated methods
+4. Replace `ShouldThrow<T>()` helper calls with `It["..."] = ShouldThrow<T>()` (or an assertion library)

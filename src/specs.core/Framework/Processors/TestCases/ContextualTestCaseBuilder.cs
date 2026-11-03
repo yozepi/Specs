@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace specs.core.Framework.Processors.TestCases
 {
+    internal static class AsyncTestExtensions
+    {
+        public static void RunSync(this Func<Task> test) => test().GetAwaiter().GetResult();
+    }
+
     /// <summary>
     /// Builds hierarchical test cases with parent-child context relationships and lifecycle actions.
     /// Implements the fluent builder pattern for constructing immutable test cases.
@@ -20,6 +25,8 @@ namespace specs.core.Framework.Processors.TestCases
 
         private readonly List<Action> actActions = new List<Action>();
         private readonly List<(string description, Action test)> testActions = new List<(string description, Action test)>();
+        private readonly List<string> pendingTests = new List<string>();
+        private readonly bool isPending;
 
         private readonly List<Action> teardownEachActions = new List<Action>();
         private readonly RunAllBuilder teardownOnceBuilder = new RunAllBuilder();
@@ -29,8 +36,14 @@ namespace specs.core.Framework.Processors.TestCases
         /// </summary>
         /// <param name="parentContext">The optional parent context from which this context inherits lifecycle actions.</param>
         public ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext = null)
+            : this(parentContext, isPending: false)
+        {
+        }
+
+        private ContextualTestCaseBuilder(ContextualTestCaseBuilder? parentContext, bool isPending)
         {
             this.parentContext = parentContext;
+            this.isPending = isPending || (parentContext?.isPending ?? false);
         }
 
         /// <inheritdoc/>
@@ -71,23 +84,38 @@ namespace specs.core.Framework.Processors.TestCases
             testActions.Add((
                 description.ThrowIfNullOrWhiteSpace(nameof(description)),
                 test.ThrowIfNull(nameof(test))));
+            if (isPending)
+                pendingTests.Add(description);
             return this;
         }
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder AddTest(string description, Func<Task> test)
         {
+            // Bound to the extension method so the wrapper's Target is the original Func<Task>.
             Action funcWrapper = null!;
-
-            if(test != null)
-            {   funcWrapper = new Action(() =>
-                    test
-                        .Invoke()
-                        .GetAwaiter()
-                        .GetResult());
-            }
+            if (test != null)
+                funcWrapper = test.RunSync;
 
             return AddTest(description, funcWrapper);
+        }
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder AddPendingTest(string description, Action test)
+        {
+            AddTest(description, test);
+            pendingTests.Add(description);
+            return this;
+        }
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder AddPendingTest(string description, Func<Task> test)
+        {
+            Action funcWrapper = null!;
+            if (test != null)
+                funcWrapper = test.RunSync;
+
+            return AddPendingTest(description, funcWrapper);
         }
 
         /// <inheritdoc/>
@@ -134,11 +162,15 @@ namespace specs.core.Framework.Processors.TestCases
 
         /// <inheritdoc/>
         public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure)
+            => ChildTestCase(description, configure, isPending: false);
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder ChildTestCase(string description, Action<IContextualTestCaseBuilder> configure, bool isPending)
         {
             description.ThrowIfNullOrWhiteSpace(nameof(description));
             configure.ThrowIfNull(nameof(configure));
 
-            var childBuilder = new ContextualTestCaseBuilder(this)
+            var childBuilder = new ContextualTestCaseBuilder(this, isPending)
             {
                 Description = description
             };
@@ -168,14 +200,20 @@ namespace specs.core.Framework.Processors.TestCases
             teardownEach.AddRange(CollectAncestorAndSelfTeardownEachActions());
             teardownOnce.AddRange(CollectAncestorAndSelfTeardownOnceActions());
 
+            var ownSetupOnce = setupOnceBuilder.Build() ?? (() => { });
+            var ownTeardownOnce = teardownOnceBuilder.Build() ?? (() => { });
+
             return ContextualTestCase.CreateTestCase(
                 setupOnce: () => { foreach (var action in setupOnce) { action.Invoke(); } },
                 setupEach: () => { foreach (var action in setupEach) { action.Invoke(); } },
                 act: () => { foreach (var action in act) { action.Invoke(); } },
                 teardownEach: () => { foreach (var action in teardownEach) { action.Invoke(); } },
                 teardownOnce: () => { foreach (var action in teardownOnce) { action.Invoke(); } },
+                ownSetupOnce: ownSetupOnce,
+                ownTeardownOnce: ownTeardownOnce,
                 tests: new List<(string description, Action test)>(this.testActions),
-                childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder))
+                childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder)),
+                pendingTests: this.pendingTests
             );
 
         }
@@ -191,8 +229,11 @@ namespace specs.core.Framework.Processors.TestCases
                 act: testCase.Act,
                 teardownEach: testCase.TeardownEach,
                 teardownOnce: testCase.TeardownOnce,
+                ownSetupOnce: testCase.OwnSetupOnce,
+                ownTeardownOnce: testCase.OwnTeardownOnce,
                 tests: testCase.Tests.ToList(),
-                childContexts: testCase.ChildContexts.ToList()
+                childContexts: testCase.ChildContexts.ToList(),
+                pendingTests: testCase.PendingTests
             );
         }
 

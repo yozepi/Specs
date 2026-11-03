@@ -1,3 +1,4 @@
+using specs.core.Framework.Assertions;
 using specs.core.Framework.ParameterValidation;
 using specs.core.Framework.Processors.TestCases;
 using System;
@@ -14,43 +15,72 @@ namespace specs.BDD
         private IContextualTestCaseBuilder coreBuilder = new ContextualTestCaseBuilder();
 
         /// <summary>
+        /// Gets the underlying builder that records the setup, act, and assertion steps declared by this specification.
+        /// </summary>
+        internal protected IContextualTestCaseBuilder CoreBuilder => coreBuilder;
+
+        /// <summary>
         /// Defines a synchronous setup action that runs once before all tests in this context.
         /// </summary>
         /// <param name="action">The setup action to execute.</param>
-        public void BeforeAll(Action action) => coreBuilder.AddSetupOnce(action);
+        public void BeforeAll(Action action) => CoreBuilder.AddSetupOnce(action);
 
         /// <summary>
         /// Defines an asynchronous setup action that runs once before all tests in this context.
         /// </summary>
         /// <param name="taskFunction">The async setup action to execute.</param>
-        public void BeforeAll(Func<Task> taskFunction) => coreBuilder.AddSetupOnce(taskFunction);
+        public void BeforeAll(Func<Task> taskFunction) => CoreBuilder.AddSetupOnce(taskFunction);
 
         /// <summary>
         /// Defines a synchronous setup action that runs before each test.
         /// </summary>
         /// <param name="action">The setup action to execute.</param>
-        public void BeforeEach(Action action) => coreBuilder.AddSetupEach(action);
+        public void BeforeEach(Action action) => CoreBuilder.AddSetupEach(action);
 
         /// <summary>
         /// Defines an asynchronous setup action that runs before each test.
         /// </summary>
         /// <param name="taskFunction">The async setup action to execute.</param>
-        public void BeforeEach(Func<Task> taskFunction) => coreBuilder.AddSetupEach(taskFunction);
+        public void BeforeEach(Func<Task> taskFunction) => CoreBuilder.AddSetupEach(taskFunction);
 
         /// <summary>
         /// Defines the synchronous action under test.
         /// This action executes after setup and before assertions.
         /// </summary>
         /// <param name="action">The action to test.</param>
-        public void Act(Action action) => coreBuilder.AddAct(action);
+        public void Act(Action action) => CoreBuilder.AddAct(action);
 
         /// <summary>
         /// Defines the asynchronous action under test.
         /// This action executes after setup and before assertions.
         /// </summary>
         /// <param name="taskFunction">The async action to test.</param>
-        public void Act(Func<Task> taskFunction) => coreBuilder.AddAct(taskFunction);
- 
+        public void Act(Func<Task> taskFunction) => CoreBuilder.AddAct(taskFunction);
+
+        /// <summary>
+        /// Defines a synchronous teardown action that runs after each test.
+        /// </summary>
+        /// <param name="action">The teardown action to execute.</param>
+        public void AfterEach(Action action) => CoreBuilder.AddTeardownEach(action);
+
+        /// <summary>
+        /// Defines an asynchronous teardown action that runs after each test.
+        /// </summary>
+        /// <param name="taskFunction">The async teardown action to execute.</param>
+        public void AfterEach(Func<Task> taskFunction) => CoreBuilder.AddTeardownEach(taskFunction);
+
+        /// <summary>
+        /// Defines a synchronous teardown action that runs once after all tests in this context.
+        /// </summary>
+        /// <param name="action">The teardown action to execute.</param>
+        public void AfterAll(Action action) => CoreBuilder.AddTeardownOnce(action);
+
+        /// <summary>
+        /// Defines an asynchronous teardown action that runs once after all tests in this context.
+        /// </summary>
+        /// <param name="taskFunction">The async teardown action to execute.</param>
+        public void AfterAll(Func<Task> taskFunction) => CoreBuilder.AddTeardownOnce(taskFunction);
+
         /// <summary>
         /// Defines "what" is being tested using behavior-driven design (BDD) style.
         /// Use Describe to specify the subject under test, such as a class name, feature, or component.
@@ -70,7 +100,7 @@ namespace specs.BDD
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Describe => new ContextBuilder(coreBuilder, contextCallBack);
+        public ContextBuilder Describe => new ContextBuilder(CoreBuilder, contextCallBack);
 
 
         /// <summary>
@@ -87,16 +117,15 @@ namespace specs.BDD
         /// {
         ///     Describe["UserProfile"] = () =>
         ///     {
-        ///         // Test cases for authenticated user profile
+        ///     // Test cases for authenticated user profile
         ///     };
         /// };
         /// </code>
         /// </example>
-        public ContextBuilder Context => new ContextBuilder(coreBuilder, contextCallBack);
+        public ContextBuilder Context => new ContextBuilder(CoreBuilder, contextCallBack);
 
         private void contextCallBack(IContextualTestCaseBuilder childCoreBuilder, Action action)
         {
-
             var previousCoreBuilder = this.coreBuilder;
             this.coreBuilder = childCoreBuilder;
             try
@@ -123,32 +152,91 @@ namespace specs.BDD
         /// {
         ///     It["should add two numbers correctly"] = () =>
         ///     {
-        ///         // Test assertion
+        ///       // Test assertion
         ///     };
         /// };
         /// </code>
         /// </example>
-        public AssertBuilder It => new AssertBuilder(coreBuilder);
+        public AssertBuilder It => new AssertBuilder(CoreBuilder);
 
         /// <summary>
-        /// Defines asyncronous "then" test assertions in behavior-driven design (BDD) style.
-        /// Use It to specify individual test assertions within a context or describe block.
-        /// This property is protected and only accessible from derived test specification classes.
+        /// Defines asynchronous "then" test assertions in behavior-driven design (BDD) style.
+        /// Use ItAsync to specify individual asynchronous test assertions within a context or describe block.
         /// </summary>
         /// <returns>
-        /// A builder instance enabling fluent indexer syntax for defining test assertions.
+        /// A builder instance enabling fluent indexer syntax for defining asynchronous test assertions.
         /// </returns>
         /// <example>
         /// <code>
         /// Describe["Calculator"] = () =>
         /// {
-        ///     It["should add two numbers correctly"] = () =>
+        ///     ItAsync["should return data from the remote service"] = async () =>
         ///     {
-        ///         // Test assertion
+        ///         // Async test assertion
         ///     };
         /// };
         /// </code>
         /// </example>
-        public AssertBuilderAsync ItAsync => new AssertBuilderAsync(coreBuilder);
+        public AssertBuilderAsync ItAsync => new AssertBuilderAsync(CoreBuilder);
+
+        /// <summary>
+        /// Placeholder body for a spec that is not yet implemented: <c>It["..."] = TODO;</c>.
+        /// The spec is reported as pending and never executed.
+        /// </summary>
+        public static readonly Action TODO = () => { };
+
+        /// <summary>
+        /// Placeholder body for an async spec that is not yet implemented: <c>ItAsync["..."] = TODOAsync;</c>.
+        /// The spec is reported as pending and never executed.
+        /// </summary>
+        public static readonly Func<Task> TODOAsync = () => Task.CompletedTask;
+
+        /// <summary>
+        /// Creates an <see cref="It"/> body that passes when <see cref="Act(Action)"/> threw an exception
+        /// assignable to <typeparamref name="TException"/>: <c>It["..."] = ShouldThrow&lt;ArgumentException&gt;();</c>.
+        /// </summary>
+        /// <typeparam name="TException">The expected exception type.</typeparam>
+        public static Action ShouldThrow<TException>()
+            where TException : Exception
+            => ShouldThrow<TException>(_ => { });
+
+        /// <summary>
+        /// Creates an <see cref="It"/> body that passes when <see cref="Act(Action)"/> threw an exception
+        /// assignable to <typeparamref name="TException"/> and <paramref name="verify"/> succeeds.
+        /// </summary>
+        /// <typeparam name="TException">The expected exception type.</typeparam>
+        /// <param name="verify">Verifies the properties of the thrown exception.</param>
+        /// <example>
+        /// <code>
+        /// It["should explain the problem"] = ShouldThrow&lt;DivideByZeroException&gt;(ex =>
+        ///     Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+        /// </code>
+        /// </example>
+        public static Action ShouldThrow<TException>(Action<TException> verify)
+            where TException : Exception
+        {
+            Action<TException> verifier = verify.ThrowIfNull(nameof(verify));
+            return verifier.VerifyActException;
+        }
+
+        /// <summary>
+        /// Defines a pending (excluded) <see cref="It"/> spec. The body is kept but never executed.
+        /// </summary>
+        public AssertBuilder xIt => new AssertBuilder(CoreBuilder, isPending: true);
+
+        /// <summary>
+        /// Defines a pending (excluded) <see cref="ItAsync"/> spec. The body is kept but never executed.
+        /// </summary>
+        public AssertBuilderAsync xItAsync => new AssertBuilderAsync(CoreBuilder, isPending: true);
+
+        /// <summary>
+        /// Defines a pending <see cref="Context"/>. Every spec inside it, including nested contexts, is pending.
+        /// </summary>
+        public ContextBuilder xContext => new ContextBuilder(CoreBuilder, contextCallBack, isPending: true);
+
+        /// <summary>
+        /// Defines a pending <see cref="Describe"/>. Every spec inside it, including nested contexts, is pending.
+        /// </summary>
+        public ContextBuilder xDescribe => new ContextBuilder(CoreBuilder, contextCallBack, isPending: true);
     }
 }

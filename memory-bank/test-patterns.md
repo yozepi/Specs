@@ -1,201 +1,362 @@
 # Test Patterns: Specs Framework
 
-## Common Test Patterns
+## Suite → Feature Set → Specification Hierarchy
 
-This document illustrates common test patterns and usage examples for the Specs framework.
+The Specs framework organizes tests in a clear hierarchy:
+
+1. **Suite** (Specification class) — One class per subject under test
+2. **Feature Set** (`[Describe]` decorated methods) — One method per feature/aspect of the subject
+3. **Scenarios** (`Context[...]`/`Describe[...]` indexers) — Organize specs within a feature set
+4. **Specifications** (`It[...]` indexer) — Individual test assertions
+
+This is a single paradigm, not separate approaches. The `[Describe]` attribute and `Context[...]` indexer work together at different levels of the hierarchy.
 
 ---
 
-## 1. Basic Test Structure
+## 1. Complete Suite Structure
 
-### Simple Test Case
+### The Full Hierarchy
 ```csharp
-public class Calculator_Tests : nSpecTestHarness
+public class Weather_Controller : Specifications  // SUITE: one per subject
 {
-    [Test]
-    public void Addition_Specs()
+    // SUITE-LEVEL LIFECYCLE: applies to ALL feature sets
+    BeforeAll(() => { /* once before any feature runs */ });
+    AfterAll(() => { /* once after all features complete */ });
+    BeforeEach(() => { /* before each spec across ALL features */ });
+    AfterEach(() => { /* after each spec across ALL features */ });
+
+    [Describe("Getting forecasts")]  // FEATURE SET: one aspect of the subject
+    public void getting_forecasts()
     {
-        RunMySpecs();
-    }
-    
-    void method_context()
-    {
-        var calculator = new Calculator();
-        int result = 0;
-        
-        context["when adding two numbers"] = () =>
+        // FEATURE-LEVEL LIFECYCLE: applies only to specs in THIS feature
+        BeforeEach(() => { /* before each spec in this feature */ });
+        AfterEach(() => { /* after each spec in this feature */ });
+
+        Context["when requesting today's forecast"] = () =>  // SCENARIO
         {
-            act = () => result = calculator.Add(2, 3);
-            
-            it["should return the sum"] = () => 
-                result.should_be(5);
+            Act(() => { /* action under test */ });
+
+            It["should return current temperature"] = () =>  // SPEC
+            {
+                result.Temperature.Should().NotBeNull();
+            };
+
+            It["should include humidity"] = () =>  // SPEC
+            {
+                result.Humidity.Should().BeGreaterThan(0);
+            };
+        };
+
+        Context["when requesting weekly forecast"] = () =>  // ANOTHER SCENARIO
+        {
+            Act(() => { /* different action */ });
+
+            It["should return 7 days"] = () =>
+            {
+                results.Count.Should().Be(7);
+            };
+        };
+    }
+
+    [Describe("Updating weather data")]  // ANOTHER FEATURE SET
+    public void updating_weather_data()
+    {
+        // Different lifecycle for this feature
+        BeforeEach(() => { /* different setup for update specs */ });
+
+        Describe["with valid data"] = () =>
+        {
+            Act(() => { /* update action */ });
+
+            It["should persist changes"] = () => { /* assertion */ };
+        };
+
+        Describe["with invalid data"] = () =>
+        {
+            It["should reject the update"] = () => { /* assertion */ };
         };
     }
 }
 ```
 
+**Key Points**:
+- The class IS the suite (one subject under test)
+- `[Describe]` methods define feature sets within the suite
+- `Context[...]`/`Describe[...]` organize scenarios within a feature set
+- `It[...]` defines individual specifications
+- Suite-level lifecycle wraps all feature sets
+- Feature-level lifecycle is scoped to its own specs
+
 ---
 
-## 2. Hierarchical Contexts
+## 2. Lifecycle Inheritance
 
-### Nested Contexts with Shared Setup
+### Two Levels of Lifecycle Control
+
 ```csharp
-void describe_database_operations()
+public class Order_Service : Specifications
 {
-    Database db = null;
-    
-    beforeAll = () => db = new Database("test.db");
-    afterAll = () => db.Dispose();
-    
-    context["when inserting data"] = () =>
+    // SUITE LEVEL: shared across ALL feature sets
+    BeforeAll(() => { db = TestDatabase.Create(); });
+    AfterAll(() => { db.Dispose(); });
+    BeforeEach(() => { service = new OrderService(db); });
+
+    [Describe("Creating orders")]
+    public void creating_orders()
     {
-        beforeEach = () => db.Clear();
-        
-        context["with valid data"] = () =>
+        // FEATURE LEVEL: only for specs in this feature
+        BeforeEach(() => { testOrder = new Order { CustomerId = 1 }; });
+        AfterEach(() => { db.Reset(); });
+
+        Context["with valid order"] = () =>
         {
-            act = () => db.Insert(new User { Name = "John" });
-            
-            it["should succeed"] = () => 
-                db.Count().should_be(1);
+            Act(() => { service.Create(testOrder); });
+
+            // This spec gets: suite BeforeEach → feature BeforeEach → Act → spec → feature AfterEach → suite AfterEach
+            It["should save to database"] = () =>
+            {
+                db.Orders.Count().Should().Be(1);
+            };
         };
-        
-        context["with invalid data"] = () =>
+    }
+
+    [Describe("Canceling orders")]
+    public void canceling_orders()
+    {
+        // Different feature, different lifecycle
+        BeforeEach(() => { existingOrder = db.SeedOrder(); });
+
+        Context["when order exists"] = () =>
         {
-            it["should throw validation error"] = expect<ValidationException>(
-                () => db.Insert(new User { Name = "" }));
+            Act(() => { service.Cancel(existingOrder.Id); });
+
+            It["should mark as canceled"] = () =>
+            {
+                existingOrder.Status.Should().Be(OrderStatus.Canceled);
+            };
+        };
+    }
+}
+```
+
+**Lifecycle execution order for each spec**:
+1. Suite `BeforeAll` (once for entire suite)
+2. Suite `BeforeEach` (before each spec, all features)
+3. Feature `BeforeEach` (before each spec, this feature only)
+4. `Act` (action under test)
+5. Spec assertion (`It[...]`)
+6. Feature `AfterEach` (after each spec, this feature only)
+7. Suite `AfterEach` (after each spec, all features)
+8. Suite `AfterAll` (once for entire suite)
+
+This follows the parent→child pattern:
+- **Setup/Act**: Suite-level first → Feature-level second (top-down)
+- **Teardown**: Feature-level first → Suite-level second (bottom-up)
+
+---
+
+## 3. Nested Scenarios Within a Feature
+
+### Hierarchical Context Organization
+```csharp
+[Describe("User authentication")]
+public void user_authentication()
+{
+    AuthService service = null;
+
+    BeforeEach(() => { service = new AuthService(); });
+
+    Context["when user has valid credentials"] = () =>
+    {
+        User user = null;
+        BeforeEach(() => { user = new User("alice", "correct-password"); });
+
+        Act(() => { result = service.Authenticate(user); });
+
+        It["should return success"] = () =>
+        {
+            result.Success.Should().BeTrue();
+        };
+
+        It["should set auth token"] = () =>
+        {
+            result.Token.Should().NotBeNullOrEmpty();
+        };
+
+        Context["and user has admin role"] = () =>
+        {
+            BeforeEach(() => { user.AddRole("admin"); });
+
+            It["should include admin claims"] = () =>
+            {
+                result.Claims.Should().Contain("admin");
+            };
+        };
+    };
+
+    Context["when user has invalid credentials"] = () =>
+    {
+        Act(() => { result = service.Authenticate(new User("alice", "wrong")); });
+
+        It["should return failure"] = () =>
+        {
+            result.Success.Should().BeFalse();
+        };
+
+        It["should not set auth token"] = () =>
+        {
+            result.Token.Should().BeNull();
         };
     };
 }
 ```
 
 **Key Points**:
-- Parent `beforeAll` runs once for all child contexts
-- Each child context can have its own `beforeEach`
-- Setup flows from parent to child
-- Teardown flows from child to parent
+- Scenarios (`Context[...]`) can nest within each other
+- Each nested level can add its own lifecycle hooks
+- Inner scenarios inherit all outer lifecycle hooks
+- Variables declared at outer scope are accessible to inner scenarios
 
 ---
 
-## 3. Sharing State Across Tests
+## 4. Async Support
 
-### Using Context Variables
+### Async Lifecycle and Tests
 ```csharp
-void describe_user_service()
-{
-    UserService service = null;
-    User testUser = null;
-    
-    before = () =>
-    {
-        service = new UserService();
-        testUser = new User { Name = "Alice", Age = 30 };
-    };
-    
-    context["creating users"] = () =>
-    {
-        act = () => service.Create(testUser);
-        
-        it["should assign an ID"] = () => 
-            testUser.Id.should_not_be(0);
-            
-        it["should add to database"] = () =>
-            service.GetById(testUser.Id).should_not_be_null();
-    };
-}
-```
-
-**Pattern**: Variables declared at the context level are shared across all tests in that context.
-
----
-
-## 4. Async Test Support
-
-### Async Setup and Tests
-```csharp
-void describe_async_operations()
+[Describe("Async API operations")]
+public void async_api_operations()
 {
     ApiClient client = null;
     ApiResponse response = null;
-    
-    beforeAll = async () => 
+
+    BeforeEach(async () =>
     {
         client = new ApiClient();
         await client.ConnectAsync();
-    };
-    
-    afterAll = async () => await client.DisconnectAsync();
-    
-    context["when fetching data"] = () =>
+    });
+
+    AfterEach(async () => { await client.DisconnectAsync(); });
+
+    Context["when fetching data"] = () =>
     {
-        actAsync = async () => response = await client.GetAsync("/users");
-        
-        it["should return success"] = () => 
-            response.StatusCode.should_be(200);
-            
-        it["should contain data"] = () =>
-            response.Data.should_not_be_empty();
+        Act(async () => { response = await client.GetAsync("/users"); });
+
+        It["should return success"] = () =>
+        {
+            response.StatusCode.Should().Be(200);
+        };
+
+        ItAsync["should contain valid data"] = async () =>
+        {
+            var data = await response.ParseAsync();
+            data.Should().NotBeEmpty();
+        };
     };
 }
 ```
 
 **Key Points**:
-- Use `beforeAll`, `before`, `act`, `after`, `afterAll` for sync operations
-- Use `async` versions for async operations
+- All lifecycle methods support both sync and async
+- Use `Act(async () => ...)` for async actions
+- Use `ItAsync[...]` for async assertions
 - Framework handles async/await conversion internally
 
 ---
 
-## 5. Parameterized Tests
+## 5. Sharing State Across Specs
+
+### Using Context Variables
+```csharp
+[Describe("User service operations")]
+public void user_service_operations()
+{
+    UserService service = null;
+    User testUser = null;
+
+    BeforeEach(() =>
+    {
+        service = new UserService();
+        testUser = new User { Name = "Alice", Age = 30 };
+    });
+
+    Context["creating users"] = () =>
+    {
+        Act(() => { service.Create(testUser); });
+
+        It["should assign an ID"] = () =>
+        {
+            testUser.Id.Should().NotBe(0);
+        };
+
+        It["should add to database"] = () =>
+        {
+            service.GetById(testUser.Id).Should().NotBeNull();
+        };
+    };
+}
+```
+
+**Pattern**: Variables declared at the feature or scenario level are shared across all specs in that scope.
+
+---
+
+## 6. Parameterized Tests
 
 ### Testing Multiple Scenarios
 ```csharp
-void describe_validation()
+[Describe("Email validation")]
+public void email_validation()
 {
     var validator = new EmailValidator();
-    
-    new[]
+
+    var testCases = new[]
     {
         ("valid@email.com", true),
         ("invalid.email", false),
         ("", false),
         ("test@domain", false),
         ("user@domain.co.uk", true)
-    }.Do(testCase =>
+    };
+
+    foreach (var (email, expected) in testCases)
     {
-        context[$"when validating '{testCase.Item1}'"] = () =>
+        Context[$"when validating '{email}'"] = () =>
         {
             bool result = false;
-            
-            act = () => result = validator.IsValid(testCase.Item1);
-            
-            it[$"should return {testCase.Item2}"] = () =>
-                result.should_be(testCase.Item2);
+
+            Act(() => { result = validator.IsValid(email); });
+
+            It[$"should return {expected}"] = () =>
+            {
+                result.Should().Be(expected);
+            };
         };
-    });
+    }
 }
 ```
 
-**Pattern**: Use array iteration with `.Do()` to generate multiple test contexts.
+**Pattern**: Use loops to generate multiple scenarios with different input values.
 
 ---
 
-## 6. Exception Testing
+## 7. Exception Testing
 
 ### Expecting Exceptions
 ```csharp
-void describe_error_handling()
+[Describe("Error handling")]
+public void error_handling()
 {
     var parser = new JsonParser();
-    
-    context["when parsing invalid JSON"] = () =>
+
+    Context["when parsing invalid JSON"] = () =>
     {
-        it["should throw JsonException"] = expect<JsonException>(
+        It["should throw JsonException"] = expect<JsonException>(
             () => parser.Parse("{ invalid json }"));
     };
-    
-    context["when parsing null input"] = () =>
+
+    Context["when parsing null input"] = () =>
     {
-        it["should throw ArgumentNullException"] = expect<ArgumentNullException>(
+        It["should throw ArgumentNullException"] = expect<ArgumentNullException>(
             () => parser.Parse(null));
     };
 }
@@ -205,170 +366,117 @@ void describe_error_handling()
 
 ---
 
-## 7. Integration Testing Pattern
+## 8. Testing with Mocks
 
-### Testing with External Dependencies
+### Using Mock Objects
 ```csharp
-void describe_order_processing()
+[Describe("Notification service")]
+public void notification_service()
 {
-    TestDatabase db = null;
-    OrderService service = null;
-    Order testOrder = null;
-    
-    beforeAll = () =>
+    NotificationService service = null;
+    IEmailClient mockEmailClient = null;
+    User testUser = null;
+
+    BeforeEach(() =>
     {
-        // Setup test database
-        db = TestDatabase.Create();
-        db.Seed();
-    };
-    
-    afterAll = () => db.Dispose();
-    
-    before = () =>
+        mockEmailClient = Substitute.For<IEmailClient>();
+        service = new NotificationService(mockEmailClient);
+        testUser = new User { Email = "test@example.com" };
+    });
+
+    Context["sending welcome email"] = () =>
     {
-        // Fresh service per test
-        service = new OrderService(db);
-        testOrder = new Order { CustomerId = 1, Items = CreateTestItems() };
-    };
-    
-    after = () => db.Reset();
-    
-    context["when order is valid"] = () =>
-    {
-        act = () => service.ProcessOrder(testOrder);
-        
-        it["should save to database"] = () =>
-            db.Orders.Count().should_be(1);
-            
-        it["should update inventory"] = () =>
-            db.Inventory.Should().Reflect(testOrder.Items);
-            
-        it["should send confirmation"] = () =>
-            service.SentEmails.should_contain(testOrder.CustomerId);
-    };
-    
-    context["when payment fails"] = () =>
-    {
-        before = () => service.PaymentGateway = new FailingPaymentGateway();
-        
-        it["should throw PaymentException"] = expect<PaymentException>(
-            () => service.ProcessOrder(testOrder));
-            
-        it["should not save order"] = () =>
-            db.Orders.Count().should_be(0);
+        Act(() => { service.SendWelcomeEmail(testUser); });
+
+        It["should call email client"] = () =>
+        {
+            mockEmailClient.Received().SendEmail(
+                testUser.Email,
+                "Welcome!",
+                Arg.Any<string>());
+        };
+
+        It["should log the action"] = () =>
+        {
+            service.LastAction.Should().Be("WelcomeEmail sent");
+        };
     };
 }
 ```
 
-**Key Points**:
-- `beforeAll`/`afterAll`: Expensive setup (database connection)
-- `before`/`after`: Per-test setup (fresh service instance, reset data)
-- Nested contexts can override dependencies
+**Pattern**: Create mocks in `BeforeEach`, verify interactions in assertions.
 
 ---
 
-## 8. Test Isolation Pattern
+## 9. Test Isolation
 
-### Ensuring Test Independence
+### Ensuring Spec Independence
 ```csharp
-void describe_isolated_tests()
+[Describe("Isolated specs")]
+public void isolated_specs()
 {
-    // BAD: Shared mutable state
-    static int counter = 0; // Don't do this!
-    
-    // GOOD: Fresh state per test
-    int counter = 0; // Reset for each test
-    
-    context["first test"] = () =>
+    // GOOD: Fresh state per spec via BeforeEach
+    int counter = 0;
+    BeforeEach(() => { counter = 0; });
+
+    Context["first spec"] = () =>
     {
-        act = () => counter++;
-        it["should be 1"] = () => counter.should_be(1);
+        Act(() => { counter++; });
+        It["should be 1"] = () => { counter.Should().Be(1); };
     };
-    
-    context["second test"] = () =>
+
+    Context["second spec"] = () =>
     {
-        act = () => counter++;
-        it["should be 1"] = () => counter.should_be(1); // Still 1!
+        Act(() => { counter++; });
+        It["should also be 1"] = () => { counter.Should().Be(1); }; // Still 1!
     };
 }
 ```
 
-**Best Practice**: Always reset state in `before` or use fresh instances per test.
+**Best Practice**: Always reset state in `BeforeEach` or use fresh instances per spec. Never use static mutable state.
 
 ---
 
-## 9. Arrange-Act-Assert Pattern
+## 10. Arrange-Act-Assert Pattern
 
-### Clear Test Structure
+### Clear Spec Structure
 ```csharp
-void describe_shopping_cart()
+[Describe("Shopping cart")]
+public void shopping_cart()
 {
     ShoppingCart cart = null;
     Product product = null;
-    
-    // Arrange
-    before = () =>
+
+    // ARRANGE
+    BeforeEach(() =>
     {
         cart = new ShoppingCart();
         product = new Product { Id = 1, Price = 10.00m };
-    };
-    
-    context["adding items"] = () =>
+    });
+
+    Context["adding items"] = () =>
     {
-        // Act
-        act = () => cart.Add(product, quantity: 2);
-        
-        // Assert
-        it["should have 2 items"] = () =>
-            cart.ItemCount.should_be(2);
-            
-        it["should total 20.00"] = () =>
-            cart.Total.should_be(20.00m);
+        // ACT
+        Act(() => { cart.Add(product, quantity: 2); });
+
+        // ASSERT
+        It["should have 2 items"] = () =>
+        {
+            cart.ItemCount.Should().Be(2);
+        };
+
+        It["should total 20.00"] = () =>
+        {
+            cart.Total.Should().Be(20.00m);
+        };
     };
 }
 ```
 
 **Pattern**:
-- **Arrange**: Setup in `before`
-- **Act**: Action in `act`
-- **Assert**: Expectations in `it`
-
----
-
-## 10. Testing with Mocks
-
-### Using Mock Objects
-```csharp
-void describe_notification_service()
-{
-    NotificationService service = null;
-    IEmailClient mockEmailClient = null;
-    User testUser = null;
-    
-    before = () =>
-    {
-        mockEmailClient = Substitute.For<IEmailClient>();
-        service = new NotificationService(mockEmailClient);
-        testUser = new User { Email = "test@example.com" };
-    };
-    
-    context["sending welcome email"] = () =>
-    {
-        act = () => service.SendWelcomeEmail(testUser);
-        
-        it["should call email client"] = () =>
-            mockEmailClient.Received().SendEmail(
-                testUser.Email, 
-                "Welcome!",
-                Arg.Any<string>());
-                
-        it["should log the action"] = () =>
-            service.LastAction.should_be("WelcomeEmail sent");
-    };
-}
-```
-
-**Pattern**: Create mocks in `before`, verify interactions in assertions.
+- **Arrange**: Setup in `BeforeEach`
+- **Act**: Action in `Act()`
+- **Assert**: Expectations in `It[...]`
 
 ---
 
@@ -376,13 +484,14 @@ void describe_notification_service()
 
 ### Creating Complex Test Objects
 ```csharp
-void describe_complex_objects()
+[Describe("Complex order processing")]
+public void complex_order_processing()
 {
-    context["with complete order"] = () =>
+    Context["with complete order"] = () =>
     {
         Order order = null;
-        
-        before = () =>
+
+        BeforeEach(() =>
         {
             order = new OrderBuilder()
                 .WithCustomer("John Doe")
@@ -391,53 +500,29 @@ void describe_complex_objects()
                 .WithItem("Gadget", 15.00m, quantity: 1)
                 .WithShipping(ShippingMethod.Express)
                 .Build();
+        });
+
+        Act(() => { OrderProcessor.Process(order); });
+
+        It["should calculate total correctly"] = () =>
+        {
+            order.Total.Should().Be(35.00m);
         };
-        
-        act = () => OrderProcessor.Process(order);
-        
-        it["should calculate total correctly"] = () =>
-            order.Total.should_be(35.00m);
     };
 }
 ```
-
-**Benefits**:
-- Readable test data setup
-- Reusable across tests
-- Easy to modify for different scenarios
-
----
-
-## 12. Focus Tags for Debugging
-
-### Running Specific Tests
-```csharp
-void describe_feature()
-{
-    context["normal test"] = () =>
-    {
-        it["runs when all tests run"] = () => true.should_be_true();
-    };
-    
-    // Focus on this test during development
-    fcontext["debugging test"] = () =>
-    {
-        it["runs exclusively when focused"] = () => true.should_be_true();
-    };
-}
-```
-
-**Usage**: 
-- `fcontext` or `fit`: Focus on specific contexts/tests
-- Only focused tests run when any focus tag exists
-- Remove focus tags before committing
 
 ---
 
 ## Best Practices Summary
 
-1. **One Assertion per Test**: Each `it` should test one thing
-2. **Descriptive Names**: Use clear, descriptive context and test names
-3. **Isolated Tests**: Tests should not depend on execution order
-4. **Minimal Setup**: Only setup what's needed for the test
-5. **Consistent Structure**: Follow
+1. **One Subject per Suite**: Each specification class tests one subject
+2. **One Feature per `[Describe]` Method**: Each `[Describe]` method covers one aspect/feature
+3. **One Assertion per Spec**: Each `It[...]` should test one thing
+4. **Descriptive Names**: Use clear names at every level (suite, feature, scenario, spec)
+5. **Isolated Specs**: Specs should not depend on execution order
+6. **Suite-Level for Shared Resources**: Use class-level lifecycle for expensive shared setup (DB, connections)
+7. **Feature-Level for Feature Setup**: Use lifecycle inside `[Describe]` methods for feature-specific setup
+8. **Minimal Setup**: Only set up what's needed at each level
+9. **Consistent Structure**: Follow the Suite → Feature → Scenario → Spec hierarchy
+10. **Async When Needed**: Use async lifecycle hooks and `ItAsync` only when testing async behavior

@@ -1,36 +1,101 @@
-# Specs
+﻿# Specs
 
-A .NET testing framework providing a fluent, contextual test case builder pattern built on top of NSpec.
+A .NET BDD testing framework with two coexisting API styles over a framework-agnostic core, plus a VSTest adapter for native IDE integration.
 
 ## 📚 Documentation
 
-**Before working on this project**, review the comprehensive documentation in the [Memory Bank](memory-bank/README.md):
+**Before working on this project**, review the documentation in the `memory-bank/` folder. Read the 6 core files in order:
 
-- **[Project Overview](memory-bank/project-overview.md)** - Start here for project introduction
-- **[Architecture](memory-bank/architecture.md)** - Design patterns and architectural decisions
-- **[Core Components](memory-bank/core-components.md)** - Detailed component documentation
-- **[Test Patterns](memory-bank/test-patterns.md)** - Usage examples and best practices
-- **[Glossary](memory-bank/glossary.md)** - Complete terminology reference
+1. **[Project Brief](memory-bank/projectbrief.md)** - Foundation: scope, goals, solution structure
+2. **[Product Context](memory-bank/productContext.md)** - Why the project exists and what it solves
+3. **[Active Context](memory-bank/activeContext.md)** - Current work focus and recent changes
+4. **[System Patterns](memory-bank/systemPatterns.md)** - Architecture, design patterns, key decisions
+5. **[Tech Context](memory-bank/techContext.md)** - Stack, dependencies, build and test commands
+6. **[Progress](memory-bank/progress.md)** - What works, what's left, known limitations
 
-## Quick Start
+Supplementary references: **[Core Components](memory-bank/core-components.md)**, **[Test Patterns](memory-bank/test-patterns.md)**, **[Glossary](memory-bank/glossary.md)**.
 
-### Solution Structure
-- `specs.core` - Core testing framework (.NET Standard 2.1)
-- `specs.core.UnitTests` - Unit tests for the framework
-- `TestHarness` - NSpec integration helper
+## Solution Structure
 
-### Key Features
+### Deliverables (3 projects)
+- **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
+- **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core
+- **specs.BDD.VSTestAdapter** - VSTest discovery + execution for Test Explorer and `dotnet test`
+
+### Test projects (4)
+- **specs.core.UnitTests** - Core framework tests, written in Specs itself
+- **specs.BDD.UnitTests** - BDD API tests
+- **specs.BDD.VSTestAdapter.Tests** - Adapter component tests
+- **specs.BDD.VSTestAdapter.IntegrationTests** - End-to-end VSTest pipeline tests
+
+### Legacy / internal (1)
+- **Specs** - Legacy property-based `Spec` class and `Domain/` layer
+
+## Two API Styles, One Paradigm
+
+Both styles express the same **Suite → Feature Set → Scenario → Specification** hierarchy and differ only in syntax.
+
+### 1. Property-Based API (Legacy `Spec` class)
+```csharp
+public class MySpecs : Spec
+{
+    BeforeEach = () => { /* setup */ };
+    Act = () => { /* action */ };
+    It["should work"] = () => { /* assertion */ };
+}
+```
+
+### 2. Method-Based API (`Specifications` class)
+```csharp
+public class MySpecs : Specifications
+{
+    [Describe("My feature")]
+    public void my_feature()
+    {
+        BeforeEach(() => { /* setup */ });
+        Act(() => { /* action */ });
+        Describe["feature"] = () => {
+            It["should work"] = () => { /* assertion */ };
+        };
+    }
+}
+```
+
+> A `[Describe]`-decorated method is required for the VSTest adapter to discover tests in a suite.
+
+### Pending specs
+```csharp
+It["is not written yet"] = TODO;               // ItAsync["..."] = TODOAsync;
+xIt["is excluded for now"] = () => { /* kept, never run */ };   // also xItAsync
+xContext["a pending scenario"] = () => { /* every spec inside is pending */ };   // also xDescribe
+```
+Pending specs are discovered but never executed (no `BeforeEach` / `Act` / `AfterEach`; a context whose selected specs are all pending skips its `BeforeAll` / `AfterAll`). The adapter reports them as **Skipped**, and grouped results list them with a `○ ... - PENDING` marker. Select them with `dotnet test --filter IsPending=true` (or exclude them with `IsPending=false`).
+
+### Expected exceptions
+```csharp
+Act(() => calculator.Divide(1, 0));
+
+It["throws"] = ShouldThrow<DivideByZeroException>();
+It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
+    Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
+```
+An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes when it is assignable to `T` (and the optional verifier succeeds), and fails if `Act` threw nothing or another type. Any other spec whose `Act` throws fails with the `Act` exception; `AfterEach` still runs.
+
+## Key Features
 - Hierarchical test organization with parent-child contexts
-- Comprehensive test lifecycle hooks (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
-- Full async/await support
+- Five-phase lifecycle (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
+- `BeforeAll` / `AfterAll` fire exactly once per context, even for partial test runs
+- Full async/await support on every lifecycle hook
+- Pending specs (`TODO`, `xIt`, `xContext`) reported as Skipped and filterable via `IsPending`
 - Fluent API for test construction
-- Framework-agnostic core with adapter pattern
+- Framework-agnostic core with adapter pattern (zero external dependencies)
+- Test Explorer integration with hierarchical nesting and source navigation
+- Two coexisting API styles for gradual migration
 
 ## Technology Stack
-- .NET Standard 2.1
-- NSpec (BDD framework)
-- NUnit (Unit testing)
-- NFluent (Fluent assertions)
+- .NET Standard 2.1 (deliverables), net8.0 (tests)
+- Microsoft.TestPlatform.ObjectModel (adapter only)
+- NUnit, NFluent (tests)
 
 ## License
 See [LICENSE](LICENSE) file for details.

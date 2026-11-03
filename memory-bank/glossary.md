@@ -46,11 +46,20 @@ Action that executes once after all tests in a context. Aggregated from parent c
 
 ## Test Organization
 
-### Context
-A named grouping of related tests and sub-contexts. Contexts can be nested to create hierarchical test structures. Each context has its own lifecycle hooks that are inherited by child contexts.
+### Suite (Specification Class)
+A class inheriting from `Specifications` that serves as a test suite for a single subject. Example: `Weather_Controller : Specifications` is a suite for the Weather Controller. Suite-level lifecycle methods (`BeforeAll`, `AfterAll`, `BeforeEach`, `AfterEach`) apply to ALL feature sets within the suite.
+
+### Feature Set (`[Describe]` Decorated Method)
+A method within a suite class decorated with the `[Describe]` attribute. Each feature set represents one aspect or feature of the subject under test. Feature sets have their own lifecycle control (`BeforeEach`, `AfterEach`) that applies only to specs within that feature set. The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the hierarchy.
+
+### Scenario (`Context[...]` / `Describe[...]` Indexer)
+A named grouping of related specs within a feature set, created using the `Context[...]` or `Describe[...]` indexer syntax. Scenarios can be nested to create hierarchical test structures. Each scenario can have its own lifecycle hooks that are inherited by child scenarios.
+
+### Specification (`It[...]` Indexer)
+An individual test assertion defined using the `It[...]` indexer. Each specification tests one specific behavior or outcome.
 
 ### Child Context
-A nested context within a parent context. Inherits all lifecycle hooks from its parent(s) and can add its own. Created using the `ChildTestCase()` method or NSpec's nested `context[]` syntax.
+A nested context within a parent context. Inherits all lifecycle hooks from its parent(s) and can add its own. Created using the `ChildTestCase()` method internally, or via nested `Context[...]`/`Describe[...]` syntax in user code.
 
 ### Contextual Test Case
 A test case that supports hierarchical organization through parent-child context relationships. The core abstraction of the Specs framework.
@@ -124,8 +133,8 @@ Test that verifies a single unit of code (typically a method or class) in isolat
 ### nSpec
 Behavior-Driven Development framework for .NET. The Specs framework builds on top of NSpec to provide enhanced test case building capabilities.
 
-### nSpecTestHarness
-Base class provided by the Specs framework that integrates with NSpec and NUnit. Provides methods for loading and running specs with tag filtering and formatting support.
+### nSpecTestHarness — 📌 REMOVED
+Former base class (in the deleted `TestHarness` project) that ran nspec-syntax specs under NUnit. All Specs test projects except the adapter's own tests now derive from `Specifications`.
 
 ### Specification (Spec)
 A test class that describes the behavior of a system. In NSpec, specs are classes that inherit from `nspec` or `nSpecTestHarness`.
@@ -183,13 +192,28 @@ NSpec's fluent assertion extensions. Example: `result.should_be(42)` or `value.s
 ## Project-Specific Terms
 
 ### specs.core
-Core library project containing the Specs framework implementation. Targets .NET Standard 2.1.
+Core library project containing the Specs framework implementation. Targets .NET Standard 2.1. Provides the builder pattern-based architecture with `IContextualTestCaseBuilder` and related components.
 
 ### specs.core.UnitTests
-Unit test project that tests the functionality of the specs.core library using NUnit and NSpec.
+Unit test project (📌 `tests/specs.core.UnitTests/`) that tests specs.core; written in Specs itself and run by `specs.BDD.VSTestAdapter`.
 
-### TestHarness
-Project containing the `nSpecTestHarness` base class for integrating the Specs framework with NSpec and NUnit.
+### specs.BDD (specs.specification)
+High-level BDD specification library built on top of specs.core. Provides the method-based API through the `Specifications` base class with methods like `BeforeAll()`, `BeforeEach()`, `Act()`, and properties like `Describe`, `Context`, `It`.
+
+### specs.BDD.UnitTests
+Unit test project (📌 `tests/specs.BDD.UnitTests/`) that tests the specs.BDD library; 📌 written in Specs itself and run by `specs.BDD.VSTestAdapter`.
+
+### Specifications (specs.BDD)
+Abstract base class in the specs.BDD library providing a method-based DSL for writing BDD-style tests. Modern approach that uses method calls for lifecycle hooks and builder properties for test organization.
+
+### Spec (Legacy) — 📌 REMOVED
+Former property-based base class (`src/Spec.cs`). Deleted; use `Specifications`.
+
+### Domain Layer — 📌 REMOVED
+Former legacy runtime layer in `src/Domain/` (`IRunContext`, spec definitions, `ActionRunner` / `TaskRunner`). Deleted together with `Spec`.
+
+### TestHarness — 📌 REMOVED
+Former internal project containing `nSpecTestHarness` (nspec + NUnit bridge). Deleted; see `systemPatterns.md` decision #33.
 
 ---
 
