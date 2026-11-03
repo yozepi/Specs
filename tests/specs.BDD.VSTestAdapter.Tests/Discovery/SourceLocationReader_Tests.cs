@@ -1,6 +1,6 @@
 using NFluent;
 using NUnit.Framework;
-using specs.BDD.VSTestAdapter.Discovery;
+using specs.BDD.Runner;
 using System.Reflection;
 
 namespace specs.BDD.VSTestAdapter.Tests.Discovery

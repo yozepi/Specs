@@ -6,6 +6,7 @@ using System.Threading;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Conversion;
 using specs.BDD.VSTestAdapter.Discovery;
 

@@ -2,6 +2,10 @@
 
 ## Current Focus
 
+**📌 NEW — Microsoft.Testing.Platform runner + shared runner core (staged, 78 files)** — a fourth deliverable, `specs.BDD.TestingPlatform`, runs Specs on Microsoft.Testing.Platform (MTP 2.5.1). It discovers each spec as a tree path (`/<assembly>/<namespace>/<class>/<describe>/<context>/…/<spec>`) used as the test node UID and matched by `--treenode-filter`. IDEs get the full tree as group nodes, and console runs get full paths plus an indented tree report. Settings come from `testconfig.json` / `SpecsBDD__*` environment variables. To share execution with the VSTest adapter, the runner-agnostic code moved from the adapter into `src/shared/specs.BDD.Runner/`, which both runners compile as linked source: the new `SuiteRunner` (root lifecycle + grouped / pending / regular split, moved out of `TestInvoker`), generic `SelectionTreeWalker<TTest>`, `GroupedSubtreeRunner` → `GroupedReport`, and the `ISpecRunListener<TTest>` events that `VSTestRunListener` and `MtpRunListener` map to their hosts. `VSTestLoggingAdapter` / `VSTestTestProvider` became the shared `SelectionLoggingAdapter<TTest>` / `SelectionTestProvider<TTest>`. VSTest `Hierarchy[3]` is now just the `[Describe]`. `specs.BDD.VSTestAdapter.IntegrationTests` was renamed `specs.BDD.IntegrationTests`. MTP tests live in `tests/mtp/Specs.Mtp.slnx`, whose `global.json` switches `dotnet test` to MTP mode, and CI/release run it as an extra step. Verified locally: build 0 warnings; VSTest 787 results (774 passed, 13 skipped); MTP 103 (98 passed, 5 skipped). See `systemPatterns.md` section "Shared Runner Core + Microsoft.Testing.Platform Runner" and decisions #36–41.
+
+> 📌 RESOLVED — `src/specs.BDD.TestingPlatform/build/specs.BDD.TestingPlatform.props` used to be ignored by the `[Bb]uild/` rule in `src/.gitignore`. That file has been deleted, so the props file is no longer ignored and can be committed with the runner. The MTP integration app imports it, and the package ships it as its MSBuild hook.
+
 **📌 NEW — Central build configuration + NuGet release pipeline** — shared MSBuild settings moved into the root `Directory.Build.props` (nullable, implicit usings, package metadata, symbols, XML docs, MinVer). `tests/Directory.Build.props` turns packing off for the test projects. `Directory.Packages.props` enables central package management, and `global.json` pins SDK `10.0.400`. All three deliverables are now C# 10, which implicit usings require. Versions come from `v*` git tags via MinVer. `.github/workflows/ci.yml` builds, tests, and packs every push to `main` and every PR. `.github/workflows/release.yml` publishes to nuget.org through Trusted Publishing (OIDC) and creates a GitHub Release. Doc-comment fixes keep the build at 0 warnings, and test counts are unchanged (786). See `systemPatterns.md` section "Build Configuration & Release Pipeline" and decisions #34–35.
 
 **📌 `src/` + `tests/` split, `TestHarness` retired, `specs.BDD.UnitTests` self-hosted** — `Specs.sln` moved from `src/` to the repo root; the four test projects moved to `tests/` (`src/specs.specification.UnitTests/` became `tests/specs.BDD.UnitTests/`, matching its assembly name), leaving only the three deliverables in `src/`. `specs.BDD.UnitTests` was rewritten from nspec syntax on `nSpecTestHarness` (5 NUnit `[Test]` wrappers) to `Specifications` + `[Describe]` run by the Specs adapter (147 results). With no remaining consumer, the `TestHarness` project (`nSpecTestHarness`, `nspec 3.1.0`) was deleted, and NUnit now appears only in `specs.BDD.VSTestAdapter.Tests`. `CalculatorSpecs` switched from class-level `PerDescribe` to `PerSpec` (integration 28 → 34 results). See `systemPatterns.md` section "Test Hosting" and decision #33.
@@ -44,7 +48,9 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 |------|-------|
 | `specs.core` | Stable; `ITestCase.OwnSetupOnce` / `OwnTeardownOnce` added for the selection walker; 📌 `AsyncTestExtensions.RunSync` binds async test wrappers to the user delegate; 📌 `AddPendingTest`, `ChildTestCase(..., isPending)`, `ITestCase.PendingTests`; 📌 `ActExceptionContext`, `ActExceptionAssertions`, `ExpectedExceptionNotThrownException`; 📌 public `TestCaseExecutor` + adapter types, `TestContextAdapter.FromTestCase`, no `InternalsVisibleTo` for the adapter |
 | `specs.BDD` | Stable; `CoreBuilder` exposed as `internal protected`; 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure`, `TestStructureAttribute` (assembly/class); 📌 `TODO` / `TODOAsync`, `xIt` / `xItAsync` / `xContext` / `xDescribe`; 📌 `ShouldThrow<T>` |
-| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + `GroupedContextRunner`; 📌 `SuiteTreeFlattener` + `ContextPathFormat`; 📌 root lifecycle in `TestInvoker`, `MarkerStyle`; 📌 `--filter` honoured in `RunTests(sources)`; 📌 pending specs via `PendingSpecs` + `IsPending` property; 📌 `Act` capture in `TestInvoker` / `GroupedContextRunner`; 272 adapter unit-test results + 📌 34 integration results passing (13 Skipped = pending) |
+| `specs.BDD.VSTestAdapter` | Discovery + execution complete; grouped mode via `GroupingSettings` + 📌 `GroupedContextRunner` (now a `GroupedReport` → `TestResult` mapper); 📌 execution delegated to the shared `SuiteRunner` through `VSTestRunListener`; 📌 `Hierarchy[3]` = `[Describe]`; `SuiteTreeFlattener`; `--filter` honoured in `RunTests(sources)`; pending specs + `IsPending` property; `Act` capture; 📌 273 adapter unit-test results + 34 integration results passing (13 Skipped = pending) |
+| 📌 NEW — shared runner core | `src/shared/specs.BDD.Runner/` (linked source, `internal`): `SuiteRunner`, `SelectionTreeWalker<TTest>`, `GroupedSubtreeRunner`, `ISpecRunListener<TTest>`, plus the scanners, `SuiteTreeBuilder`, `GroupingSettings`, `PendingSpecs`, `SourceLocationReader`, `TestFinder`, `ContextPathFormat` moved from the adapter |
+| 📌 NEW — `specs.BDD.TestingPlatform` | MTP 2.5.1 runner: tree-path UIDs, `--treenode-filter`, IDE tree / console tree output, `testconfig.json` settings; 69 NUnit-on-MTP tests + 34-result MTP integration app |
 | `specs.core.UnitTests` | Self-hosted; 333 results passing (`TestContextAdapter_Tests` suite runs grouped, collapsing 27 `It`s into 1 result); 📌 NUnit-free, moved to `tests/` |
 | `specs.BDD.UnitTests` | 📌 Self-hosted (was NUnit + nspec via `TestHarness`); 147 results; moved to `tests/` |
 | Legacy `Spec` API | 📌 REMOVED — `Specifications` is the only API; `Examples/ConsoleExample` removed too |
@@ -53,6 +59,31 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
+
+### 📌 NEW — MTP runner + shared runner core (78 files, +3,201 / −704)
+
+BEFORE/AFTER diagrams, component tables, and the VSTest-vs-MTP contract live in `systemPatterns.md` section "Shared Runner Core + Microsoft.Testing.Platform Runner"; packages, settings, layout, and commands in `techContext.md` ("MTP Runner Configuration", "Package References by Project", "Solution Layout").
+
+| Area | File(s) | What changed |
+|------|---------|--------------|
+| Shared core 📌 NEW | `src/shared/specs.BDD.Runner/SuiteRunner.cs`, `GroupedSubtreeRunner.cs`, `GroupedReport.cs`, `ISpecRunListener.cs`, `SpecRunItem.cs`, `SpecRunOptions.cs`, `ReportMarkers.cs`, `SpecExceptions.cs`, `SelectionLoggingAdapter.cs` | Runner-neutral execution: `SuiteRunner.Run` / `FailAll` (from `TestInvoker`); grouped runs return `GroupedReport` (from `GroupedContextRunner`); `ILoggingAdapter` → listener bridge (replaces deleted `VSTestLoggingAdapter`); marker glyphs; `Unwrap` (from `ResultReporter`) |
+| Shared core (moved) | `ContextMethodScanner`, `ContextPathFormat` (now `internal`), `GroupingSettings` (+ `ParseTestStructure`), `InvalidSpecificationException`, `MarkerStyle`, `PendingSpecs`, `SelectionTestProvider` (was `VSTestTestProvider`), `SelectionTreeWalker` (now generic), `SourceLocationReader`, `SpecificationClassScanner`, `SuiteTreeBuilder`, `TestFinder` | Moved from `specs.BDD.VSTestAdapter/{Discovery,Conversion,Execution}` to namespace `specs.BDD.Runner` |
+| VSTest adapter | `TestInvoker.cs`, `GroupedContextRunner.cs`, `VSTestRunListener.cs` 📌 NEW, `ResultReporter.cs`, `TestCaseConverter.cs`, `.csproj`, `using` updates | `InvokeSuite` → `SuiteRunner.Run(..., VSTestRunListener)`; `GroupedContextRunner` keeps `Execute` + `ToTestResult`; `Hierarchy[3]` = first `ContextPath` segment; display name joins segments with `ContextPathFormat.Separator`; `.csproj` compiles `..\shared\specs.BDD.Runner\**\*.cs` |
+| MTP runner 📌 NEW | `src/specs.BDD.TestingPlatform/` — `SpecsTestFramework`, `TestApplicationBuilderExtensions` (`AddSpecsBDD`, `TestingPlatformBuilderHook`, `SpecsExtension`), `SpecsSettings` (+ `ClientMode`), `Discovery/SpecTreeBuilder`, `SpecNode`, `SpecPath`, `Execution/SpecSelection`, `TestNodeFactory`, `MtpRunListener`, `Output/ConsoleTreeReport`, `.csproj` | netstandard2.1, C# 12, `NoWarn TPEXP`, `IsTestingPlatformApplication=false`, MTP packages `PrivateAssets=none`, packs `build/specs.BDD.TestingPlatform.props` |
+| `specs.BDD` | `specs.BDD.csproj` | `InternalsVisibleTo("specs.BDD.TestingPlatform")` added |
+| Packages | `Directory.Packages.props` | `Microsoft.Testing.Platform` + `.MSBuild` 2.5.1 |
+| Solution / CI | `Specs.sln`, `.github/workflows/ci.yml`, `release.yml` | `specs.BDD.TestingPlatform` added (8 projects); integration project renamed; extra `dotnet test --solution Specs.Mtp.slnx -c Release` step in `tests/mtp` |
+| MTP tests 📌 NEW | `tests/mtp/global.json`, `Specs.Mtp.slnx`, `specs.BDD.TestingPlatform.Tests/*` (`SpecTreeBuilder_Tests`, `SpecSelection_Tests`, `TestNodeFactory_Tests`, `MtpRunListener_Tests`, `ConsoleTreeReport_Tests`, `SpecsSettings_Tests`, `IntegrationApp_Tests`, `TestFixtures/TreeSpecs`), `specs.BDD.TestingPlatform.IntegrationTests.csproj` | NUnit on MTP (`NUnit3TestAdapter` 6.3.1 override); integration app links `tests/specs.BDD.IntegrationTests/*.cs` and imports the runner's build props |
+| Integration | `tests/specs.BDD.VSTestAdapter.IntegrationTests/` → `tests/specs.BDD.IntegrationTests/` | Folder, `.csproj`, and namespace renamed |
+| Adapter tests | `TestCaseConverter_Tests` + `using` updates in 10 files | Hierarchy / display-name tests rewritten; new `Hierarchy_Grouped_TestGroupElementIsTheDescribe` (adapter 272 → 273) |
+| Ignore rules | `src/.gitignore` 📌 DELETED | Its `[Bb]uild/` rule hid the runner's `build/` props; the root `.gitignore` still covers build output |
+| Docs | `README.md`, `.clinerules/default-rules.md` | "Running on Microsoft.Testing.Platform" section, 4 deliverables, 4 + 2 test projects; renamed integration folder |
+
+Open items noticed during the update:
+
+- ✅ RESOLVED — `build/specs.BDD.TestingPlatform.props` was gitignored by `src/.gitignore` (now deleted).
+- `src/specs.BDD.VSTestAdapter/Execution/TestInvoker.cs` section-divider comments contain mis-encoded box-drawing characters (`â”€â”€…`) after the edit.
+- `README.md` still lists the removed legacy `Specs` project and "net8.0 (tests)".
 
 ### 📌 NEW — Central build configuration + release pipeline (17 files)
 
@@ -453,15 +484,21 @@ Removed as redundant or superseded:
 17. 📌 **Publishing an API is when dead parameters get noticed** — `TestContextAdapter`'s unvalidated `test` argument and `TestCaseExecutor`'s unchecked provider survived while internal; reviewing them as public API surfaced both.
 18. 📌 NEW **Scaffolding outlives its purpose quietly** — `TestHarness` stayed in the build long after the core self-hosted because one small project still inherited from it, and it dragged `NUnit.Framework` into an otherwise NUnit-free project as a global `Using`. Migrating that last consumer let both go.
 19. 📌 NEW **Granularity also shows in a test project's headline count** — the same BDD specs went from 5 results (one NUnit wrapper per class) to 147 once Specs hosted them; per-spec results are what make Test Explorer navigation and `--filter` useful.
+20. 📌 NEW **Separate the lifecycle from the reporting before adding a second host** — the root lifecycle and pending/grouped routing had grown inside VSTest-typed classes; pulling them behind `ISpecRunListener<TTest>` let the MTP runner reuse them unchanged, and running the same integration specs under both runners (34 / 29 / 5) proves they agree.
+21. 📌 NEW **Visual Studio nests four levels whatever the protocol** — even with MTP group nodes, VS shows `Namespace › Class › method › test`, so the `[Describe]` is presented as the method and the context path stays in the display name.
+22. 📌 NEW **`dotnet test` mode is per folder** — on the .NET 10 SDK, `global.json` `test.runner` decides VSTest vs MTP for every project run from that folder, so MTP tests need their own folder and solution.
 
 ## Health Indicators
 
-- **Builds**: clean across all 📌 7 projects — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time).
-- **Tests**: 📌 786 results — 773 passed, 13 skipped (all pending specs), 0 failed.
+- **Builds**: clean across all 📌 8 projects (+ 2 MTP projects) — 0 errors, 0 build warnings (one expected discovery warning from the `SpecWithNoContextMethods` fixture at test time).
+- **Tests (VSTest, `Specs.sln`)**: 📌 787 results — 774 passed, 13 skipped (all pending specs), 0 failed.
   - `specs.core.UnitTests` — 333 results (run by the Specs adapter; one grouped suite)
   - `specs.BDD.UnitTests` — 📌 147 results (run by the Specs adapter; was 5 NUnit tests)
-  - `specs.BDD.VSTestAdapter.Tests` — 272 results (264 passed, 8 pending fixture specs skipped)
-  - `specs.BDD.VSTestAdapter.IntegrationTests` — 📌 34 results (29 passed, 5 pending skipped; `CalculatorSpecs` reports one result per spec, except the grouped `Subtraction` describe)
+  - `specs.BDD.VSTestAdapter.Tests` — 📌 273 results (265 passed, 8 pending fixture specs skipped)
+  - `specs.BDD.IntegrationTests` (📌 renamed) — 34 results (29 passed, 5 pending skipped; `CalculatorSpecs` reports one result per spec, except the grouped `Subtraction` describe)
+- 📌 **Tests (MTP, `tests/mtp/Specs.Mtp.slnx`)**: 103 results — 98 passed, 5 skipped.
+  - `specs.BDD.TestingPlatform.Tests` — 69 NUnit-on-MTP tests
+  - `specs.BDD.TestingPlatform.IntegrationTests` — 34 results (29 passed, 5 pending skipped)
 - **Open bugs**: none known.
 - **Known limitations**: sequential test execution; async-blocking via `GetAwaiter().GetResult()`; no data-driven tests yet.
 

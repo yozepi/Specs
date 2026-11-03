@@ -1,8 +1,6 @@
 ﻿using NFluent;
 using NUnit.Framework;
-using specs.BDD.VSTestAdapter.Conversion;
-using specs.BDD.VSTestAdapter.Discovery;
-using specs.BDD.VSTestAdapter.Execution;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
 using specs.core.Framework.Processors.TestCases;
 

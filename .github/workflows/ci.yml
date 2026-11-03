@@ -20,6 +20,9 @@ jobs:
       - run: dotnet restore
       - run: dotnet build -c Release --no-restore
       - run: dotnet test -c Release --no-build
+      # tests/mtp/global.json switches dotnet test to Microsoft.Testing.Platform mode.
+      - run: dotnet test --solution Specs.Mtp.slnx -c Release
+        working-directory: tests/mtp
       - run: dotnet pack -c Release --no-build -o artifacts
 
       # Download from the run page to inspect exactly what a release would ship

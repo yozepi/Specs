@@ -108,7 +108,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
 
     /// <summary>
     /// INVALID: A Specifications subclass with no [Describe] methods.
-    /// Discovery should throw <see cref="Discovery.InvalidSpecificationException"/>.
+    /// Discovery should throw <see cref="specs.BDD.Runner.InvalidSpecificationException"/>.
     /// </summary>
     public class SpecWithNoContextMethods : Specifications
     {

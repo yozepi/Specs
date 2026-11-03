@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using specs.BDD.Runner;
 
 namespace specs.BDD.VSTestAdapter.Execution
 {
@@ -37,7 +38,7 @@ namespace specs.BDD.VSTestAdapter.Execution
             DateTimeOffset startTime,
             TimeSpan duration)
         {
-            var cause = Unwrap(exception);
+            var cause = SpecExceptions.Unwrap(exception);
 
             return new TestResult(testCase)
             {
@@ -72,17 +73,5 @@ namespace specs.BDD.VSTestAdapter.Execution
         /// <summary>The skip reason reported for pending specs.</summary>
         public const string PendingMessage = "Pending";
 
-        // ── Private helpers ────────────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Unwraps any layers of <see cref="TargetInvocationException"/> to expose the root cause.
-        /// </summary>
-        internal static Exception Unwrap(Exception exception)
-        {
-            while (exception is TargetInvocationException tie && tie.InnerException != null)
-                exception = tie.InnerException;
-
-            return exception;
-        }
     }
 }

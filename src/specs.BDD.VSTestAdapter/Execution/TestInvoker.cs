@@ -7,8 +7,8 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter;
+using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Conversion;
-using specs.BDD.VSTestAdapter.Discovery;
 using specs.core.Framework.Processors.TestCases;
 using specs.core.Framework.Processors.TestExecutors;
 
@@ -25,7 +25,7 @@ namespace specs.BDD.VSTestAdapter.Execution
     /// the cascaded lifecycle (SetupOnce through TeardownOnce).
     /// </para>
     /// <para>
-    /// For suite execution (<see cref="InvokeSuite"/>), a <see cref="SelectionTreeWalker"/>
+    /// For suite execution (<see cref="InvokeSuite"/>), the shared <see cref="SuiteRunner"/>
     /// fires each node's <c>BeforeAll</c> / <c>AfterAll</c> exactly once and delegates
     /// per-test loops to <see cref="specs.core.Framework.Processors.TestExecutors.TestCaseExecutor"/>.
     /// </para>
@@ -62,7 +62,7 @@ namespace specs.BDD.VSTestAdapter.Execution
 
         /// <summary>
         /// Executes all <paramref name="tests"/> from a single specification class.
-        /// The suite tree is built once and a <see cref="SelectionTreeWalker"/> ensures
+        /// The suite tree is built once and <see cref="SuiteRunner"/> ensures
         /// each node's <c>BeforeAll</c> / <c>AfterAll</c> fires exactly once.
         /// </summary>
         internal static void InvokeSuite(
@@ -74,92 +74,24 @@ namespace specs.BDD.VSTestAdapter.Execution
             MarkerStyle markerStyle,
             CancellationToken cancellationToken)
         {
-            var testList = new List<TestCase>(tests);
-            if (testList.Count == 0) return;
+            var items = tests.Select(ToRunItem).ToList();
+            if (items.Count == 0) return;
 
-            Type specType;
-            string rootPath;
-            specs.core.Framework.Processors.TestCases.IContextualTestCase root;
+            var listener = new VSTestRunListener(frameworkHandle);
+
+            IContextualTestCase root;
             try
             {
-                specType = ResolveSpecType(source, className);
-                rootPath = ""; // root node has no path; [Describe] children are the first level
-                root = SuiteTreeBuilder.BuildSuite(specType);
+                root = SuiteTreeBuilder.BuildSuite(ResolveSpecType(source, className));
             }
             catch (Exception buildEx)
             {
-                ReportAllAsFailed(testList, frameworkHandle, buildEx);
+                SuiteRunner.FailAll(items, listener, buildEx);
                 return;
             }
 
-            // Grouped test cases run their whole context subtree as one result; the rest go
-            // through the per-test selection walker. Both share the same suite tree instance.
-            // Pending tests are reported up front and never touch any lifecycle.
-            var groupedTests = new List<TestCase>();
-            var regularTests = new List<TestCase>();
-            var pendingTests = new List<TestCase>();
-            foreach (var tc in testList)
-            {
-                if (tc.GetPropertyValue(TestProperties.IsGrouped, false))
-                    groupedTests.Add(tc);
-                else if (IsPending(root, tc))
-                    pendingTests.Add(tc);
-                else
-                    regularTests.Add(tc);
-            }
-
-            var pendingStart = DateTimeOffset.UtcNow;
-            foreach (var tc in pendingTests)
-            {
-                frameworkHandle.RecordStart(tc);
-                frameworkHandle.RecordResult(ResultReporter.Skipped(tc, pendingStart, TimeSpan.Zero));
-            }
-
-            // Root BeforeAll/AfterAll come from the spec class constructor and run once per class,
-            // but only when at least one selected spec will actually execute.
-            var runRootLifecycle = regularTests.Count > 0
-                || groupedTests.Any(tc => GroupedContextHasRunnableTests(root, tc));
-
-            Exception? rootSetupFailure = null;
-            if (runRootLifecycle)
-            {
-                try
-                {
-                    root.OwnSetupOnce();
-                }
-                catch (Exception ex)
-                {
-                    rootSetupFailure = ex;
-                }
-            }
-
-            try
-            {
-                foreach (var groupedTest in groupedTests)
-                {
-                    if (cancellationToken.IsCancellationRequested) break;
-                    GroupedContextRunner.Run(groupedTest, root, frameworkHandle, rootSetupFailure, showSourceLocations, markerStyle, cancellationToken);
-                }
-
-                if (regularTests.Count == 0) return;
-
-                if (rootSetupFailure != null)
-                {
-                    ReportAllAsFailed(regularTests, frameworkHandle, rootSetupFailure);
-                    return;
-                }
-
-                var walker = new SelectionTreeWalker(root, rootPath, regularTests, frameworkHandle, cancellationToken);
-                walker.Walk();
-            }
-            finally
-            {
-                if (runRootLifecycle && rootSetupFailure == null)
-                {
-                    // Best-effort AfterAll — swallow so we don't mask test failures.
-                    try { root.OwnTeardownOnce(); } catch { /* best-effort */ }
-                }
-            }
+            var options = new SpecRunOptions(showSourceLocations ? source : null, markerStyle);
+            SuiteRunner.Run(root, items, listener, options, cancellationToken);
         }
 
         // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -194,21 +126,12 @@ namespace specs.BDD.VSTestAdapter.Execution
             return true;
         }
 
-        private static bool IsPending(IContextualTestCase root, TestCase testCase)
-        {
-            var contextPath = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "";
-            var description = testCase.GetPropertyValue<string>(TestProperties.TestDescription, null) ?? "";
-            var found = TestFinder.Find(root, contextPath, description);
-            return found != null && PendingSpecs.IsPending(found.Value.Context, description);
-        }
-
-        private static bool GroupedContextHasRunnableTests(IContextualTestCase root, TestCase testCase)
-        {
-            var contextName = testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "";
-            var node = root.ChildContexts
-                .FirstOrDefault(c => string.Equals(c.Description, contextName, StringComparison.Ordinal));
-            return node != null && PendingSpecs.HasRunnableTests(node);
-        }
+        private static SpecRunItem<TestCase> ToRunItem(TestCase testCase) =>
+            new SpecRunItem<TestCase>(
+                testCase,
+                testCase.GetPropertyValue<string>(TestProperties.ContextPath, null) ?? "",
+                testCase.GetPropertyValue<string>(TestProperties.TestDescription, null) ?? "",
+                testCase.GetPropertyValue(TestProperties.IsGrouped, false));
 
         /// <summary>
         /// Resolves the <see cref="Type"/> from the stored <paramref name="className"/> metadata.
@@ -247,19 +170,6 @@ namespace specs.BDD.VSTestAdapter.Execution
 
             if (failure != null)
                 ExceptionDispatchInfo.Capture(failure).Throw();
-        }
-
-        private static void ReportAllAsFailed(
-            IEnumerable<TestCase> cases,
-            IFrameworkHandle frameworkHandle,
-            Exception ex)
-        {
-            var startTime = DateTimeOffset.UtcNow;
-            foreach (var tc in cases)
-            {
-                frameworkHandle.RecordStart(tc);
-                frameworkHandle.RecordResult(ResultReporter.Failure(tc, ex, startTime, TimeSpan.Zero));
-            }
         }
     }
 }

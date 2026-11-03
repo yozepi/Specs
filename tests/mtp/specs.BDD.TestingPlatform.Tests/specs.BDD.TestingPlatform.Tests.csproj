@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsTestProject>true</IsTestProject>
+    <EnableNUnitRunner>true</EnableNUnitRunner>
+    <NoWarn>$(NoWarn);TPEXP</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NUnit" />
+    <!-- Overridden here only: 6.x adds MTP 2 support, the VSTest adapter's own tests stay on 4.x. -->
+    <PackageReference Include="NUnit3TestAdapter" VersionOverride="6.3.1" />
+    <PackageReference Include="NFluent" />
+    <PackageReference Include="Moq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\specs.BDD.TestingPlatform\specs.BDD.TestingPlatform.csproj" />
+    <!-- Built first so the acceptance tests can launch it. -->
+    <ProjectReference Include="..\specs.BDD.TestingPlatform.IntegrationTests\specs.BDD.TestingPlatform.IntegrationTests.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

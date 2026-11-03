@@ -18,4 +18,8 @@
     <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\shared\specs.BDD.Runner\**\*.cs" LinkBase="Runner" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12112.369 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F513DF53-EF23-448C-A685-4668EF0CE777}"
 EndProject
@@ -17,7 +17,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.Tests", "tests\specs.BDD.VSTestAdapter.Tests\specs.BDD.VSTestAdapter.Tests.csproj", "{4E9C223F-1D0A-43B6-9B8D-DA8C91155ECB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.VSTestAdapter.IntegrationTests", "tests\specs.BDD.VSTestAdapter.IntegrationTests\specs.BDD.VSTestAdapter.IntegrationTests.csproj", "{889ED416-97FC-45BD-8751-2E32E49A9DDA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.IntegrationTests", "tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj", "{889ED416-97FC-45BD-8751-2E32E49A9DDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "specs.BDD.TestingPlatform", "src\specs.BDD.TestingPlatform\specs.BDD.TestingPlatform.csproj", "{82E45CA1-2C0B-430E-8B39-E83534DAC168}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -113,6 +115,18 @@ Global
 		{889ED416-97FC-45BD-8751-2E32E49A9DDA}.Release|x64.Build.0 = Release|Any CPU
 		{889ED416-97FC-45BD-8751-2E32E49A9DDA}.Release|x86.ActiveCfg = Release|Any CPU
 		{889ED416-97FC-45BD-8751-2E32E49A9DDA}.Release|x86.Build.0 = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|x64.Build.0 = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Debug|x86.Build.0 = Debug|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|x64.ActiveCfg = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|x64.Build.0 = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|x86.ActiveCfg = Release|Any CPU
+		{82E45CA1-2C0B-430E-8B39-E83534DAC168}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

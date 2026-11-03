@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="specs.BDD.VSTestAdapter" />
+    <InternalsVisibleTo Include="specs.BDD.TestingPlatform" />
   </ItemGroup>
 
   <ItemGroup>
