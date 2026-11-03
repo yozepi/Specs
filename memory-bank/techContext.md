@@ -83,7 +83,7 @@ flowchart TD
         AIT["<b>specs.BDD.IntegrationTests</b><br/>[Container: Specs-hosted]<br/>📌 End-to-end VSTest"]:::app
     end
 
-    subgraph MTPT["📌 Folder: tests/mtp/ (Specs.Mtp.slnx)"]
+    subgraph MTPT["📌 Folder: tests/mtp/ (built by root Specs.Mtp.slnx)"]
         direction LR
         TPT["<b>...TestingPlatform.Tests</b><br/>[Container: NUnit on MTP]<br/>Runner components"]:::app
         TPI["<b>...TestingPlatform.IntegrationTests</b><br/>[Container: MTP test app]<br/>Same specs as AIT"]:::app
@@ -363,7 +363,7 @@ Specs/
 │   ├── specs.BDD.IntegrationTests/         # 📌 RENAMED (was specs.BDD.VSTestAdapter.IntegrationTests) — VSTest via Specs adapter
 │   └── mtp/                                # 📌 NEW — MTP-mode folder
 │       ├── global.json                     # test.runner = Microsoft.Testing.Platform
-│       ├── Specs.Mtp.slnx                  # core, BDD, TestingPlatform + the two projects below
+│       ├── (Specs.Mtp.slnx moved to the repo root 📌 UPDATED)
 │       ├── specs.BDD.TestingPlatform.Tests/          # NUnit on MTP (+ end-to-end app tests)
 │       └── specs.BDD.TestingPlatform.IntegrationTests/  # MTP app over specs.BDD.IntegrationTests/*.cs
 │
@@ -406,9 +406,11 @@ dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj -
 # 📌 List only pending specs (or exclude them with IsPending=false)
 dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj --filter IsPending=true
 
-# 📌 NEW — MTP runner tests (tests/mtp/global.json switches dotnet test to MTP mode; same command CI uses)
+# 📌 NEW — MTP runner tests (tests/mtp/global.json switches dotnet test to MTP mode)
+# 📌 UPDATED — Specs.Mtp.slnx now lives at the repo root, whose global.json stays in VSTest mode;
+# ci.yml still runs `dotnet test --solution Specs.Mtp.slnx` from tests/mtp (stale path, see progress.md)
 cd tests\mtp
-dotnet test --solution Specs.Mtp.slnx -c Release
+dotnet test --project specs.BDD.TestingPlatform.Tests -c Release
 cd ..\..
 
 # 📌 UPDATED — Pack all deliverables (test projects are IsPackable=false) — same command CI uses

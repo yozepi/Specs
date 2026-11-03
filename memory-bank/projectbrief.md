@@ -27,7 +27,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Solution Structure
 
-The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects live in `tests/mtp/Specs.Mtp.slnx`, which has its own `global.json` to run `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
+The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects are built by `Specs.Mtp.slnx` (📌 UPDATED — moved to the repo root; it lists `specs.core`, `specs.BDD`, `specs.BDD.TestingPlatform`, and the two MTP projects). The projects stay in `tests/mtp/`, whose `global.json` runs `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
 
 ### Deliverable Projects (📌 4)
 

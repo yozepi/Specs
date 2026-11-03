@@ -290,6 +290,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | 📌 NEW — VSTest Test Explorer nests only to the `[Describe]`; MTP in Visual Studio likewise | Context levels appear in the test name, not as tree nodes | VS Code + MTP shows the same; the full tree is available to MTP clients that honour group nodes and in console output |
 | 📌 NEW — MTP runner supports only discover / run requests and UID, tree-node, composite, and nop filters | Other request or filter types throw `NotSupportedException` | Use `--treenode-filter`; `--filter` is VSTest-only |
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
+| 📌 NEW — `Specs.Mtp.slnx` moved to the repo root (staged) but references were not updated | `.github/workflows/ci.yml` still runs `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp`, and `.vscode/settings.json` `dotnet.defaultSolution` still points at `tests/mtp/Specs.Mtp.slnx` | Point both at the root `Specs.Mtp.slnx` (or revert the move); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
 
 ## Future Enhancements (Not Committed)
 
