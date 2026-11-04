@@ -133,7 +133,7 @@ namespace specs.BDD.TestingPlatform.Discovery
                     TestDescription = description,
                     IsPending = PendingSpecs.IsPending(context, description),
                     // Prefer the It[...] lambda so navigation lands on the spec, not the [Describe] method.
-                    Location = SourceLocationReader.TryGetLocation(specClass.AssemblyPath, SourceLocationReader.GetTestMethod(action))
+                    Location = SourceLocationReader.TryGetTestLocation(specClass.AssemblyPath, context, description, action)
                         ?? fallbackLocation
                 };
                 leaves.Add(leaf);

@@ -30,6 +30,12 @@ namespace specs.BDD.VSTestAdapter.Conversion
         public Action? ItAction { get; set; }
 
         /// <summary>
+        /// Where the <c>It[...]</c> was declared; used when <see cref="ItAction"/> has no source in the
+        /// test assembly (e.g. <c>TODO</c>). <c>null</c> when unknown.
+        /// </summary>
+        public (string filePath, int lineNumber)? DeclaredLocation { get; set; }
+
+        /// <summary>
         /// The display path through the context hierarchy to this test's parent context.
         /// Built from the [Describe] method name/description and any nested Context/Describe block names,
         /// separated by " → " (e.g., "describe_addition → when adding positive numbers").

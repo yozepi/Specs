@@ -42,11 +42,11 @@ The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | 📌 `tests/specs.core.UnitTests/` | 📌 333 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
-| **specs.BDD.UnitTests** | 📌 `tests/specs.BDD.UnitTests/` | 📌 147 BDD API spec results — **written in Specs itself** (was 5 NUnit wrappers over nspec) |
-| **specs.BDD.VSTestAdapter.Tests** | 📌 `tests/specs.BDD.VSTestAdapter.Tests/` | 📌 273 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
+| **specs.core.UnitTests** | 📌 `tests/specs.core.UnitTests/` | 📌 340 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
+| **specs.BDD.UnitTests** | 📌 `tests/specs.BDD.UnitTests/` | 📌 149 BDD API spec results — **written in Specs itself** (was 5 NUnit wrappers over nspec) |
+| **specs.BDD.VSTestAdapter.Tests** | 📌 `tests/specs.BDD.VSTestAdapter.Tests/` | 📌 276 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
 | **specs.BDD.IntegrationTests** 📌 RENAMED (was `specs.BDD.VSTestAdapter.IntegrationTests`) | 📌 `tests/specs.BDD.IntegrationTests/` | 📌 34 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs per spec except its `Subtraction (grouped)` describe |
-| 📌 NEW **specs.BDD.TestingPlatform.Tests** | `tests/mtp/specs.BDD.TestingPlatform.Tests/` | 69 MTP runner tests (NUnit on MTP + Moq), including end-to-end runs of the MTP integration app |
+| 📌 NEW **specs.BDD.TestingPlatform.Tests** | `tests/mtp/specs.BDD.TestingPlatform.Tests/` | 📌 70 MTP runner tests (NUnit on MTP + Moq), including end-to-end runs of the MTP integration app |
 | 📌 NEW **specs.BDD.TestingPlatform.IntegrationTests** | `tests/mtp/specs.BDD.TestingPlatform.IntegrationTests/` | MTP test app compiling the `specs.BDD.IntegrationTests` specs; 34 results (5 Skipped), matching VSTest |
 
 > 📌 REMOVED: the internal-only `TestHarness` project (nspec bridge). See `systemPatterns.md` decision #33.
@@ -140,7 +140,7 @@ public class CalculatorSpecs : Specifications      // Suite
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Sync and async hooks produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
-- ✅ **The framework tests its own core with itself** — 📌 333 self-hosted core results and 147 self-hosted BDD results, plus 273 adapter and 34 integration results.
+- ✅ **The framework tests its own core with itself** — 📌 340 self-hosted core results and 149 self-hosted BDD results, plus 276 adapter and 34 integration results.
 - ✅ 📌 NEW — The same integration specs give identical totals under VSTest and Microsoft.Testing.Platform (34 results, 29 passed, 5 pending).
 - ✅ 📌 NEW — Under MTP, IDEs receive the full `namespace → class → [Describe] → context → spec` tree, and `--treenode-filter` selects any subtree by path.
 - ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.

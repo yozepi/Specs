@@ -284,6 +284,30 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         }
 
         [Test]
+        public void WhenItActionIsTodo_FallsBackToDeclaredLocation()
+        {
+            var specTest = BuildSpecTest();
+            specTest.ItAction = Specifications.TODO;
+            specTest.DeclaredLocation = (@"C:\specs\PendingSpecs.cs", 17);
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            Check.That(testCase.CodeFilePath).IsEqualTo(@"C:\specs\PendingSpecs.cs");
+            Check.That(testCase.LineNumber).IsEqualTo(17);
+        }
+
+        [Test]
+        public void WhenItActionIsProvided_PrefersLambdaOverDeclaredLocation()
+        {
+            var specTest = BuildSpecTestWithItAction();
+            specTest.DeclaredLocation = (@"C:\specs\Elsewhere.cs", 1);
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            Check.That(testCase.CodeFilePath).Contains("TestCaseConverter_Tests");
+        }
+
+        [Test]
         public void WhenItActionYieldsNoLocation_DoesNotThrow()
         {
             // Use a fake DLL path so the PDB is not found → TryGetLocation returns null.

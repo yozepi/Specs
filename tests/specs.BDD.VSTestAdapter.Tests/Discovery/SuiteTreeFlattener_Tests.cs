@@ -237,6 +237,16 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         }
 
         [Test]
+        public void Pending_TodoSpec_CarriesItsDeclaredLocation()
+        {
+            var todo = SuiteTreeFlattener.Flatten(typeof(SpecWithPending)).Single(t => t.TestDescription == "todo");
+
+            Check.That(todo.DeclaredLocation).IsNotNull();
+            var (filePath, lineNumber) = todo.DeclaredLocation!.Value;
+            Check.That(File.ReadAllLines(filePath)[lineNumber - 1]).Contains("It[\"todo\"] = TODO;");
+        }
+
+        [Test]
         public void Pending_GroupedContext_IsPendingOnlyWhenAllSpecsArePending()
         {
             var tests = SuiteTreeFlattener.Flatten(typeof(GroupedSpecWithPending))

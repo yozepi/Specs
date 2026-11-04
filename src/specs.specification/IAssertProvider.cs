@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,7 +16,9 @@ namespace specs.BDD
         /// Sets the assertion definition using indexer syntax.
         /// </summary>
         /// <param name="description">The description of the assertion being tested.</param>
+        /// <param name="filePath">Supplied by the compiler: the file declaring the assertion.</param>
+        /// <param name="lineNumber">Supplied by the compiler: the line declaring the assertion.</param>
         /// <value>The delegate that contains the assertion logic.</value>
-        T this[string description] { set; }
+        T this[string description, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0] { set; }
     }
 }

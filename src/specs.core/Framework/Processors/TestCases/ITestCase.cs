@@ -61,5 +61,11 @@ namespace specs.core.Framework.Processors.TestCases
         /// Gets the descriptions of the <see cref="Tests"/> that are pending and must not be executed.
         /// </summary>
         IReadOnlyCollection<string> PendingTests { get; }
+
+        /// <summary>
+        /// Gets the source locations where <see cref="Tests"/> were declared, keyed by description.
+        /// Tests registered without a location are absent.
+        /// </summary>
+        IReadOnlyDictionary<string, (string filePath, int lineNumber)> TestLocations { get; }
     }
 }

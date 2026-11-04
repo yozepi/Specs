@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using specs.core.Framework.Processors.TestCases;
 
@@ -40,9 +41,11 @@ namespace specs.BDD
         /// Assigning <see cref="Specifications.TODOAsync"/> marks the test as pending.
         /// </summary>
         /// <param name="description">The description of the test assertion. Cannot be null or empty.</param>
+        /// <param name="filePath">Supplied by the compiler: the file declaring the test.</param>
+        /// <param name="lineNumber">Supplied by the compiler: the line declaring the test.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="description"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when <paramref name="description"/> is empty or whitespace.</exception>
-        public Func<Task> this[string description]
+        public Func<Task> this[string description, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0]
         {
             set
             {
@@ -50,6 +53,9 @@ namespace specs.BDD
                     _builder.AddPendingTest(description, value);
                 else
                     _builder.AddTest(description, value);
+
+                if (!string.IsNullOrEmpty(filePath))
+                    _builder.AddTestLocation(description, filePath, lineNumber);
             }
         }
     }

@@ -75,6 +75,9 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 (specTest.ItAction != null
                     ? SourceLocationReader.TryGetLocation(source, SourceLocationReader.GetTestMethod(specTest.ItAction))
                     : null)
+                ?? (specTest.DeclaredLocation is { } declared
+                    ? new SourceLocationReader.SourceLocation(declared.filePath, declared.lineNumber)
+                    : null)
                 ?? (specTest.ContextMethod != null
                     ? SourceLocationReader.TryGetLocation(source, specTest.ContextMethod)
                     : null);

@@ -137,7 +137,7 @@ Without an adapter, Specs tests were invisible to Test Explorer and `dotnet test
 The adapter also preserves the shape of the specification in the IDE:
 
 - Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
-- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Describe]` method.
+- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Describe]` method. 📌 This also holds for pending `TODO` specs and the parameterless `ShouldThrow<T>()`, whose shared bodies have no source of their own.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
 - 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
 

@@ -133,6 +133,16 @@ namespace specs.BDD.TestingPlatform.Tests.Discovery
         }
 
         [Test]
+        public void Build_TodoSpecLeaf_PointsAtItsItDeclaration()
+        {
+            var leaf = Leaf($"{Ns}/PendingTreeSpec/pending/waits");
+
+            Check.That(leaf.Location).IsNotNull();
+            var declaredLine = File.ReadAllLines(leaf.Location!.FilePath)[leaf.Location.LineNumber - 1];
+            Check.That(declaredLine).Contains("It[\"waits\"] = TODO;");
+        }
+
+        [Test]
         public void Build_Roots_AreNamespaceNodesUnderTheAssembly()
         {
             Check.That(_forest.AssemblyName).IsEqualTo("specs.BDD.TestingPlatform.Tests");

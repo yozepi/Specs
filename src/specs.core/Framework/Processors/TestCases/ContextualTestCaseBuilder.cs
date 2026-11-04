@@ -26,6 +26,7 @@ namespace specs.core.Framework.Processors.TestCases
         private readonly List<Action> actActions = new List<Action>();
         private readonly List<(string description, Action test)> testActions = new List<(string description, Action test)>();
         private readonly List<string> pendingTests = new List<string>();
+        private readonly Dictionary<string, (string filePath, int lineNumber)> testLocations = new Dictionary<string, (string filePath, int lineNumber)>(StringComparer.Ordinal);
         private readonly bool isPending;
 
         private readonly List<Action> teardownEachActions = new List<Action>();
@@ -116,6 +117,14 @@ namespace specs.core.Framework.Processors.TestCases
                 funcWrapper = test.RunSync;
 
             return AddPendingTest(description, funcWrapper);
+        }
+
+        /// <inheritdoc/>
+        public IContextualTestCaseBuilder AddTestLocation(string description, string filePath, int lineNumber)
+        {
+            testLocations[description.ThrowIfNullOrWhiteSpace(nameof(description))] =
+                (filePath.ThrowIfNullOrWhiteSpace(nameof(filePath)), lineNumber);
+            return this;
         }
 
         /// <inheritdoc/>
@@ -213,7 +222,8 @@ namespace specs.core.Framework.Processors.TestCases
                 ownTeardownOnce: ownTeardownOnce,
                 tests: new List<(string description, Action test)>(this.testActions),
                 childContexts: childBuilders.ConvertAll(builder => this.BuildAsContext(builder)),
-                pendingTests: this.pendingTests
+                pendingTests: this.pendingTests,
+                testLocations: this.testLocations
             );
 
         }
@@ -233,7 +243,8 @@ namespace specs.core.Framework.Processors.TestCases
                 ownTeardownOnce: testCase.OwnTeardownOnce,
                 tests: testCase.Tests.ToList(),
                 childContexts: testCase.ChildContexts.ToList(),
-                pendingTests: testCase.PendingTests
+                pendingTests: testCase.PendingTests,
+                testLocations: testCase.TestLocations
             );
         }
 

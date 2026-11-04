@@ -685,11 +685,70 @@ sequenceDiagram
 | 2 | `SpecificationClass.Name` | Simple (unqualified) name |
 | 3 | 📌 UPDATED — first segment of `SpecTest.ContextPath` (the `[Describe]`) | Was the full `[Describe]` + `Describe`/`Context` chain. Visual Studio nests only four levels, so the deeper path now lives in the display name. Grouped records use their `[Describe]` too |
 
-Source navigation prefers the `It[...]` lambda's PDB sequence point (`SourceLocationReader.GetTestMethod(SpecTest.ItAction)`) so "Go to Source" lands on the assertion line, falling back to the `[Describe]` method when the lambda has no sequence points.
+Source navigation prefers the `It[...]` lambda's PDB sequence point (`SourceLocationReader.GetTestMethod(SpecTest.ItAction)`) so "Go to Source" lands on the assertion line, 📌 then the `It[...]` line recorded at declaration (see "Declared-location fallback" below), and finally the `[Describe]` method.
 
-📌 **Async `ItAsync[...]` navigation**: `ContextualTestCaseBuilder.AddTest(string, Func<Task>)` wraps the test as `test.RunSync` (an extension-method-bound delegate) instead of a closure, so the wrapper `Action.Target` *is* the user's `Func<Task>`. `GetTestMethod` unwraps it, and `TryGetLocation` follows `[AsyncStateMachine]` to `MoveNext`, where the async body's sequence points actually live. 📌 `ShouldThrow<T>(verify)` uses the same trick — it returns `verify.VerifyActException` (extension-method-bound), so the user's verifier lambda is the innermost `Target`. The parameterless `ShouldThrow<T>()` binds a verifier defined in `specs.BDD`, which the cross-assembly guard rejects, so navigation falls back to the `[Describe]` method.
+📌 **Async `ItAsync[...]` navigation**: `ContextualTestCaseBuilder.AddTest(string, Func<Task>)` wraps the test as `test.RunSync` (an extension-method-bound delegate) instead of a closure, so the wrapper `Action.Target` *is* the user's `Func<Task>`. `GetTestMethod` unwraps it, and `TryGetLocation` follows `[AsyncStateMachine]` to `MoveNext`, where the async body's sequence points actually live. 📌 `ShouldThrow<T>(verify)` uses the same trick — it returns `verify.VerifyActException` (extension-method-bound), so the user's verifier lambda is the innermost `Target`. The parameterless `ShouldThrow<T>()` binds a verifier defined in `specs.BDD`, which the cross-assembly guard rejects, so navigation 📌 now falls back to the declared `It[...]` line (was the `[Describe]` method).
 
 📌 **VS Code caveat**: the VS Code test UI ignores `Hierarchy`, so `TestCaseConverter.BuildDisplayName` embeds the context path (`describe → context → … → spec`, joined with `ContextPathFormat.Separator`) to keep contexts visible there. Visual Studio nests `Namespace › Class › [Describe]` via `Hierarchy` and shows the same path-qualified name beneath it. 📌 The MTP runner uses the same display-name rule for IDE clients (see `TestNodeFactory`).
+
+### 📌 NEW — Declared-location fallback
+
+Some spec bodies have no source in the test assembly: `It["..."] = TODO` / `TODOAsync` and the parameterless `ShouldThrow<T>()` share one delegate defined in `specs.BDD`. The `It[...]` call site is the only place that knows which line declared them.
+
+#### 📌 BEFORE (body PDB or `[Describe]` method)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: source location resolution (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    IT["<b>It indexer</b><br/>[Component: AssertBuilder]<br/>Registers body only"]:::deprecated -->|"AddTest [in-process]"| NODE["<b>Context node</b><br/>[Component: ITestCase]<br/>Tests + PendingTests"]:::deprecated
+    NODE -->|"Body delegate [in-process]"| SLR["<b>SourceLocationReader</b><br/>[Component: C# static]<br/>Body PDB, else Describe"]:::deprecated
+    SLR -->|"TODO: Describe line [PDB]"| NAV(["<b>Go to Source</b><br/>[Person: IDE user]"]):::external
+
+    subgraph "Legend"
+        direction LR
+        L1["Deprecated element"]:::deprecated
+        L2["External / person"]:::external
+    end
+
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+- `TODO` specs and `ShouldThrow<T>()` specs navigated to the `[Describe]` method, so every one landed on the same line.
+
+#### 📌 AFTER (caller info recorded on the node)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: source location resolution (AFTER)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    IT["<b>It indexer</b><br/>[Component: AssertBuilder]<br/>CallerFilePath + LineNumber"]:::app -->|"AddTestLocation [in-process]"| NODE["<b>Context node</b><br/>[Component: ITestCase]<br/>TestLocations"]:::app
+    NODE -->|"Body + declared loc [in-process]"| SLR["<b>SourceLocationReader</b><br/>[Component: C# static]<br/>TryGetTestLocation"]:::app
+    SLR -->|"Body PDB → declared → Describe"| NAV(["<b>Go to Source</b><br/>[Person: IDE user]"]):::external
+
+    subgraph "Legend"
+        direction LR
+        L1["App-owned"]:::app
+        L2["External / person"]:::external
+    end
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+| Consumer | Resolution order |
+|----------|------------------|
+| MTP `SpecTreeBuilder` (leaf `Location`) | `TryGetTestLocation` (body PDB → `TestLocations`) → `[Describe]` method |
+| Grouped report (`GroupedSubtreeRunner`, `ShowSourceLocations`) | `TryGetTestLocation`; line omitted when both are unknown |
+| VSTest `TestCaseConverter` | `ItAction` PDB → `SpecTest.DeclaredLocation` (from `SuiteTreeFlattener`) → `ContextMethod` |
+
+- The body PDB still wins, so ordinary specs keep landing on the lambda's first statement rather than the `It[...]` line.
+- `TestLocations` is discovery-only metadata. Execution and `TestCaseExecutor` ignore it.
 
 ### Discovery safety
 
@@ -770,6 +829,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 39 | 📌 NEW **MTP output depends on the client: tree for IDEs, flat paths + console tree for CLI** | IDEs (`--server` / `--server jsonrpc`) can show hierarchy; `dotnet test` (`--server dotnettestcli`) and console runs list tests flat | IDE: state-less group nodes with parent UIDs, leaf display `describe → context → spec`, `TestMethodIdentifierProperty` = `Namespace › Class › [Describe]` (Visual Studio nests only four levels), and an empty UID list selects everything (C# Dev Kit re-discovery). CLI: leaf display = full path, plus a `ConsoleTreeReport` after discovery and runs |
 | 40 | 📌 NEW **MTP tests live in a separate `tests/mtp/Specs.Mtp.slnx` with its own `global.json` (`test.runner = Microsoft.Testing.Platform`)** | On the .NET 10 SDK, `global.json` switches `dotnet test` between VSTest and MTP modes for the whole folder; the main `Specs.sln` must stay on VSTest | CI/release run a second `dotnet test --solution Specs.Mtp.slnx` from `tests/mtp`. MTP tests use NUnit on MTP (`EnableNUnitRunner`, `NUnit3TestAdapter` `VersionOverride="6.3.1"`; the VSTest adapter tests stay on 4.5). The MTP integration app compiles `tests/specs.BDD.IntegrationTests/*.cs` as linked source and must match its totals (34 / 29 passed / 5 skipped) |
 | 41 | 📌 NEW **VSTest `Hierarchy[3]` is the `[Describe]` only** | Visual Studio nests just `Namespace › Class › TestGroup`; putting the whole context path there produced one group per context path instead of one per `[Describe]` | Display names now always join every context segment and the spec with `ContextPathFormat.Separator`, matching the MTP IDE display name. FQNs unchanged |
+| 42 | 📌 NEW **`It[...]` records its declaring file and line via caller-info attributes; navigation falls back to it when the body has no PDB location** | `TODO`, `TODOAsync`, and the parameterless `ShouldThrow<T>()` are shared delegates from `specs.BDD`, so their PDB cannot identify the spec; only the call site can | `IAssertProvider<T>` / `AssertBuilder` / `AssertBuilderAsync` indexers gain optional `[CallerFilePath]` / `[CallerLineNumber]` parameters (source-compatible). New `IContextualTestCaseBuilder.AddTestLocation` and `ITestCase.TestLocations` in `specs.core` (adds a member to a public interface). Resolution order is body PDB → declared location → `[Describe]` in both runners. Resolves the parameterless `ShouldThrow<T>()` navigation gap |
 
 ## Critical Execution Paths
 

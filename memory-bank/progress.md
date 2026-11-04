@@ -20,6 +20,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ 📌 `ActExceptionContext.Run(act, test)` — captures the `Act` exception per test, exposes it via `Current` / `MarkHandled`, and fails only that test when unverified (teardown still runs).
 - ✅ 📌 `ActExceptionAssertions.VerifyActException<T>` + `ExpectedExceptionNotThrownException` (public, reusable by custom front-ends).
 - ✅ Adapter interfaces (`ITestContextAdapter`, `ITestProviderAdapter`, `ILoggingAdapter`) — 📌 now public alongside `TestCaseExecutor`, `TestContextAdapter` (5-phase ctor + `FromTestCase`), and `TestInstance`, so custom runners can host the canonical lifecycle.
+- ✅ 📌 NEW Declared test locations: `AddTestLocation(description, filePath, lineNumber)` + `ITestCase.TestLocations` (per node, ordinal).
 - ✅ `RunAllBuilder` / `RunAllRunner` action aggregation.
 - ✅ Zero external NuGet dependencies.
 
@@ -31,6 +32,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ `[Describe]` attribute marking feature-set methods.
 - ✅ 📌 Pending specs: `TODO` / `TODOAsync` placeholders, `xIt` / `xItAsync` / `xContext` / `xDescribe`.
 - ✅ 📌 Expected-exception specs: `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T> verify)` (assignability match, null verifier rejected).
+- ✅ 📌 NEW `It[...]` / `ItAsync[...]` record their declaring file and line (`[CallerFilePath]` / `[CallerLineNumber]` on the indexer).
 - ✅ 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure` (nullable-backed) and `[TestStructure]` (assembly or class, not inherited) opt-in metadata for grouped execution — renamed from `SpecReporting` / `Reporting` / `[SpecReporting]`, which had replaced `Grouped` / `GroupSpecsByRootContext`.
 - ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
 
@@ -45,7 +47,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ 📌 Grouped report formatting: host-aware markers (ANSI / emoji in Visual Studio / plain) and optional per-`It` source locations.
 - ✅ 📌 `.runsettings` support (`<SpecsBDD>` `TestStructure` 📌, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
 - ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property (📌 `Namespace › Class › [Describe]`); display names embed the context path for VS Code 📌.
-- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), falling back to the `[Describe]` method.
+- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), 📌 then the declared `It[...]` line (`SpecTest.DeclaredLocation` — covers `TODO` and parameterless `ShouldThrow<T>()`), falling back to the `[Describe]` method.
 - ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
 - ✅ 📌 `dotnet test --filter` honoured in `RunTests(sources)` on `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsPending`; invalid expressions reported as errors.
 - ✅ 📌 Pending specs reported as Skipped (`Pending`) with no lifecycle; pending-only contexts (and the root, when nothing runnable is selected) skip `BeforeAll` / `AfterAll`; grouped reports show `○ ... - PENDING` and an all-pending grouped context is Skipped.
@@ -59,6 +61,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ `AddSpecsBDD()` + MSBuild `TestingPlatformBuilderHook` auto-registration; tree-node filter service registered.
 - ✅ Discovery as a `namespace → class → [Describe] → context → spec` tree; grouped `[Describe]`s as single leaves; pending flags; source locations on groups and leaves.
 - ✅ Tree-path UIDs with `%` / `/` escaping; `--treenode-filter`, UID lists (group selects subtree; empty list selects all for IDEs), composite filters.
+- ✅ 📌 Leaf locations fall back to the declared `It[...]` line (`SourceLocationReader.TryGetTestLocation`), also used by grouped-report location lines in both runners.
 - ✅ IDE mode (group nodes + method identifier + path display names) vs console mode (full-path names + indented tree report for `--list-tests` and runs).
 - ✅ Execution through the shared `SuiteRunner`: identical lifecycle, pending, grouped, and `ShouldThrow` semantics; grouped reports as `StandardOutputProperty`.
 - ✅ `SpecsBDD:TestStructure` / `ShowSourceLocations` / `ColorOutput` from `testconfig.json` or environment variables.
@@ -99,12 +102,12 @@ Decisions #34–35 in `systemPatterns.md`.
 
 ### Testing
 
-- ✅ `specs.core.UnitTests` — 333 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs.
-- ✅ `specs.BDD.UnitTests` — 📌 147 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `DescribeAttribute`.
-- ✅ `specs.BDD.VSTestAdapter.Tests` — 📌 273 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
+- ✅ `specs.core.UnitTests` — 📌 340 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs, 📌 plus `ContextualTestCaseBuilder` "Test Locations" specs.
+- ✅ `specs.BDD.UnitTests` — 📌 149 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `DescribeAttribute`.
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 📌 276 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
 - ✅ `specs.BDD.IntegrationTests` (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) — 📌 34 end-to-end results (`CalculatorSpecs` — 📌 class-level `PerSpec` with a grouped `Subtraction` describe and a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and `ShouldThrow`; 5 pending specs Skipped.
-- ✅ All 📌 787 VSTest results green (774 passed, 13 pending skipped); build is clean.
-- ✅ 📌 NEW — MTP: `specs.BDD.TestingPlatform.Tests` 69 NUnit-on-MTP tests + `specs.BDD.TestingPlatform.IntegrationTests` 34 results — 103 total (98 passed, 5 pending skipped).
+- ✅ All 📌 799 VSTest results green (786 passed, 13 pending skipped); build is clean.
+- ✅ 📌 NEW — MTP: `specs.BDD.TestingPlatform.Tests` 📌 70 NUnit-on-MTP tests + `specs.BDD.TestingPlatform.IntegrationTests` 34 results — 📌 104 total (99 passed, 5 pending skipped).
 
 ## Evolution Timeline
 
@@ -125,9 +128,10 @@ flowchart TD
     P12["Phase 12<br/>ShouldThrow + Act capture"]:::app
     P13["Phase 13<br/>Build + release pipeline"]:::app
     P14["Phase 14<br/>MTP runner + shared core"]:::app
+    P15["Phase 15<br/>Declared It locations"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -268,6 +272,15 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` section "Shared Runner Core + Microsoft.Testing.Platform Runner" and decisions #36–41.
 
+### 📌 NEW — Phase 15 — Declared `It[...]` locations (Nov 2026, staged)
+
+- **Feature**: `It` / `ItAsync` indexers capture `[CallerFilePath]` / `[CallerLineNumber]`; `specs.core` stores them via `AddTestLocation` → `ITestCase.TestLocations`.
+- **Navigation**: body PDB → declared `It[...]` line → `[Describe]` method in both runners and in grouped-report location lines. `TODO` / `TODOAsync` and parameterless `ShouldThrow<T>()` specs now land on their own line.
+- **Tooling**: `.vscode/settings.json` `dotnet.defaultSolution` → `Specs.sln`.
+- **Tests**: core 333 → 340, BDD 147 → 149, adapter 273 → 276, MTP unit 69 → 70. VSTest 799 results (786 passed, 13 skipped); MTP 104 (99 passed, 5 skipped).
+
+> **📌 See**: `systemPatterns.md` section "Declared-location fallback" and decision #42.
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -283,14 +296,14 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | 📌 Marker style detection relies on `VSAPPIDNAME` | Other hosts that cannot render ANSI show raw escapes | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` |
 | 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly still runs pending bodies | Use the adapter; see `activeContext.md` open question #9 |
 | 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
-| 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Describe]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | Use `ShouldThrow<T>(verify)` when precise navigation matters |
+| 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Describe]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | 📌 RESOLVED — falls back to the declared `It[...]` line (decision #42) |
 | 📌 Legacy `Spec` API removed | Downstream code on `Spec` must migrate | See `architecture.md` "Migration Strategy" |
 | 📌 NEW — Not yet published to nuget.org | Consumers must use project references or locally packed `0.0.0-alpha.*` packages | Push the first `v*` tag once the trust policy and `NUGET_USER` secret exist |
 | 📌 NEW — Packages carry no `Description` / `PackageTags` / readme | nuget.org listing would be bare | Add per-package metadata to each deliverable `.csproj` (📌 done for `specs.BDD.TestingPlatform` only) |
 | 📌 NEW — VSTest Test Explorer nests only to the `[Describe]`; MTP in Visual Studio likewise | Context levels appear in the test name, not as tree nodes | VS Code + MTP shows the same; the full tree is available to MTP clients that honour group nodes and in console output |
 | 📌 NEW — MTP runner supports only discover / run requests and UID, tree-node, composite, and nop filters | Other request or filter types throw `NotSupportedException` | Use `--treenode-filter`; `--filter` is VSTest-only |
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
-| 📌 NEW — `Specs.Mtp.slnx` moved to the repo root (staged) but references were not updated | `.github/workflows/ci.yml` still runs `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp`, and `.vscode/settings.json` `dotnet.defaultSolution` still points at `tests/mtp/Specs.Mtp.slnx` | Point both at the root `Specs.Mtp.slnx` (or revert the move); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
+| 📌 NEW — `Specs.Mtp.slnx` moved to the repo root but CI references were not updated | `.github/workflows/ci.yml` and `release.yml` still run `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp` (📌 `.vscode/settings.json` now points at `Specs.sln`) | Run `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` (verified locally); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
 
 ## Future Enhancements (Not Committed)
 
@@ -307,12 +320,12 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 |--------|--------|
 | Build cleanliness across all 📌 8 projects (+ 2 MTP) | ✅ Clean: 0 errors and 0 build warnings (📌 including with XML doc generation on the deliverables). One discovery warning is expected at test time, from the `SpecWithNoContextMethods` fixture |
 | 📌 Continuous integration | ✅ `ci.yml` builds, tests, and packs every push to `main` and every PR |
-| Test pass rate | ✅ 100% of runnable results (📌 VSTest 774 passed, 13 pending skipped, 0 failed of 787; MTP 98 passed, 5 skipped of 103) |
-| Self-hosted core tests | ✅ 333 results passing via the Specs adapter |
-| Self-hosted BDD tests | ✅ 📌 147 results passing via the Specs adapter |
-| Adapter unit tests | ✅ 📌 273 results (265 passed, 8 pending fixtures skipped) |
+| Test pass rate | ✅ 100% of runnable results (📌 VSTest 786 passed, 13 pending skipped, 0 failed of 799; MTP 99 passed, 5 skipped of 104) |
+| Self-hosted core tests | ✅ 📌 340 results passing via the Specs adapter |
+| Self-hosted BDD tests | ✅ 📌 149 results passing via the Specs adapter |
+| Adapter unit tests | ✅ 📌 276 results (268 passed, 8 pending fixtures skipped) |
 | Adapter integration tests | ✅ 📌 34 results (29 passed, 5 pending skipped) |
-| 📌 MTP runner tests | ✅ 69 NUnit-on-MTP tests + 34 MTP integration results (29 passed, 5 skipped) |
+| 📌 MTP runner tests | ✅ 📌 70 NUnit-on-MTP tests + 34 MTP integration results (29 passed, 5 skipped) |
 | `specs.core` external dependencies | ✅ Zero |
 | Known open bugs | ✅ None |
 | Documentation accuracy | ✅ Refreshed (October 2026) |

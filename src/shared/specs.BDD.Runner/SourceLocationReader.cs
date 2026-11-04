@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using specs.core.Framework.Processors.TestCases;
 
 namespace specs.BDD.Runner
 {
@@ -97,6 +98,16 @@ namespace specs.BDD.Runner
 
             return null;
         }
+
+        /// <summary>
+        /// Returns the source location of a test: its body's PDB location, or else where it was declared
+        /// (e.g. <c>It["..."] = TODO</c>, whose body lives in another assembly).
+        /// </summary>
+        public static SourceLocation? TryGetTestLocation(string assemblyPath, ITestCase node, string description, Action test) =>
+            TryGetLocation(assemblyPath, GetTestMethod(test))
+            ?? (node.TestLocations.TryGetValue(description, out var declared)
+                ? new SourceLocation(declared.filePath, declared.lineNumber)
+                : null);
 
         /// <summary>
         /// Returns the user-authored method behind an It[...] action, unwrapping wrappers

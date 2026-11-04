@@ -71,6 +71,9 @@ namespace specs.BDD.VSTestAdapter.Discovery
 
         // ── Private helpers ────────────────────────────────────────────────────────────────────
 
+        private static (string filePath, int lineNumber)? DeclaredLocation(ITestCase node, string description) =>
+            node.TestLocations.TryGetValue(description, out var location) ? location : null;
+
         private static IEnumerable<SpecTest> FlattenTests(
             IContextualTestCase testCase,
             Type specClass,
@@ -87,6 +90,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
                     TestDescription = description,
                     ContextMethod = null,
                     ItAction = action,
+                    DeclaredLocation = DeclaredLocation(testCase, description),
                     IsPending = PendingSpecs.IsPending(testCase, description)
                 };
             }
@@ -117,6 +121,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
                     TestDescription = description,
                     ContextMethod = contextMethod,
                     ItAction = action,
+                    DeclaredLocation = DeclaredLocation(child, description),
                     IsPending = PendingSpecs.IsPending(child, description)
                 };
             }
