@@ -108,19 +108,20 @@ namespace specs.BDD.TestingPlatform.Execution
                 : leaf.Ancestors().First(a => a.Kind == SpecNodeKind.Describe);
 
         /// <summary>
-        /// Identifies the leaf as Namespace › Class › [Describe], the layout test explorers build
-        /// from a method identifier.
+        /// Identifies the leaf as Namespace › Class › [Describe] method, so IDEs can resolve the
+        /// method symbol (CodeLens, navigation).
         /// </summary>
         private static TestMethodIdentifierProperty MethodIdentifier(SpecNode leaf)
         {
             var type = leaf.SpecClass!.Type;
             var className = leaf.Ancestors().First(a => a.Kind == SpecNodeKind.Class).Text;
+            var describe = DescribeOf(leaf);
 
             return new TestMethodIdentifierProperty(
                 type.Assembly.FullName ?? string.Empty,
                 type.Namespace ?? string.Empty,
                 className,
-                DescribeOf(leaf).Text,
+                describe.Method?.Name ?? describe.Text,
                 0,
                 Array.Empty<string>(),
                 "System.Void");

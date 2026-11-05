@@ -439,7 +439,7 @@ git push origin v1.0.0
 | `IContextualTestCase` must be immutable after `Build()` | Thread-safety, cacheability, predictability |
 | All async hooks ultimately reduce to a synchronous `Action` | Uniform public surface; lifecycle ordering would otherwise be non-deterministic |
 | Discovery must not execute user `BeforeAll`/`Act`/etc. | Safety; discovery may happen in IDE without setting up resources |
-| Test FullyQualifiedName must be stable across runs | VSTest expects stable IDs for re-runs / filtering |
+| 📌 UPDATED — `TestCase.Id` must be deterministic and unique per spec; the FQN must name the `[Describe]` method (`Class.DescribeMethod`) | VSTest tracks results by `Id` (its default `Id` is derived from the FQN, which is now shared per `[Describe]`); IDEs resolve CodeLens / navigation from the FQN and RFC-0017 `ManagedType` / `ManagedMethod`. See `systemPatterns.md` decision #43 |
 | 📌 `RunTests(sources)` must apply the VSTest filter itself | VSTest passes `--filter` to source-based runs only via `IRunContext.GetTestCaseFilter`; ignoring it runs the whole assembly |
 | 📌 Discovery and execution must build the suite tree through `SuiteTreeBuilder` | Any divergence in node descriptions or ordering makes `TestFinder` / `SelectionTreeWalker` unable to match discovered `ContextPath` values |
 | 📌 NEW — Runner-agnostic code goes in `src/shared/specs.BDD.Runner/` and must not reference VSTest or MTP types | It is compiled into both runners; a host type there breaks the other runner's build |

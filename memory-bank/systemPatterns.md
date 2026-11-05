@@ -366,7 +366,7 @@ flowchart TD
 | Discovery | `SourceLocationReader` **(shared)** | Reads portable PDB sequence points for any `MethodBase` (lambda or `[Describe]` method). 📌 `GetTestMethod(Action)` walks the whole `Delegate.Target` chain, unwrapping async `It` wrappers to the user's `Func<Task>` and 📌 `ShouldThrow` delegates to the user's verifier; async bodies resolve via the state machine's `MoveNext`; methods from a different assembly than the PDB return `null` |
 | Conversion | `SpecTest` | POCO: `SpecificationClass`, `ContextMethod`, `ItAction`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW |
 | Conversion | `ContextPathFormat` **(shared)** 📌 UPDATED | Static `Separator` (`" → "`) — the one `ContextPath` delimiter used by `SuiteTreeFlattener`, `SelectionTreeWalker`, `GroupedSubtreeRunner`, `TestFinder`, and the MTP `SpecTreeBuilder` / `TestNodeFactory`. 📌 Moved from `VSTestAdapter.Conversion` to `specs.BDD.Runner` and is now `internal` (was `public`) |
-| Conversion | `TestCaseConverter` | Produces stable `FullyQualifiedName` (`Class::Method::[grouped]` for grouped records), a `DisplayName` of every context segment plus the spec joined by `ContextPathFormat.Separator` (VS Code ignores `Hierarchy`), the RFC-0033 `TestCase.Hierarchy` property (📌 `[3]` is now the `[Describe]` only), and source location |
+| Conversion | `TestCaseConverter` | Produces 📌 UPDATED a method-level `FullyQualifiedName` (`Class.DescribeMethod`, shared by all specs of a `[Describe]`), a deterministic per-spec `Id` (SHA-256 of source + unique name), RFC-0017 `ManagedType` / `ManagedMethod`, a `DisplayName` of every context segment plus the spec joined by `ContextPathFormat.Separator` (VS Code ignores `Hierarchy`), the RFC-0033 `TestCase.Hierarchy` property (📌 `[3]` is now the `[Describe]` only), and source location |
 | Conversion | `TestProperties` | Custom `TestProperty` registry (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsGrouped` 📌, `IsPending` 📌 NEW — `SpecsBDD.IsPending`, `bool`) preserving metadata across VSTest serialization |
 | Execution | `SpecsTestExecutor` | `[ExtensionUri("executor://SpecsTestExecutor/v1")]`; groups selected tests by `(Source, ClassName)` so lifecycle fires once per class; owns the `CancellationTokenSource`; forwards `IRunContext` into re-discovery so `.runsettings` grouping applies to `RunTests(sources)`; 📌 resolves `ShowSourceLocations` and `MarkerStyle` once per run; 📌 NEW applies the `dotnet test --filter` expression to re-discovered cases in `RunTests(sources)` (see "Test Case Filtering") |
 | Execution | `TestInvoker` 📌 UPDATED | Resolves the spec `Type`, builds the suite via `SuiteTreeBuilder`, maps each `TestCase` to a `SpecRunItem<TestCase>`, and calls `SuiteRunner.Run` with a `VSTestRunListener` (or `SuiteRunner.FailAll` when the suite cannot be built). `Invoke` (single case) still runs the cascaded lifecycle itself. 📌 The root lifecycle and three-way split moved to `SuiteRunner` |
@@ -620,7 +620,8 @@ Benefits:
 | Aspect | Per-`It[...]` mode (`SelectionTreeWalker`) | Grouped mode (`GroupedContextRunner`) |
 |--------|--------------------------------------------|---------------------------------------|
 | Discovery output | One `SpecTest` per `It[...]` | One `SpecTest` with `IsGrouped = true`, `ContextPath` = root context name |
-| `FullyQualifiedName` | `Class::Method::ContextPath::Description` | `Class::Method::[grouped]` |
+| `FullyQualifiedName` | 📌 UPDATED `Class.DescribeMethod` (was `Class::Method::ContextPath::Description`) | 📌 UPDATED `Class.DescribeMethod` (was `Class::Method::[grouped]`) |
+| 📌 NEW `Id` | SHA-256 of source + `Class::Method::ContextPath::Description` | SHA-256 of source + `Class::Method::[grouped]` |
 | `DisplayName` | `ContextPath → Description` | Root context description |
 | Once-actions | `OwnSetupOnce` / `OwnTeardownOnce` once per live node | Same, over the entire subtree |
 | Per-test failure | That test fails; siblings continue | Counted, run continues; result fails if any failed |
@@ -750,6 +751,72 @@ flowchart TD
 - The body PDB still wins, so ordinary specs keep landing on the lambda's first statement rather than the `It[...]` line.
 - `TestLocations` is discovery-only metadata. Execution and `TestCaseExecutor` ignore it.
 
+### 📌 NEW — `[Describe]` method identity (CodeLens / symbol navigation)
+
+IDEs attach CodeLens and symbol navigation by resolving a test to a real method. Both runners now name the `[Describe]` **method** (not its description text) as the test's method, and the VSTest adapter moves per-spec uniqueness from the fully-qualified name to the `TestCase.Id`. Decision #43 records the rationale.
+
+#### 📌 BEFORE (unique FQN, no method symbol)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: test identity (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    CONV["<b>TestCaseConverter</b><br/>[Component: VSTest adapter]<br/>FQN Class::Method::Path::Spec"]:::deprecated
+    TNF["<b>TestNodeFactory</b><br/>[Component: MTP runner]<br/>MethodName = Describe text"]:::deprecated
+    IDE(["<b>IDE</b><br/>[Person: Test Explorer user]"]):::external
+
+    CONV -->|"FQN, random Id [VSTest]"| IDE
+    TNF -->|"Method identifier [MTP]"| IDE
+
+    subgraph "Legend"
+        direction LR
+        L1["Deprecated element"]:::deprecated
+        L2["External / person"]:::external
+    end
+
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+- The VSTest FQN and the MTP `MethodName` (e.g. `Cart`) did not name a C# method, so no CodeLens appeared on `[Describe]` methods and symbol lookups failed.
+
+#### 📌 AFTER (method-level FQN + managed names, hashed Id)
+
+```mermaid
+---
+title: "C4 Level 3 — Component: test identity (AFTER)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    CONV["<b>TestCaseConverter</b><br/>[Component: VSTest adapter]<br/>FQN Class.Method + hashed Id"]:::app
+    TNF["<b>TestNodeFactory</b><br/>[Component: MTP runner]<br/>MethodName = SpecNode.Method"]:::app
+    IDE(["<b>IDE</b><br/>[Person: Test Explorer user]"]):::external
+
+    CONV -->|"FQN + ManagedMethod [VSTest]"| IDE
+    TNF -->|"Method identifier [MTP]"| IDE
+
+    subgraph "Legend"
+        direction LR
+        L1["App-owned"]:::app
+        L2["External / person"]:::external
+    end
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+```
+
+| Runner | Property | Value |
+|--------|----------|-------|
+| VSTest | `FullyQualifiedName` | `{Class.FullName}.{DescribeMethod}` — shared by every spec (and the grouped record) of a `[Describe]`, so Visual Studio shows specs as data-driven rows of the method. Falls back to the unique name when `ContextMethod` is `null` |
+| VSTest | `Id` | Deterministic GUID: first 16 bytes of SHA-256 over `source + "\|" + uniqueName`, where `uniqueName` is the old `Class::Method::ContextPath::Description` (grouped: `Class::Method::[grouped]`) |
+| VSTest | `TestCase.ManagedType` / `TestCase.ManagedMethod` (RFC-0017, hidden) | Spec class full name / `[Describe]` method name; set only when `ContextMethod` is known |
+| MTP | `TestMethodIdentifierProperty.MethodName` | `SpecNode.Method.Name` (new `MethodInfo? Method` on `Describe` / `GroupedDescribe` nodes, set by `SpecTreeBuilder`), falling back to the describe text |
+
+- Execution is unaffected: `TestFinder` re-locates specs from the `TestProperties` address (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`), never from the FQN.
+- `--filter FullyQualifiedName~<context or spec text>` no longer matches; use `ContextPath` / `TestDescription` instead. Class / method substrings still match.
+
 ### Discovery safety
 
 The adapter executes user-defined `[Describe]` methods during discovery (it must, to enumerate `It[...]` blocks). To stay safe:
@@ -830,6 +897,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 40 | 📌 NEW **MTP tests live in a separate `tests/mtp/Specs.Mtp.slnx` with its own `global.json` (`test.runner = Microsoft.Testing.Platform`)** | On the .NET 10 SDK, `global.json` switches `dotnet test` between VSTest and MTP modes for the whole folder; the main `Specs.sln` must stay on VSTest | CI/release run a second `dotnet test --solution Specs.Mtp.slnx` from `tests/mtp`. MTP tests use NUnit on MTP (`EnableNUnitRunner`, `NUnit3TestAdapter` `VersionOverride="6.3.1"`; the VSTest adapter tests stay on 4.5). The MTP integration app compiles `tests/specs.BDD.IntegrationTests/*.cs` as linked source and must match its totals (34 / 29 passed / 5 skipped) |
 | 41 | 📌 NEW **VSTest `Hierarchy[3]` is the `[Describe]` only** | Visual Studio nests just `Namespace › Class › TestGroup`; putting the whole context path there produced one group per context path instead of one per `[Describe]` | Display names now always join every context segment and the spec with `ContextPathFormat.Separator`, matching the MTP IDE display name. FQNs unchanged |
 | 42 | 📌 NEW **`It[...]` records its declaring file and line via caller-info attributes; navigation falls back to it when the body has no PDB location** | `TODO`, `TODOAsync`, and the parameterless `ShouldThrow<T>()` are shared delegates from `specs.BDD`, so their PDB cannot identify the spec; only the call site can | `IAssertProvider<T>` / `AssertBuilder` / `AssertBuilderAsync` indexers gain optional `[CallerFilePath]` / `[CallerLineNumber]` parameters (source-compatible). New `IContextualTestCaseBuilder.AddTestLocation` and `ITestCase.TestLocations` in `specs.core` (adds a member to a public interface). Resolution order is body PDB → declared location → `[Describe]` in both runners. Resolves the parameterless `ShouldThrow<T>()` navigation gap |
+| 43 | 📌 NEW **Tests identify the `[Describe]` *method*: VSTest FQN = `Class.DescribeMethod` + RFC-0017 `ManagedType` / `ManagedMethod`, uniqueness moves to a hashed `TestCase.Id`; MTP `MethodName` = the `[Describe]` method name** | IDEs (CodeLens, "Go to test", Visual Studio data-driven grouping) resolve tests to real C# symbols; the old FQN and the MTP describe-text method name matched no symbol | **Breaking for FQN consumers**: FQNs are no longer unique per spec, and `--filter FullyQualifiedName~` no longer sees context/spec text. `Id` is deterministic across discovery/execution (VSTest default Ids are derived from the FQN, which would now collide). Execution still addresses specs via `TestProperties`. Supersedes "FQNs unchanged" in #32 / #41 |
 
 ## Critical Execution Paths
 
@@ -946,7 +1014,7 @@ Supported filter properties (names matched case-insensitively by `SpecsTestExecu
 | `TestDescription` | `TestProperties.TestDescription` |
 | 📌 `IsPending` | `TestProperties.IsPending` (`IsPending=true` / `IsPending=false`) |
 
-Unknown names resolve to `null` in the property-value provider, so they never match. Grouped records are filtered like any other case (by their `Class::Method::[grouped]` FQN).
+Unknown names resolve to `null` in the property-value provider, so they never match. Grouped records are filtered like any other case. 📌 UPDATED — the FQN is now `Class.DescribeMethod` for every spec of a `[Describe]`, so `FullyQualifiedName` filters select whole `[Describe]` methods; use `ContextPath` / `TestDescription` to narrow further.
 
 ## 📌 NEW — Pending Specs
 
@@ -1512,7 +1580,7 @@ flowchart TD
 | `SpecTreeBuilder` | Per specification class: validates `[Describe]` methods (otherwise a warning, class skipped), builds the suite with the shared `SuiteTreeBuilder`, and creates `Namespace → Class → Describe → Context → Spec` nodes. A `[Describe]` resolved as `PerDescribe` by `GroupingSettings.Resolve` becomes one `GroupedDescribe` leaf (pending when all of its specs are pending). Leaves carry `ContextPath`, `TestDescription`, `IsPending`, and a source location (the `It` lambda, falling back to the `[Describe]` method) |
 | `SpecNode` / `SpecClass` / `SpecForest` / `SpecPath` | Tree model (`SpecNodeKind`: `Namespace`, `Class`, `Describe`, `Context`, `Spec`, `GroupedDescribe`); UIDs and escaping per decision #38 |
 | `SpecSelection` | `null` / `NopFilter` → all; `TestNodeUidListFilter` → the listed leaves plus every leaf under a listed group (empty list → all for IDE clients); `TreeNodeFilter` → `MatchesFilter` plus a depth check (a leaf must be at least as deep as the filter); `CompositeTestExecutionFilter` → all parts must match; anything else → `NotSupportedException`. `Describe(filter)` summarises a filter for logs |
-| `TestNodeFactory` | Builds `TestNodeUpdateMessage`s per decision #39: state-less group nodes (IDE only), leaves with `TestMethodIdentifierProperty` and `TestFileLocationProperty` |
+| `TestNodeFactory` | Builds `TestNodeUpdateMessage`s per decision #39: state-less group nodes (IDE only), leaves with `TestMethodIdentifierProperty` (📌 `MethodName` = the `[Describe]` method's name via `SpecNode.Method`, decision #43) and `TestFileLocationProperty` |
 | `MtpRunListener` | Publishes `InProgress` / `Passed` / `Failed` / `Skipped("Pending")` leaf states with `TimingProperty`; grouped results add `StandardOutputProperty` with the tree report, and failures carry a `GroupedSpecsFailedException` with the combined stack traces. Records outcomes for `ConsoleTreeReport` |
 | `ConsoleTreeReport` | Indented tree of the selected part of the forest: `- spec` (with `- PENDING`) after discovery, pass / fail / pending markers or `- NOT RUN` after a run |
 
@@ -1520,7 +1588,7 @@ MTP runtime contract (differences from VSTest):
 
 | Aspect | VSTest adapter | MTP runner |
 |--------|----------------|-----------|
-| Test ID | `Class::Method::ContextPath::Description` FQN | Tree path (decision #38) |
+| Test ID | 📌 UPDATED Hashed `TestCase.Id` (FQN = `Class.DescribeMethod`, decision #43) | Tree path (decision #38) |
 | Discovery → execution | `TestCase` serialized; tree rebuilt and re-located by `TestFinder` | Same process; the forest is rebuilt per request and filtered by UID / tree path |
 | Filtering | `--filter` on `TestProperties` | `--treenode-filter` / UID lists |
 | IDE tree | `Namespace › Class › [Describe]` via `Hierarchy` | Full tree as group nodes; Visual Studio still shows only `Namespace › Class › [Describe]` via the method identifier |

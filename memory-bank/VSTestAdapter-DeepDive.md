@@ -25,7 +25,7 @@ This project is a **VSTest adapter** — the bridge that lets Visual Studio's Te
 | Class | Purpose |
 |---|---|
 | **`SpecTest`** | A plain data object (POCO) that represents a single discovered test. It carries four pieces of metadata: the `Type` of the Specification class, the `MethodInfo` of the `[Describe]` method, a `ContextPath` string (the breadcrumb trail through nested contexts, separated by " → "), and the `TestDescription` (the `It[...]` assertion text). This is the adapter's **internal** representation of a test — framework-agnostic, not yet a VSTest object. |
-| **`TestCaseConverter`** | A static translator that converts a `SpecTest` into a VSTest `TestCase`. It builds a stable `FullyQualifiedName` (format: `ClassName::MethodName::ContextPath::TestDescription`), a human-readable `DisplayName` (format: `ContextPath → TestDescription`), and embeds all four metadata fields as custom `TestProperty` values on the `TestCase`. It also calls `SourceLocationReader` to attach source-file navigation info. This is a **one-way mapper**: `SpecTest` → `TestCase`. |
+| **`TestCaseConverter`** | A static translator that converts a `SpecTest` into a VSTest `TestCase`. It builds a 📌 method-level `FullyQualifiedName` (format: `ClassName.DescribeMethod`, shared by every spec of the `[Describe]`; per-spec uniqueness comes from a deterministic `Id` hashed from `ClassName::MethodName::ContextPath::TestDescription`, and RFC-0017 `ManagedType` / `ManagedMethod` let IDEs resolve the method symbol), a human-readable `DisplayName` (format: `ContextPath → TestDescription`), and embeds all four metadata fields as custom `TestProperty` values on the `TestCase`. It also calls `SourceLocationReader` to attach source-file navigation info. This is a **one-way mapper**: `SpecTest` → `TestCase`. |
 | **`TestProperties`** | A static registry of four custom `TestProperty` objects (`ClassName`, `ContextMethod`, `ContextPath`, `TestDescription`). These are the "suitcase labels" — they define the named slots on a `TestCase` where the adapter stashes metadata during discovery, and reads it back during execution. Think of them as a custom schema for the adapter's data that survives the VSTest serialization/deserialization boundary between discovery and execution. |
 
 ### Discovery Layer (the "find all tests" layer)
@@ -160,7 +160,7 @@ INPUT: List of assembly DLL paths (from VSTest)
         │                       │
         │  TestCaseConverter.ToVSTestCase(specTest, source)
         │    INTERNALLY:        │
-        │    1. BuildFullyQualifiedName → "Class::Method::Path::Desc"
+        │    1. BuildFullyQualifiedName → "Class.DescribeMethod"  (📌 Id = SHA-256 of "Class::Method::Path::Desc")
         │    2. BuildDisplayName → "Path → Desc"
         │    3. Set TestProperties (ClassName, ContextMethod, ContextPath, TestDescription)
         │    4. SourceLocationReader.TryGetLocation → file path + line number

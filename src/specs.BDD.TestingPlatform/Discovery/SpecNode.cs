@@ -80,6 +80,9 @@ namespace specs.BDD.TestingPlatform.Discovery
         /// <summary>Source location for navigation; <c>null</c> when unknown.</summary>
         public SourceLocationReader.SourceLocation? Location { get; set; }
 
+        /// <summary>For [Describe] nodes: the declaring method; <c>null</c> otherwise.</summary>
+        public System.Reflection.MethodInfo? Method { get; set; }
+
         /// <summary>Returns this node's ancestors from the nearest parent up to the namespace node.</summary>
         public IEnumerable<SpecNode> Ancestors()
         {

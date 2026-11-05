@@ -48,7 +48,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ 📌 `.runsettings` support (`<SpecsBDD>` `TestStructure` 📌, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
 - ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property (📌 `Namespace › Class › [Describe]`); display names embed the context path for VS Code 📌.
 - ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), 📌 then the declared `It[...]` line (`SpecTest.DeclaredLocation` — covers `TODO` and parameterless `ShouldThrow<T>()`), falling back to the `[Describe]` method.
-- ✅ Stable `FullyQualifiedName` (`Class::Method::ContextPath::Description`).
+- ✅ 📌 UPDATED `FullyQualifiedName` = `Class.DescribeMethod` (shared per `[Describe]`; was `Class::Method::ContextPath::Description`) with a deterministic per-spec `TestCase.Id` and RFC-0017 `ManagedType` / `ManagedMethod`, so IDEs attach CodeLens to `[Describe]` methods.
 - ✅ 📌 `dotnet test --filter` honoured in `RunTests(sources)` on `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsPending`; invalid expressions reported as errors.
 - ✅ 📌 Pending specs reported as Skipped (`Pending`) with no lifecycle; pending-only contexts (and the root, when nothing runnable is selected) skip `BeforeAll` / `AfterAll`; grouped reports show `○ ... - PENDING` and an all-pending grouped context is Skipped.
 - ✅ 📌 `Act` + `It` run through `ActExceptionContext.Run` in `TestInvoker.RunLifecycle` and `GroupedContextRunner.RunTest` (as in `TestCaseExecutor`), so `ShouldThrow` and `Act`-failure semantics match across all modes.
@@ -62,6 +62,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ Discovery as a `namespace → class → [Describe] → context → spec` tree; grouped `[Describe]`s as single leaves; pending flags; source locations on groups and leaves.
 - ✅ Tree-path UIDs with `%` / `/` escaping; `--treenode-filter`, UID lists (group selects subtree; empty list selects all for IDEs), composite filters.
 - ✅ 📌 Leaf locations fall back to the declared `It[...]` line (`SourceLocationReader.TryGetTestLocation`), also used by grouped-report location lines in both runners.
+- ✅ 📌 NEW `TestMethodIdentifierProperty.MethodName` is the `[Describe]` method's real name (`SpecNode.Method`), so IDEs resolve the method symbol.
 - ✅ IDE mode (group nodes + method identifier + path display names) vs console mode (full-path names + indented tree report for `--list-tests` and runs).
 - ✅ Execution through the shared `SuiteRunner`: identical lifecycle, pending, grouped, and `ShouldThrow` semantics; grouped reports as `StandardOutputProperty`.
 - ✅ `SpecsBDD:TestStructure` / `ShowSourceLocations` / `ColorOutput` from `testconfig.json` or environment variables.
@@ -104,9 +105,9 @@ Decisions #34–35 in `systemPatterns.md`.
 
 - ✅ `specs.core.UnitTests` — 📌 340 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs, 📌 plus `ContextualTestCaseBuilder` "Test Locations" specs.
 - ✅ `specs.BDD.UnitTests` — 📌 149 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `DescribeAttribute`.
-- ✅ `specs.BDD.VSTestAdapter.Tests` — 📌 276 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
+- ✅ `specs.BDD.VSTestAdapter.Tests` — 📌 277 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
 - ✅ `specs.BDD.IntegrationTests` (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) — 📌 34 end-to-end results (`CalculatorSpecs` — 📌 class-level `PerSpec` with a grouped `Subtraction` describe and a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and `ShouldThrow`; 5 pending specs Skipped.
-- ✅ All 📌 799 VSTest results green (786 passed, 13 pending skipped); build is clean.
+- ✅ All 📌 800 VSTest results green (787 passed, 13 pending skipped); build is clean.
 - ✅ 📌 NEW — MTP: `specs.BDD.TestingPlatform.Tests` 📌 70 NUnit-on-MTP tests + `specs.BDD.TestingPlatform.IntegrationTests` 34 results — 📌 104 total (99 passed, 5 pending skipped).
 
 ## Evolution Timeline
@@ -129,9 +130,10 @@ flowchart TD
     P13["Phase 13<br/>Build + release pipeline"]:::app
     P14["Phase 14<br/>MTP runner + shared core"]:::app
     P15["Phase 15<br/>Declared It locations"]:::app
+    P16["Phase 16<br/>Describe method identity"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -281,6 +283,15 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` section "Declared-location fallback" and decision #42.
 
+### 📌 NEW — Phase 16 — `[Describe]` method identity for IDE symbols (Nov 2026, staged)
+
+- **VSTest**: FQN `Class::Method::ContextPath::Description` → `Class.DescribeMethod` (grouped records too); new deterministic `TestCase.Id` (SHA-256 of source + old unique name); RFC-0017 `TestCase.ManagedType` / `ManagedMethod` set from the spec class and `[Describe]` method.
+- **MTP**: `SpecNode.Method` records the `[Describe]` `MethodInfo`; `TestMethodIdentifierProperty.MethodName` uses its name (e.g. `describe_cart`, was the description `Cart`).
+- **Effect**: CodeLens / symbol navigation on `[Describe]` methods; Visual Studio lists specs as rows of their method. **Breaking** for `--filter FullyQualifiedName~<context/spec text>`.
+- **Tests**: adapter 276 → 277 (FQN tests replaced by method-level FQN, shared-FQN, unique / deterministic `Id`, managed-name tests); MTP identifier tests renamed. VSTest 800 results (787 passed, 13 skipped).
+
+> **📌 See**: `systemPatterns.md` section "`[Describe]` method identity (CodeLens / symbol navigation)" and decision #43.
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -304,6 +315,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | 📌 NEW — MTP runner supports only discover / run requests and UID, tree-node, composite, and nop filters | Other request or filter types throw `NotSupportedException` | Use `--treenode-filter`; `--filter` is VSTest-only |
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
 | 📌 NEW — `Specs.Mtp.slnx` moved to the repo root but CI references were not updated | `.github/workflows/ci.yml` and `release.yml` still run `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp` (📌 `.vscode/settings.json` now points at `Specs.sln`) | Run `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` (verified locally); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
+| 📌 NEW — VSTest FQN is shared by every spec of a `[Describe]` | `--filter FullyQualifiedName~` can no longer target a context or spec by text; tools keyed on FQN see duplicates | Filter with `ContextPath` / `TestDescription` / `DisplayName`; key on `TestCase.Id` (decision #43) |
 
 ## Future Enhancements (Not Committed)
 
@@ -320,10 +332,10 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 |--------|--------|
 | Build cleanliness across all 📌 8 projects (+ 2 MTP) | ✅ Clean: 0 errors and 0 build warnings (📌 including with XML doc generation on the deliverables). One discovery warning is expected at test time, from the `SpecWithNoContextMethods` fixture |
 | 📌 Continuous integration | ✅ `ci.yml` builds, tests, and packs every push to `main` and every PR |
-| Test pass rate | ✅ 100% of runnable results (📌 VSTest 786 passed, 13 pending skipped, 0 failed of 799; MTP 99 passed, 5 skipped of 104) |
+| Test pass rate | ✅ 100% of runnable results (📌 VSTest 787 passed, 13 pending skipped, 0 failed of 800; MTP 99 passed, 5 skipped of 104) |
 | Self-hosted core tests | ✅ 📌 340 results passing via the Specs adapter |
 | Self-hosted BDD tests | ✅ 📌 149 results passing via the Specs adapter |
-| Adapter unit tests | ✅ 📌 276 results (268 passed, 8 pending fixtures skipped) |
+| Adapter unit tests | ✅ 📌 277 results (269 passed, 8 pending fixtures skipped) |
 | Adapter integration tests | ✅ 📌 34 results (29 passed, 5 pending skipped) |
 | 📌 MTP runner tests | ✅ 📌 70 NUnit-on-MTP tests + 34 MTP integration results (29 passed, 5 skipped) |
 | `specs.core` external dependencies | ✅ Zero |

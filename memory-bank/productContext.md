@@ -139,7 +139,8 @@ The adapter also preserves the shape of the specification in the IDE:
 - Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
 - "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Describe]` method. 📌 This also holds for pending `TODO` specs and the parameterless `ShouldThrow<T>()`, whose shared bodies have no source of their own.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
-- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
+- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`). 📌 `FullyQualifiedName` now selects whole `[Describe]` methods (`Class.DescribeMethod`).
+- 📌 NEW — `[Describe]` methods are recognised as test methods by the IDE (CodeLens run/debug and test status above the method, Visual Studio lists each spec as a row of its method) in both the VSTest and MTP runners.
 
 ### 📌 NEW — Problem 4b — VSTest can't show the whole spec tree, and `dotnet test` is moving to MTP
 

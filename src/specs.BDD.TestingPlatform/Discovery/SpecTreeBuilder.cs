@@ -103,7 +103,8 @@ namespace specs.BDD.TestingPlatform.Discovery
                     {
                         ContextPath = describe.Description,
                         IsPending = PendingSpecs.HasAnyTests(describe) && !PendingSpecs.HasRunnableTests(describe),
-                        Location = methodLocation
+                        Location = methodLocation,
+                        Method = method
                     };
                     leaves.Add(grouped);
                     continue;
@@ -111,7 +112,8 @@ namespace specs.BDD.TestingPlatform.Discovery
 
                 var describeNode = new SpecNode(SpecNodeKind.Describe, describe.Description, path, classNode, specClass)
                 {
-                    Location = methodLocation
+                    Location = methodLocation,
+                    Method = method
                 };
                 AddContextChildren(describeNode, describe, describe.Description, specClass, methodLocation, leaves);
             }
