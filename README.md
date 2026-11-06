@@ -1,4 +1,4 @@
-﻿# Specs
+# Specs
 
 A .NET BDD testing framework with two coexisting API styles over a framework-agnostic core, plus a VSTest adapter for native IDE integration.
 
@@ -60,7 +60,7 @@ public class MySpecs : Spec
 ```csharp
 public class MySpecs : Specifications
 {
-    [Describe("My feature")]
+    [Feature("My feature")]
     public void my_feature()
     {
         BeforeEach(() => { /* setup */ });
@@ -72,7 +72,7 @@ public class MySpecs : Specifications
 }
 ```
 
-> A `[Describe]`-decorated method is required for the VSTest adapter to discover tests in a suite.
+> A `[Feature]`-decorated method is required for the VSTest adapter to discover tests in a suite.
 
 ### Pending specs
 ```csharp
@@ -94,23 +94,23 @@ An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes 
 
 ## Running on Microsoft.Testing.Platform
 
-Reference `specs.BDD.TestingPlatform` instead of the VSTest adapter. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Describe]` → contexts → specs.
+Reference `specs.BDD.TestingPlatform` instead of the VSTest adapter. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Feature]` → contexts → specs.
 
 Every spec has a path, which is its test ID and what `--treenode-filter` matches:
 ```
 /MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message
 ```
 ```
-dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Describe] and everything under it
+dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Feature] and everything under it
 dotnet test --treenode-filter "/*/*/*/*/when empty/*"      # specs directly inside every 'when empty' context
 ```
 `/` and `%` inside names are written as `%2F` and `%25`; filter operators such as `(`, `)`, `*`, `|`, `&`, `[` and `]` must be escaped with `\`.
 
-IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Describe]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Describe(Structure = TestStructure.PerDescribe)]` and `[TestStructure]` still run a `[Describe]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__TestStructure`):
+IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Feature]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Feature(Level = ReportingLevel.Feature)]` and `[ReportingLevel]` still run a `[Feature]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__ReportingLevel`):
 ```json
 {
   "SpecsBDD": {
-    "TestStructure": "PerDescribe",
+    "ReportingLevel": "Feature",
     "ShowSourceLocations": true,
     "ColorOutput": false
   }

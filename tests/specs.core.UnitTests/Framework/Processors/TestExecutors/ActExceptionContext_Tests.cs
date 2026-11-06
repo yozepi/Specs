@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestExecutors;
@@ -7,7 +7,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
 {
     public class ActExceptionContext_Tests : Specifications
     {
-        [Describe]
+        [Feature]
         public void ActExceptionContext_Specs()
         {
             Action act = null!;

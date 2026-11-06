@@ -9,7 +9,7 @@ namespace specs.BDD.Runner
         public static (string Pass, string Fail, string Pending) For(MarkerStyle style) => style switch
         {
             MarkerStyle.Ansi => ("\u001b[32m✓\u001b[0m", "\u001b[31m✗\u001b[0m", "\u001b[33m○\u001b[0m"),
-            MarkerStyle.Emoji => ("✅", "❌", "⏸️"),
+            MarkerStyle.Emoji => ("✅", "❌", "⚠️"),
             _ => ("✓", "✗", "○")
         };
 

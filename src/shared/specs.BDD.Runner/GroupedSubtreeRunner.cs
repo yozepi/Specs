@@ -9,7 +9,7 @@ using specs.core.Framework.Processors.TestExecutors;
 namespace specs.BDD.Runner
 {
     /// <summary>
-    /// Executes an entire root [Describe] subtree as a single grouped unit and renders the
+    /// Executes an entire root [Feature] subtree as a single grouped unit and renders the
     /// full contextual tree (contexts, tests, pass/fail markers, failure details) in the
     /// style of NSpec's console formatter.
     /// </summary>
@@ -23,7 +23,7 @@ namespace specs.BDD.Runner
     internal static class GroupedSubtreeRunner
     {
         /// <summary>
-        /// Runs the root [Describe] context named <paramref name="contextName"/> and returns its
+        /// Runs the root [Feature] context named <paramref name="contextName"/> and returns its
         /// report, or <c>null</c> when the suite no longer contains that context.
         /// </summary>
         public static GroupedReport? Run(
@@ -53,7 +53,7 @@ namespace specs.BDD.Runner
             return BuildReport(state);
         }
 
-        /// <summary>The failure reported when a grouped [Describe] was removed since discovery.</summary>
+        /// <summary>The failure reported when a grouped [Feature] was removed since discovery.</summary>
         public static Exception MissingContext(string contextName) =>
             new InvalidOperationException($"Context '{contextName}' no longer exists in the current build.");
 

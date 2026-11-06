@@ -416,7 +416,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         /// <summary>Minimal Specifications subclass used as a test double.</summary>
         private class FakeSpecClass : specs.BDD.Specifications
         {
-            [specs.BDD.Attributes.Describe("fake context")]
+            [specs.BDD.Attributes.Feature("fake context")]
             public void describe_something()
             {
                 It["a test"] = () => { };

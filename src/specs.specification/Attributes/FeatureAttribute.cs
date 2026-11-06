@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace specs.BDD.Attributes
 {
@@ -8,18 +8,18 @@ namespace specs.BDD.Attributes
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The DescribeAttribute can be applied to methods to designate them as context builders
+    /// The FeatureAttribute can be applied to methods to designate them as context builders
     /// within the Specs testing framework. Only one context attribute can be applied to a method.
     /// </para>
     /// <example>
     /// <code>
-    /// [Describe("User authentication")]
+    /// [Feature("User authentication")]
     /// public void describe_login()
     /// {
     ///     // Test context setup
     /// }
     /// 
-    /// [Describe("Valid credentials")]
+    /// [Feature("Valid credentials")]
     /// public void when_user_attempts_login()
     /// {
     ///     // Test context with description
@@ -28,10 +28,10 @@ namespace specs.BDD.Attributes
     /// </example>
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-    public class DescribeAttribute : Attribute
+    public class FeatureAttribute : Attribute
     {
         // Nullable backing distinguishes "not specified" from an explicit value.
-        private TestStructure? _structure;
+        private ReportingLevel? _level;
 
         /// <summary>
         /// Gets the optional description for this context.
@@ -46,28 +46,28 @@ namespace specs.BDD.Attributes
         /// <summary>
         /// How this context's specs map to test cases in the test runner.
         /// When set, overrides the class- and assembly-level
-        /// <see cref="TestStructureAttribute"/> and any .runsettings value.
+        /// <see cref="ReportingLevelAttribute"/> and any .runsettings value.
         /// </summary>
-        public TestStructure Structure
+        public ReportingLevel Level
         {
-            get => _structure ?? TestStructure.PerSpec;
-            set => _structure = value;
+            get => _level ?? ReportingLevel.Test;
+            set => _level = value;
         }
 
         /// <summary>
-        /// The explicit <see cref="Structure"/> setting, or <c>null</c> when not specified
+        /// The explicit <see cref="Level"/> setting, or <c>null</c> when not specified
         /// on the attribute (meaning lower-priority configuration applies).
         /// </summary>
-        public TestStructure? StructureSetting => _structure;
+        public ReportingLevel? LevelSetting => _level;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DescribeAttribute"/> class
+        /// Initializes a new instance of the <see cref="FeatureAttribute"/> class
         /// with an optional description.
         /// </summary>
         /// <param name="description">
         /// Optional description for the context. If not provided, defaults to null.
         /// </param>
-        public DescribeAttribute(string? description = null)
+        public FeatureAttribute(string? description = null)
         {
             Description = description;
         }

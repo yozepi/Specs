@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using System.Xml.Linq;
 using specs.BDD.Attributes;
@@ -6,30 +6,30 @@ using specs.BDD.Attributes;
 namespace specs.BDD.Runner
 {
     /// <summary>
-    /// Resolves whether a root [Describe] method runs in grouped mode (one test result for the
+    /// Resolves whether a root [Feature] method runs in grouped mode (one test result for the
     /// whole context subtree) from the layered configuration sources.
     /// </summary>
     /// <remarks>
     /// Precedence (highest wins):
     /// <list type="number">
-    /// <item><see cref="DescribeAttribute.Structure"/> explicitly set on the [Describe] method</item>
-    /// <item><see cref="TestStructureAttribute"/> on the specification class (not inherited)</item>
-    /// <item><see cref="TestStructureAttribute"/> on the test assembly</item>
-    /// <item><c>&lt;RunSettings&gt;&lt;SpecsBDD&gt;&lt;TestStructure&gt;</c> in .runsettings</item>
-    /// <item>Default: <see cref="TestStructure.PerSpec"/> (one test result per It[...])</item>
+    /// <item><see cref="FeatureAttribute.Level"/> explicitly set on the [Feature] method</item>
+    /// <item><see cref="ReportingLevelAttribute"/> on the specification class (not inherited)</item>
+    /// <item><see cref="ReportingLevelAttribute"/> on the test assembly</item>
+    /// <item><c>&lt;RunSettings&gt;&lt;SpecsBDD&gt;&lt;ReportingLevel&gt;</c> in .runsettings</item>
+    /// <item>Default: <see cref="ReportingLevel.Test"/> (one test result per It[...])</item>
     /// </list>
     /// </remarks>
     internal static class GroupingSettings
     {
         /// <summary>
-        /// Reads the <c>TestStructure</c> value from a .runsettings XML document.
+        /// Reads the <c>ReportingLevel</c> value from a .runsettings XML document.
         /// </summary>
         /// <param name="settingsXml">The raw runsettings XML, or <c>null</c> when unavailable.</param>
         /// <returns>
         /// The parsed value, or <c>null</c> when the XML is missing, malformed, or does not
-        /// contain a valid <c>SpecsBDD/TestStructure</c> element.
+        /// contain a valid <c>SpecsBDD/ReportingLevel</c> element.
         /// </returns>
-        public static TestStructure? ReadRunSettings(string? settingsXml)
+        public static ReportingLevel? ReadRunSettings(string? settingsXml)
         {
             if (string.IsNullOrWhiteSpace(settingsXml))
                 return null;
@@ -39,10 +39,10 @@ namespace specs.BDD.Runner
                 var value = XDocument.Parse(settingsXml)
                     .Root?
                     .Element("SpecsBDD")?
-                    .Element("TestStructure")?
+                    .Element("ReportingLevel")?
                     .Value;
 
-                return ParseTestStructure(value);
+                return ParseReportingLevel(value);
             }
             catch (System.Xml.XmlException)
             {
@@ -51,18 +51,18 @@ namespace specs.BDD.Runner
         }
 
         /// <summary>
-        /// Parses a <c>TestStructure</c> setting value; <c>null</c> when missing or not a valid name.
+        /// Parses a <c>ReportingLevel</c> setting value; <c>null</c> when missing or not a valid name.
         /// </summary>
-        public static TestStructure? ParseTestStructure(string? value)
+        public static ReportingLevel? ParseReportingLevel(string? value)
         {
             // Enum.TryParse also accepts numeric strings; only names are valid here.
             if (string.IsNullOrWhiteSpace(value) || long.TryParse(value, out _))
                 return null;
 
-            return Enum.TryParse<TestStructure>(value!.Trim(), ignoreCase: true, out var parsed)
-                && Enum.IsDefined(typeof(TestStructure), parsed)
+            return Enum.TryParse<ReportingLevel>(value!.Trim(), ignoreCase: true, out var parsed)
+                && Enum.IsDefined(typeof(ReportingLevel), parsed)
                 ? parsed
-                : (TestStructure?)null;
+                : (ReportingLevel?)null;
         }
 
         /// <summary>
@@ -132,24 +132,24 @@ namespace specs.BDD.Runner
         /// <summary>
         /// Resolves whether grouped execution applies from the four configuration layers.
         /// </summary>
-        public static bool Resolve(TestStructure? contextSetting, TestStructure? classSetting, TestStructure? assemblySetting, TestStructure? runSettingsSetting)
-            => (contextSetting ?? classSetting ?? assemblySetting ?? runSettingsSetting ?? TestStructure.PerSpec)
-                == TestStructure.PerDescribe;
+        public static bool Resolve(ReportingLevel? contextSetting, ReportingLevel? classSetting, ReportingLevel? assemblySetting, ReportingLevel? runSettingsSetting)
+            => (contextSetting ?? classSetting ?? assemblySetting ?? runSettingsSetting ?? ReportingLevel.Test)
+                == ReportingLevel.Feature;
 
         /// <summary>
-        /// Resolves whether grouped execution applies to a [Describe] method by reading its
-        /// <see cref="DescribeAttribute"/> and the <see cref="TestStructureAttribute"/>
+        /// Resolves whether grouped execution applies to a [Feature] method by reading its
+        /// <see cref="FeatureAttribute"/> and the <see cref="ReportingLevelAttribute"/>
         /// on its reflected (concrete) specification class and assembly.
         /// </summary>
-        public static bool Resolve(MethodInfo contextMethod, TestStructure? runSettingsSetting)
+        public static bool Resolve(MethodInfo contextMethod, ReportingLevel? runSettingsSetting)
         {
             if (contextMethod == null) throw new ArgumentNullException(nameof(contextMethod));
 
-            var contextSetting = contextMethod.GetCustomAttribute<DescribeAttribute>()?.StructureSetting;
+            var contextSetting = contextMethod.GetCustomAttribute<FeatureAttribute>()?.LevelSetting;
             var classSetting = contextMethod.ReflectedType?
-                .GetCustomAttribute<TestStructureAttribute>(inherit: false)?.Structure;
+                .GetCustomAttribute<ReportingLevelAttribute>(inherit: false)?.Level;
             var assemblySetting = contextMethod.DeclaringType?.Assembly
-                .GetCustomAttribute<TestStructureAttribute>()?.Structure;
+                .GetCustomAttribute<ReportingLevelAttribute>()?.Level;
 
             return Resolve(contextSetting, classSetting, assemblySetting, runSettingsSetting);
         }

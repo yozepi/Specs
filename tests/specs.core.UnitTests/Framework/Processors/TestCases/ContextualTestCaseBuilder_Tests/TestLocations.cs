@@ -6,7 +6,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
     partial class ContextualTestCaseBuilder_Tests
     {
-        [Describe("Test Locations")]
+        [Feature("Test Locations")]
         public void Test_Locations()
         {
             ContextualTestCaseBuilder subject = null!;

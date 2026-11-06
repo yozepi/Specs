@@ -93,9 +93,9 @@ namespace specs.BDD.TestingPlatform.Tests.Discovery
         }
 
         [Test]
-        public void Build_ConfiguredPerDescribe_GroupsDescribesWithoutTheirOwnSetting()
+        public void Build_ConfiguredFeatureLevel_GroupsFeaturesWithoutTheirOwnSetting()
         {
-            var forest = SpecTreeBuilder.Build(typeof(TreeSpec).Assembly, TestStructure.PerDescribe);
+            var forest = SpecTreeBuilder.Build(typeof(TreeSpec).Assembly, ReportingLevel.Feature);
 
             var cart = forest.Leaves.Single(l => l.Path == $"{Ns}/TreeSpec/Cart");
             Check.That(cart.Kind).IsEqualTo(SpecNodeKind.GroupedDescribe);

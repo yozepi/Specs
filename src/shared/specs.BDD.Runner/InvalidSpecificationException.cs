@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 
 namespace specs.BDD.Runner
 {
     /// <summary>
     /// Thrown when a class inheriting from <see cref="specs.BDD.Specifications"/> has no methods
-    /// decorated with the <see cref="specs.BDD.Attributes.DescribeAttribute"/>.
-    /// All Specification classes must define at least one [Describe] method to be valid.
+    /// decorated with the <see cref="specs.BDD.Attributes.FeatureAttribute"/>.
+    /// All Specification classes must define at least one [Feature] method to be valid.
     /// </summary>
     internal class InvalidSpecificationException : Exception
     {

@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using specs.BDD.Attributes;
 using specs.core.Framework.Processors.TestCases;
 
@@ -6,7 +6,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
 {
     public partial class ContextualTestCaseBuilder_Tests
     {
-        [Describe("TeardownEach Specs")]
+        [Feature("TeardownEach Specs")]
         public void TeardownEach_Specs()
         {
             ContextualTestCaseBuilder subject = null!;

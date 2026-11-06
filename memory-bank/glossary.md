@@ -49,8 +49,8 @@ Action that executes once after all tests in a context. Aggregated from parent c
 ### Suite (Specification Class)
 A class inheriting from `Specifications` that serves as a test suite for a single subject. Example: `Weather_Controller : Specifications` is a suite for the Weather Controller. Suite-level lifecycle methods (`BeforeAll`, `AfterAll`, `BeforeEach`, `AfterEach`) apply to ALL feature sets within the suite.
 
-### Feature Set (`[Describe]` Decorated Method)
-A method within a suite class decorated with the `[Describe]` attribute. Each feature set represents one aspect or feature of the subject under test. Feature sets have their own lifecycle control (`BeforeEach`, `AfterEach`) that applies only to specs within that feature set. The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the hierarchy.
+### Feature Set (`[Feature]` Decorated Method)
+A method within a suite class decorated with the `[Feature]` attribute. Each feature set represents one aspect or feature of the subject under test. Feature sets have their own lifecycle control (`BeforeEach`, `AfterEach`) that applies only to specs within that feature set. The `[Feature]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the hierarchy.
 
 ### Scenario (`Context[...]` / `Describe[...]` Indexer)
 A named grouping of related specs within a feature set, created using the `Context[...]` or `Describe[...]` indexer syntax. Scenarios can be nested to create hierarchical test structures. Each scenario can have its own lifecycle hooks that are inherited by child scenarios.

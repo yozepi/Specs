@@ -16,7 +16,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Primary Goals
 
-1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Describe]` methods.
+1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Feature]` methods.
 2. **Hierarchical organization** — nested contexts inherit setup/act behavior from their parents.
 3. **Sophisticated lifecycle** — `SetupOnce`, `SetupEach`, `Act`, `TeardownEach`, `TeardownOnce` with correct ordering.
 4. **First-class async** — every lifecycle hook has a `Func<Task>` overload.
@@ -65,7 +65,7 @@ public class CalculatorSpecs : Specifications      // Suite
     private Calculator _calc = null!;
     private int _result;
 
-    [Describe("Addition")]                          // Feature set
+    [Feature("Addition")]                          // Feature set
     public void addition()
     {
         BeforeEach(() => _calc = new Calculator());
@@ -80,7 +80,7 @@ public class CalculatorSpecs : Specifications      // Suite
 | Term | Code element |
 |------|--------------|
 | **Suite** | Class inheriting `Specifications` (one subject) |
-| **Feature Set** | `[Describe("...")]`-decorated method (one feature of the subject) |
+| **Feature Set** | `[Feature("...")]`-decorated method (one feature of the subject) |
 | **Scenario** | `Context[...]` / `Describe[...]` block (when/given) |
 | **Specification** | `It[...]` (single assertion) |
 | 📌 **Pending specification** | `It[...] = TODO`, `xIt[...]`, or any spec inside `xContext[...]` / `xDescribe[...]` (discovered, never executed) |
@@ -107,9 +107,9 @@ public class CalculatorSpecs : Specifications      // Suite
 - Hierarchical test construction, lifecycle, async support.
 - BDD authoring API with async support.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting + 📌 `dotnet test --filter` support.
-- 📌 NEW — **Microsoft.Testing.Platform runner**: discovery + execution as a nested node tree (namespace → class → `[Describe]` → contexts → specs), `--treenode-filter` on tree paths, an indented console tree report, and `SpecsBDD:*` settings in `testconfig.json` / environment variables.
+- 📌 NEW — **Microsoft.Testing.Platform runner**: discovery + execution as a nested node tree (namespace → class → `[Feature]` → contexts → specs), `--treenode-filter` on tree paths, an indented console tree report, and `SpecsBDD:*` settings in `testconfig.json` / environment variables.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
-- 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the 📌 `TestStructure` enum (`PerSpec` / `PerDescribe`) at method (`[Describe(Structure = ...)]`), class or assembly (`[TestStructure(...)]`), or `.runsettings` level.
+- 📌 Opt-in **grouped execution** — a root `[Feature]` runs as one test result with an NSpec-style tree report in its output, selected via the 📌 `ReportingLevel` enum (`Test` / `Feature`) at method (`[Feature(Level = ...)]`), class or assembly (`[ReportingLevel(...)]`), or `.runsettings` level.
 - 📌 Class-level (constructor-registered) `BeforeAll` / `AfterAll` running once per suite.
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
@@ -134,16 +134,16 @@ public class CalculatorSpecs : Specifications      // Suite
 
 ## Success Criteria
 
-- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Describe]` methods.
-- ✅ Test Explorer renders the full `Class → [Describe] → Describe → It` hierarchy.
+- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Feature]` methods.
+- ✅ Test Explorer renders the full `Class → [Feature] → Describe → It` hierarchy.
 - ✅ Source location ("Go to source") navigates to the `It[...]` line for every discovered test.
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Sync and async hooks produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
 - ✅ **The framework tests its own core with itself** — 📌 340 self-hosted core results and 149 self-hosted BDD results, plus 276 adapter and 34 integration results.
 - ✅ 📌 NEW — The same integration specs give identical totals under VSTest and Microsoft.Testing.Platform (34 results, 29 passed, 5 pending).
-- ✅ 📌 NEW — Under MTP, IDEs receive the full `namespace → class → [Describe] → context → spec` tree, and `--treenode-filter` selects any subtree by path.
-- ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.
+- ✅ 📌 NEW — Under MTP, IDEs receive the full `namespace → class → [Feature] → context → spec` tree, and `--treenode-filter` selects any subtree by path.
+- ✅ A root `[Feature]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).
 - ✅ 📌 An exception thrown by `Act` is verifiable from `It` via `ShouldThrow<T>`, and otherwise fails only that spec while `AfterEach` / `AfterAll` still run — identically in `TestCaseExecutor`, per-`It`, and grouped execution.

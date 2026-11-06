@@ -12,28 +12,28 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
     {
         // ── ReadRunSettings ───────────────────────────────────────────────────────────────────
 
-        private const TestStructure PerDescribe = TestStructure.PerDescribe;
-        private const TestStructure PerSpec = TestStructure.PerSpec;
+        private const ReportingLevel FeatureLevel = ReportingLevel.Feature;
+        private const ReportingLevel TestLevel = ReportingLevel.Test;
 
         private static string RunSettingsXml(string value) =>
-            $"<RunSettings><SpecsBDD><TestStructure>{value}</TestStructure></SpecsBDD></RunSettings>";
+            $"<RunSettings><SpecsBDD><ReportingLevel>{value}</ReportingLevel></SpecsBDD></RunSettings>";
 
         [Test]
-        public void ReadRunSettings_PerDescribe_ReturnsPerDescribe()
+        public void ReadRunSettings_Feature_ReturnsFeature()
         {
-            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("PerDescribe"))).IsEqualTo(PerDescribe);
+            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("Feature"))).IsEqualTo(FeatureLevel);
         }
 
         [Test]
-        public void ReadRunSettings_PerSpec_ReturnsPerSpec()
+        public void ReadRunSettings_Test_ReturnsTest()
         {
-            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("PerSpec"))).IsEqualTo(PerSpec);
+            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("Test"))).IsEqualTo(TestLevel);
         }
 
         [Test]
         public void ReadRunSettings_IsCaseInsensitive()
         {
-            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("perdescribe"))).IsEqualTo(PerDescribe);
+            Check.That(GroupingSettings.ReadRunSettings(RunSettingsXml("Feature"))).IsEqualTo(FeatureLevel);
         }
 
         [Test]
@@ -163,28 +163,28 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void Resolve_ContextSetting_OverridesClassAssemblyAndRunSettings()
         {
-            Check.That(GroupingSettings.Resolve(contextSetting: PerSpec, classSetting: PerDescribe, assemblySetting: PerDescribe, runSettingsSetting: PerDescribe))
+            Check.That(GroupingSettings.Resolve(contextSetting: TestLevel, classSetting: FeatureLevel, assemblySetting: FeatureLevel, runSettingsSetting: FeatureLevel))
                 .IsFalse();
         }
 
         [Test]
         public void Resolve_ClassSetting_OverridesAssemblyAndRunSettings()
         {
-            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: PerDescribe, assemblySetting: PerSpec, runSettingsSetting: PerSpec))
+            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: FeatureLevel, assemblySetting: TestLevel, runSettingsSetting: TestLevel))
                 .IsTrue();
         }
 
         [Test]
         public void Resolve_AssemblySetting_OverridesRunSettings()
         {
-            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: null, assemblySetting: PerSpec, runSettingsSetting: PerDescribe))
+            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: null, assemblySetting: TestLevel, runSettingsSetting: FeatureLevel))
                 .IsFalse();
         }
 
         [Test]
         public void Resolve_RunSettings_UsedWhenNoAttributes()
         {
-            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: null, assemblySetting: null, runSettingsSetting: PerDescribe))
+            Check.That(GroupingSettings.Resolve(contextSetting: null, classSetting: null, assemblySetting: null, runSettingsSetting: FeatureLevel))
                 .IsTrue();
         }
 
@@ -210,28 +210,28 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void Resolve_Method_WithoutGroupedSetting_FallsBackToRunSettings()
         {
-            // This test assembly has no assembly-level TestStructureAttribute, so runsettings applies.
+            // This test assembly has no assembly-level ReportingLevelAttribute, so runsettings applies.
             var method = GetContextMethod<SimpleSpec>("describe_something");
-            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: PerDescribe)).IsTrue();
+            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: FeatureLevel)).IsTrue();
             Check.That(GroupingSettings.Resolve(method, runSettingsSetting: null)).IsFalse();
         }
 
         [Test]
-        public void Resolve_Method_GroupedTrue_IgnoresRunSettingsPerSpec()
+        public void Resolve_Method_GroupedTrue_IgnoresRunSettingsTest()
         {
             var method = GetContextMethod<GroupedSpec>("describe_grouped");
-            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: PerSpec)).IsTrue();
+            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: TestLevel)).IsTrue();
         }
 
         [Test]
         public void Resolve_Method_ClassAttribute_ReturnsTrue()
         {
             var method = GetContextMethod<ClassGroupedSpec>("describe_class_grouped");
-            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: PerSpec)).IsTrue();
+            Check.That(GroupingSettings.Resolve(method, runSettingsSetting: TestLevel)).IsTrue();
         }
 
         [Test]
-        public void Resolve_Method_ContextPerSpec_OverridesClassAttribute()
+        public void Resolve_Method_ContextTest_OverridesClassAttribute()
         {
             var method = GetContextMethod<ClassGroupedSpec>("describe_opt_out");
             Check.That(GroupingSettings.Resolve(method, runSettingsSetting: null)).IsFalse();

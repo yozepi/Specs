@@ -109,7 +109,7 @@ namespace specs.BDD.TestingPlatform.Execution
     }
 
     /// <summary>
-    /// Carries a grouped [Describe]'s failure summary and combined stack traces to the platform.
+    /// Carries a grouped [Feature]'s failure summary and combined stack traces to the platform.
     /// </summary>
     internal sealed class GroupedSpecsFailedException : Exception
     {

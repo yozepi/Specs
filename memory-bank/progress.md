@@ -29,11 +29,11 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ `Specifications` base class with method-based lifecycle (`BeforeAll`, `BeforeEach`, `Act`, `AfterEach`, `AfterAll` — sync + async overloads).
 - ✅ `Describe[...]`, `Context[...]`, `It[...]`, `ItAsync[...]` indexers.
 - ✅ Callback-driven nested-context scope switching.
-- ✅ `[Describe]` attribute marking feature-set methods.
+- ✅ `[Feature]` attribute marking feature-set methods.
 - ✅ 📌 Pending specs: `TODO` / `TODOAsync` placeholders, `xIt` / `xItAsync` / `xContext` / `xDescribe`.
 - ✅ 📌 Expected-exception specs: `ShouldThrow<T>()` / `ShouldThrow<T>(Action<T> verify)` (assignability match, null verifier rejected).
 - ✅ 📌 NEW `It[...]` / `ItAsync[...]` record their declaring file and line (`[CallerFilePath]` / `[CallerLineNumber]` on the indexer).
-- ✅ 📌 UPDATED `TestStructure` enum (`PerSpec` / `PerDescribe`), `DescribeAttribute.Structure` (nullable-backed) and `[TestStructure]` (assembly or class, not inherited) opt-in metadata for grouped execution — renamed from `SpecReporting` / `Reporting` / `[SpecReporting]`, which had replaced `Grouped` / `GroupSpecsByRootContext`.
+- ✅ 📌 UPDATED `ReportingLevel` enum (`Test` / `Feature`), `FeatureAttribute.Level` (nullable-backed) and `[ReportingLevel]` (assembly or class, not inherited) opt-in metadata for grouped execution — renamed from `TestStructure` / `Structure` / `[TestStructure]` (earlier `SpecReporting`).
 - ✅ `CoreBuilder` exposed to the VSTest adapter via `InternalsVisibleTo`.
 
 ### specs.BDD.VSTestAdapter
@@ -43,29 +43,29 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ **Execution**: `SpecsTestExecutor`, `TestInvoker`, `GroupedContextRunner` 📌 (VSTest result mapping), 📌 `VSTestRunListener`, `ResultReporter`; 📌 shared: `SuiteRunner`, `SelectionTreeWalker<TTest>`, `GroupedSubtreeRunner`, `SelectionLoggingAdapter<TTest>`, `SelectionTestProvider<TTest>`, `TestFinder`, `MarkerStyle`.
 - ✅ Once-per-node `BeforeAll` / `AfterAll` for arbitrary test selections.
 - ✅ 📌 Root (constructor-registered) `BeforeAll` / `AfterAll` run once per class via `TestInvoker`; a failing root `BeforeAll` fails every selected test and skips root `AfterAll`.
-- ✅ 📌 Grouped root-context execution: one `TestCase` / `TestResult` per opted-in `[Describe]`, NSpec-style tree + failure list in the result output, precedence method → class → assembly → `.runsettings` → `PerSpec`.
+- ✅ 📌 Grouped root-context execution: one `TestCase` / `TestResult` per opted-in `[Feature]`, NSpec-style tree + failure list in the result output, precedence method → class → assembly → `.runsettings` → `Test`.
 - ✅ 📌 Grouped report formatting: host-aware markers (ANSI / emoji in Visual Studio / plain) and optional per-`It` source locations.
-- ✅ 📌 `.runsettings` support (`<SpecsBDD>` `TestStructure` 📌, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
-- ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property (📌 `Namespace › Class › [Describe]`); display names embed the context path for VS Code 📌.
-- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), 📌 then the declared `It[...]` line (`SpecTest.DeclaredLocation` — covers `TODO` and parameterless `ShouldThrow<T>()`), falling back to the `[Describe]` method.
-- ✅ 📌 UPDATED `FullyQualifiedName` = `Class.DescribeMethod` (shared per `[Describe]`; was `Class::Method::ContextPath::Description`) with a deterministic per-spec `TestCase.Id` and RFC-0017 `ManagedType` / `ManagedMethod`, so IDEs attach CodeLens to `[Describe]` methods.
+- ✅ 📌 `.runsettings` support (`<SpecsBDD>` `ReportingLevel` 📌, `ShowSourceLocations`, `ColorOutput`) honoured in discovery, execution, and `RunTests(sources)` re-discovery.
+- ✅ Test Explorer tree nesting via the RFC-0033 `TestCase.Hierarchy` property (📌 `Namespace › Class › [Feature]`); display names embed the context path for VS Code 📌.
+- ✅ Source navigation to the `It[...]` line via portable PDB (📌 including `ItAsync[...]` via state-machine `MoveNext`, and 📌 `ShouldThrow<T>(verify)` via the verifier lambda), 📌 then the declared `It[...]` line (`SpecTest.DeclaredLocation` — covers `TODO` and parameterless `ShouldThrow<T>()`), falling back to the `[Feature]` method.
+- ✅ 📌 UPDATED `FullyQualifiedName` = `Class.DescribeMethod` (shared per `[Feature]`; was `Class::Method::ContextPath::Description`) with a deterministic per-spec `TestCase.Id` and RFC-0017 `ManagedType` / `ManagedMethod`, so IDEs attach CodeLens to `[Feature]` methods.
 - ✅ 📌 `dotnet test --filter` honoured in `RunTests(sources)` on `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, `IsPending`; invalid expressions reported as errors.
 - ✅ 📌 Pending specs reported as Skipped (`Pending`) with no lifecycle; pending-only contexts (and the root, when nothing runnable is selected) skip `BeforeAll` / `AfterAll`; grouped reports show `○ ... - PENDING` and an all-pending grouped context is Skipped.
 - ✅ 📌 `Act` + `It` run through `ActExceptionContext.Run` in `TestInvoker.RunLifecycle` and `GroupedContextRunner.RunTest` (as in `TestCaseExecutor`), so `ShouldThrow` and `Act`-failure semantics match across all modes.
 - ✅ Cancellation flowing from `ITestExecutor.Cancel()` into `TestCaseExecutor`.
-- ✅ `InvalidSpecificationException` surfaced when a suite has no `[Describe]` methods.
+- ✅ `InvalidSpecificationException` surfaced when a suite has no `[Feature]` methods.
 - ✅ Stale/unreachable tests reported as explicit failures instead of "not run".
 
 ### 📌 NEW — specs.BDD.TestingPlatform (Microsoft.Testing.Platform 2.5.1)
 
 - ✅ `AddSpecsBDD()` + MSBuild `TestingPlatformBuilderHook` auto-registration; tree-node filter service registered.
-- ✅ Discovery as a `namespace → class → [Describe] → context → spec` tree; grouped `[Describe]`s as single leaves; pending flags; source locations on groups and leaves.
+- ✅ Discovery as a `namespace → class → [Feature] → context → spec` tree; grouped `[Feature]`s as single leaves; pending flags; source locations on groups and leaves.
 - ✅ Tree-path UIDs with `%` / `/` escaping; `--treenode-filter`, UID lists (group selects subtree; empty list selects all for IDEs), composite filters.
 - ✅ 📌 Leaf locations fall back to the declared `It[...]` line (`SourceLocationReader.TryGetTestLocation`), also used by grouped-report location lines in both runners.
-- ✅ 📌 NEW `TestMethodIdentifierProperty.MethodName` is the `[Describe]` method's real name (`SpecNode.Method`), so IDEs resolve the method symbol.
+- ✅ 📌 NEW `TestMethodIdentifierProperty.MethodName` is the `[Feature]` method's real name (`SpecNode.Method`), so IDEs resolve the method symbol.
 - ✅ IDE mode (group nodes + method identifier + path display names) vs console mode (full-path names + indented tree report for `--list-tests` and runs).
 - ✅ Execution through the shared `SuiteRunner`: identical lifecycle, pending, grouped, and `ShouldThrow` semantics; grouped reports as `StandardOutputProperty`.
-- ✅ `SpecsBDD:TestStructure` / `ShowSourceLocations` / `ColorOutput` from `testconfig.json` or environment variables.
+- ✅ `SpecsBDD:ReportingLevel` / `ShowSourceLocations` / `ColorOutput` from `testconfig.json` or environment variables.
 - ✅ Same integration specs, same totals as VSTest (34 / 29 / 5).
 - ✅ `build/specs.BDD.TestingPlatform.props` is no longer gitignored (`src/.gitignore` deleted), so it ships with the runner.
 
@@ -103,10 +103,10 @@ Decisions #34–35 in `systemPatterns.md`.
 
 ### Testing
 
-- ✅ `specs.core.UnitTests` — 📌 340 results, written in Specs itself (`Specifications` + `[Describe]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs, 📌 plus `ContextualTestCaseBuilder` "Test Locations" specs.
-- ✅ `specs.BDD.UnitTests` — 📌 149 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `DescribeAttribute`.
+- ✅ `specs.core.UnitTests` — 📌 340 results, written in Specs itself (`Specifications` + `[Feature]`) and run by `specs.BDD.VSTestAdapter`; the `TestContextAdapter_Tests` suite runs grouped (27 `It`s → 1 result). Includes `ActExceptionContext_Tests`, `ActExceptionAssertions_Tests`, and `TestContextAdapter.FromTestCase` / `TestCaseExecutor` constructor-validation specs, 📌 plus `ContextualTestCaseBuilder` "Test Locations" specs.
+- ✅ `specs.BDD.UnitTests` — 📌 149 results, now written in Specs itself (was 5 NUnit wrappers over nspec); covers `Specifications` (incl. pending syntax and `ShouldThrow`), `ContextBuilder`, `AssertBuilder` / `AssertBuilderAsync`, and `FeatureAttribute`.
 - ✅ `specs.BDD.VSTestAdapter.Tests` — 📌 277 results across Discovery / Conversion / Execution (incl. `GroupingSettings_Tests`, `GroupedContextRunner_Tests`, root-lifecycle `TestInvoker_Tests`, `SpecsTestExecutor_Tests` filter coverage, 📌 pending coverage, 📌 `ShouldThrowSpec` / `GroupedShouldThrowSpec` coverage, using Moq); 8 are pending fixture specs reported as Skipped.
-- ✅ `specs.BDD.IntegrationTests` (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) — 📌 34 end-to-end results (`CalculatorSpecs` — 📌 class-level `PerSpec` with a grouped `Subtraction` describe and a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and `ShouldThrow`; 5 pending specs Skipped.
+- ✅ `specs.BDD.IntegrationTests` (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) — 📌 34 end-to-end results (`CalculatorSpecs` — 📌 class-level `Test` with a grouped `Subtraction` describe and a constructor `BeforeAll`, `StringSpecs`, `AsyncAndExceptionSpecs`, `PendingSpecs`) through the real VSTest pipeline, asserting with NFluent and `ShouldThrow`; 5 pending specs Skipped.
 - ✅ All 📌 800 VSTest results green (787 passed, 13 pending skipped); build is clean.
 - ✅ 📌 NEW — MTP: `specs.BDD.TestingPlatform.Tests` 📌 70 NUnit-on-MTP tests + `specs.BDD.TestingPlatform.IntegrationTests` 34 results — 📌 104 total (99 passed, 5 pending skipped).
 
@@ -131,9 +131,10 @@ flowchart TD
     P14["Phase 14<br/>MTP runner + shared core"]:::app
     P15["Phase 15<br/>Declared It locations"]:::app
     P16["Phase 16<br/>Describe method identity"]:::app
+    P17["Phase 17<br/>Feature / ReportingLevel rename"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16 --> P17
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -153,7 +154,7 @@ Method-based API with indexer-driven `Describe` / `Context` / `It`, callback-dri
 
 ### Phase 4 — VSTest adapter
 
-`specs.BDD.VSTestAdapter` added discovery (`ITestDiscoverer`) and execution (`ITestExecutor`) of Specs from Test Explorer, `dotnet test`, and any other VSTest host. `[Describe]` attribute introduced; PDB-based source navigation added.
+`specs.BDD.VSTestAdapter` added discovery (`ITestDiscoverer`) and execution (`ITestExecutor`) of Specs from Test Explorer, `dotnet test`, and any other VSTest host. `[Feature]` attribute introduced; PDB-based source navigation added.
 
 ### Phase 5 — Executor consolidation (Feb 2026)
 
@@ -165,17 +166,17 @@ Six core memory-bank files regenerated to reflect the third deliverable, current
 
 ### Phase 7 — Suite tree + selection walk (Oct 2026)
 
-`SuiteTreeBuilder` became the single source of truth for tree construction, registering `[Describe]` methods as named child contexts. `SelectionTreeWalker` fires `OwnSetupOnce` / `OwnTeardownOnce` exactly once per live node, fixing `BeforeAll` / `AfterAll` semantics for partial test selections. `ITestCase` gained `OwnSetupOnce` / `OwnTeardownOnce`; `TestCaseExecutorSettings.IsCancelled` was replaced by a `CancellationToken` parameter on `ProcessTestCase`. Test Explorer gained real tree nesting (RFC-0033 `TestCase.Hierarchy`) and `It[...]`-precise source navigation.
+`SuiteTreeBuilder` became the single source of truth for tree construction, registering `[Feature]` methods as named child contexts. `SelectionTreeWalker` fires `OwnSetupOnce` / `OwnTeardownOnce` exactly once per live node, fixing `BeforeAll` / `AfterAll` semantics for partial test selections. `ITestCase` gained `OwnSetupOnce` / `OwnTeardownOnce`; `TestCaseExecutorSettings.IsCancelled` was replaced by a `CancellationToken` parameter on `ProcessTestCase`. Test Explorer gained real tree nesting (RFC-0033 `TestCase.Hierarchy`) and `It[...]`-precise source navigation.
 
 > **📌 See**: `systemPatterns.md` section "Once-Per-Node Lifecycle (selection-tree walk)" for BEFORE/AFTER diagrams.
 
 ### Phase 8 — Self-hosting core tests (Oct 2026)
 
-`specs.core.UnitTests` migrated off NUnit fixtures onto `Specifications` + `[Describe]`. `NUnit3TestAdapter` and `NUnit.Analyzers` removed; the project now references `specs.BDD.VSTestAdapter` and its tests are discovered and run by Specs itself.
+`specs.core.UnitTests` migrated off NUnit fixtures onto `Specifications` + `[Feature]`. `NUnit3TestAdapter` and `NUnit.Analyzers` removed; the project now references `specs.BDD.VSTestAdapter` and its tests are discovered and run by Specs itself.
 
 ### Phase 9 — Grouped root-context execution (Oct 2026)
 
-Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method::[grouped]`) executed by `GroupedContextRunner` into one `TestResult` carrying an NSpec-style tree report. Configuration is layered via `DescribeAttribute.Grouped` (tri-state), `[assembly: GroupSpecsByRootContext]`, and `<SpecsBDD><GroupByRootContext>` in `.runsettings` (all renamed in Phase 10), resolved by `GroupingSettings` at discovery. `TestInvoker` routes grouped and per-`It` cases over a single shared suite tree. Display names now embed the context path for VS Code. Integration tests moved to NFluent and gained `GroupedCalculatorSpecs`.
+Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::[grouped]`) executed by `GroupedContextRunner` into one `TestResult` carrying an NSpec-style tree report. Configuration is layered via `FeatureAttribute.Grouped` (tri-state), `[assembly: GroupSpecsByRootContext]`, and `<SpecsBDD><GroupByRootContext>` in `.runsettings` (all renamed in Phase 10), resolved by `GroupingSettings` at discovery. `TestInvoker` routes grouped and per-`It` cases over a single shared suite tree. Display names now embed the context path for VS Code. Integration tests moved to NFluent and gained `GroupedCalculatorSpecs`.
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution".
 
@@ -225,10 +226,10 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 > **📌 See**: `systemPatterns.md` section "Adapter Pattern — Framework independence" and decision #29.
 
-#### 📌 NEW — Follow-up — `[Context]` → `[Describe]` attribute rename (Oct 2026)
+#### 📌 NEW — Follow-up — `[Context]` → `[Feature]` attribute rename (Oct 2026)
 
-- **Breaking API rename**: `specs.BDD.Attributes.ContextAttribute` → `DescribeAttribute` (file and `DescribeAttribute_Tests` renamed; members unchanged). `Context[...]` / `xContext` indexers are not affected.
-- Adapter scanners (`ContextMethodScanner`, `TestStructureExtractor`, `GroupingSettings`), XML docs, the `InvalidSpecificationException` message ("at least one [Describe] method"), integration fixtures, adapter/unit tests, and `README.md` updated.
+- **Breaking API rename**: `specs.BDD.Attributes.ContextAttribute` → `FeatureAttribute` (file and `FeatureAttribute_Tests` renamed; members unchanged). `Context[...]` / `xContext` indexers are not affected.
+- Adapter scanners (`ContextMethodScanner`, `ReportingLevelExtractor`, `GroupingSettings`), XML docs, the `InvalidSpecificationException` message ("at least one [Feature] method"), integration fixtures, adapter/unit tests, and `README.md` updated.
 - Memory bank: all `[Context]` / `ContextAttribute` references renamed.
 
 > **📌 See**: `systemPatterns.md` decision #30.
@@ -244,9 +245,9 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 #### 📌 NEW — Follow-up — `src/` + `tests/` split, BDD self-hosting, `TestHarness` retired (Oct 2026)
 
 - **Layout**: `src/Specs.sln` → `Specs.sln`; four test projects moved to `tests/` (`specs.specification.UnitTests` folder → `specs.BDD.UnitTests`); `.vscode` tasks / launch / settings, `.clinerules`, and `README.md` updated; `watch` task and TestHarness launch config dropped.
-- **Self-hosting**: `specs.BDD.UnitTests` rewritten from nspec syntax on `nSpecTestHarness` to `Specifications` + `[Describe]`; files/classes renamed `<Type>_Tests` (also `TestContextAdapter_Tests` in core).
+- **Self-hosting**: `specs.BDD.UnitTests` rewritten from nspec syntax on `nSpecTestHarness` to `Specifications` + `[Feature]`; files/classes renamed `<Type>_Tests` (also `TestContextAdapter_Tests` in core).
 - **Removed**: `TestHarness` project (`nspec 3.1.0`); every NUnit reference outside the adapter tests (global `Using`, stray `using`s, `AssertionException` in `TestCaseExecutor_Tests`).
-- **Integration**: `CalculatorSpecs` class-level `PerDescribe` → `PerSpec`.
+- **Integration**: `CalculatorSpecs` class-level `Feature` → `Test`.
 - **Tests**: BDD 5 → 147, integration 28 → 34; solution 638 → 786 results; 8 → 7 projects.
 
 > **📌 See**: `systemPatterns.md` section "Test Hosting" and decision #33.
@@ -267,7 +268,7 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 
 - **New deliverable**: `specs.BDD.TestingPlatform` (MTP 2.5.1) — tree-path test IDs, `--treenode-filter`, full IDE tree, console tree report, `testconfig.json` settings.
 - **Refactor**: runner-agnostic discovery/execution moved from the VSTest adapter into `src/shared/specs.BDD.Runner/` (linked source). New `SuiteRunner`, `GroupedSubtreeRunner` / `GroupedReport`, `ISpecRunListener<TTest>`; `VSTestLoggingAdapter` / `VSTestTestProvider` → generic `SelectionLoggingAdapter` / `SelectionTestProvider`; `ContextPathFormat` now `internal`.
-- **VSTest behaviour change**: `Hierarchy[3]` = `[Describe]` (was the full context path); display names unchanged in content.
+- **VSTest behaviour change**: `Hierarchy[3]` = `[Feature]` (was the full context path); display names unchanged in content.
 - **Rename**: `specs.BDD.VSTestAdapter.IntegrationTests` → `specs.BDD.IntegrationTests`.
 - **Tests**: adapter 272 → 273; new MTP suite (69 + 34); CI/release run `tests/mtp/Specs.Mtp.slnx` in MTP mode.
 - **Docs**: README "Running on Microsoft.Testing.Platform".
@@ -277,20 +278,29 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 ### 📌 NEW — Phase 15 — Declared `It[...]` locations (Nov 2026, staged)
 
 - **Feature**: `It` / `ItAsync` indexers capture `[CallerFilePath]` / `[CallerLineNumber]`; `specs.core` stores them via `AddTestLocation` → `ITestCase.TestLocations`.
-- **Navigation**: body PDB → declared `It[...]` line → `[Describe]` method in both runners and in grouped-report location lines. `TODO` / `TODOAsync` and parameterless `ShouldThrow<T>()` specs now land on their own line.
+- **Navigation**: body PDB → declared `It[...]` line → `[Feature]` method in both runners and in grouped-report location lines. `TODO` / `TODOAsync` and parameterless `ShouldThrow<T>()` specs now land on their own line.
 - **Tooling**: `.vscode/settings.json` `dotnet.defaultSolution` → `Specs.sln`.
 - **Tests**: core 333 → 340, BDD 147 → 149, adapter 273 → 276, MTP unit 69 → 70. VSTest 799 results (786 passed, 13 skipped); MTP 104 (99 passed, 5 skipped).
 
 > **📌 See**: `systemPatterns.md` section "Declared-location fallback" and decision #42.
 
-### 📌 NEW — Phase 16 — `[Describe]` method identity for IDE symbols (Nov 2026, staged)
+### 📌 NEW — Phase 16 — `[Feature]` method identity for IDE symbols (Nov 2026, staged)
 
-- **VSTest**: FQN `Class::Method::ContextPath::Description` → `Class.DescribeMethod` (grouped records too); new deterministic `TestCase.Id` (SHA-256 of source + old unique name); RFC-0017 `TestCase.ManagedType` / `ManagedMethod` set from the spec class and `[Describe]` method.
-- **MTP**: `SpecNode.Method` records the `[Describe]` `MethodInfo`; `TestMethodIdentifierProperty.MethodName` uses its name (e.g. `describe_cart`, was the description `Cart`).
-- **Effect**: CodeLens / symbol navigation on `[Describe]` methods; Visual Studio lists specs as rows of their method. **Breaking** for `--filter FullyQualifiedName~<context/spec text>`.
+- **VSTest**: FQN `Class::Method::ContextPath::Description` → `Class.DescribeMethod` (grouped records too); new deterministic `TestCase.Id` (SHA-256 of source + old unique name); RFC-0017 `TestCase.ManagedType` / `ManagedMethod` set from the spec class and `[Feature]` method.
+- **MTP**: `SpecNode.Method` records the `[Feature]` `MethodInfo`; `TestMethodIdentifierProperty.MethodName` uses its name (e.g. `describe_cart`, was the description `Cart`).
+- **Effect**: CodeLens / symbol navigation on `[Feature]` methods; Visual Studio lists specs as rows of their method. **Breaking** for `--filter FullyQualifiedName~<context/spec text>`.
 - **Tests**: adapter 276 → 277 (FQN tests replaced by method-level FQN, shared-FQN, unique / deterministic `Id`, managed-name tests); MTP identifier tests renamed. VSTest 800 results (787 passed, 13 skipped).
 
-> **📌 See**: `systemPatterns.md` section "`[Describe]` method identity (CodeLens / symbol navigation)" and decision #43.
+> **📌 See**: `systemPatterns.md` section "`[Feature]` method identity (CodeLens / symbol navigation)" and decision #43.
+
+### 📌 NEW — Phase 17 — `[Describe]` → `[Feature]` and `TestStructure` → `ReportingLevel` (Nov 2026, commit `ed6392f`)
+
+- **Breaking API rename**: `[Describe]` / `DescribeAttribute` → `[Feature]` / `FeatureAttribute` (the old name collided with the `Describe[...]` indexer, which stays); `TestStructure` (`PerSpec` / `PerDescribe`) → `ReportingLevel` (`Test` / `Feature`) in its own `Attributes/ReportingLevel.cs`; `[TestStructure]` → `[ReportingLevel]`; `Structure` / `StructureSetting` → `Level` / `LevelSetting`.
+- **Config keys**: `.runsettings` `<SpecsBDD><TestStructure>` → `<ReportingLevel>`; MTP `SpecsBDD__ReportingLevel`. The old keys are no longer read.
+- **Diagnostics**: `InvalidSpecificationException` now reports a missing `[Feature]`.
+- **Scope**: 64 files, pure rename — no behaviour or count change (`DescribeAttribute_Tests` → `FeatureAttribute_Tests`). Older entries below keep the historical names where they describe the rename itself; elsewhere this memory bank uses the new names.
+
+> **📌 See**: `systemPatterns.md` decision #44; `techContext.md` "Adapter Configuration" / "MTP Runner Configuration".
 
 ## Known Limitations
 
@@ -302,26 +312,26 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | Discovery materializes the full test tree | Slightly heavier than attribute-only discovery, but enables full `It[...]` granularity | Acceptable; the tree is built once per class per run |
 | `" → "` is a reserved sequence in context descriptions | A description containing it corrupts `ContextPath` parsing | Avoid the character; 📌 `ContextPathFormat.Separator` is settable if a project must change it |
 | `AfterAll` failures are swallowed by the selection walker, the grouped runner, and the root teardown in `TestInvoker` | A broken teardown is invisible rather than masking real test failures | Open question — may surface as a run-level warning |
-| 📌 Grouped mode is root-`[Describe]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
-| 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20, 📌 reversed to 34 when `CalculatorSpecs` went back to `PerSpec`); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
+| 📌 Grouped mode is root-`[Feature]`-only | Nested `Describe`/`Context` blocks cannot be grouped independently | Root-only by design for now; see `activeContext.md` open question #6 |
+| 📌 A grouped context counts as **one** test in VSTest totals | Headline pass/fail counts drop when suites opt in (core suite: 315 → 289; integration: 28 → 20, 📌 reversed to 34 when `CalculatorSpecs` went back to `Test`); inner tally is only in the result output | Keep grouped mode opt-in; consider surfacing the tally |
 | 📌 Marker style detection relies on `VSAPPIDNAME` | Other hosts that cannot render ANSI show raw escapes | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` |
 | 📌 Pending specs are honoured only by the VSTest adapter | `TestCaseExecutor` used directly still runs pending bodies | Use the adapter; see `activeContext.md` open question #9 |
 | 📌 No `ShouldThrowAsync` | `ShouldThrow` returns `Action`, so it cannot be assigned to `ItAsync[...]` | By design — the `Act` exception is already captured; use `It[...]` |
-| 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Describe]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | 📌 RESOLVED — falls back to the declared `It[...]` line (decision #42) |
+| 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Feature]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | 📌 RESOLVED — falls back to the declared `It[...]` line (decision #42) |
 | 📌 Legacy `Spec` API removed | Downstream code on `Spec` must migrate | See `architecture.md` "Migration Strategy" |
 | 📌 NEW — Not yet published to nuget.org | Consumers must use project references or locally packed `0.0.0-alpha.*` packages | Push the first `v*` tag once the trust policy and `NUGET_USER` secret exist |
 | 📌 NEW — Packages carry no `Description` / `PackageTags` / readme | nuget.org listing would be bare | Add per-package metadata to each deliverable `.csproj` (📌 done for `specs.BDD.TestingPlatform` only) |
-| 📌 NEW — VSTest Test Explorer nests only to the `[Describe]`; MTP in Visual Studio likewise | Context levels appear in the test name, not as tree nodes | VS Code + MTP shows the same; the full tree is available to MTP clients that honour group nodes and in console output |
+| 📌 NEW — VSTest Test Explorer nests only to the `[Feature]`; MTP in Visual Studio likewise | Context levels appear in the test name, not as tree nodes | VS Code + MTP shows the same; the full tree is available to MTP clients that honour group nodes and in console output |
 | 📌 NEW — MTP runner supports only discover / run requests and UID, tree-node, composite, and nop filters | Other request or filter types throw `NotSupportedException` | Use `--treenode-filter`; `--filter` is VSTest-only |
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
 | 📌 NEW — `Specs.Mtp.slnx` moved to the repo root but CI references were not updated | `.github/workflows/ci.yml` and `release.yml` still run `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp` (📌 `.vscode/settings.json` now points at `Specs.sln`) | Run `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` (verified locally); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
-| 📌 NEW — VSTest FQN is shared by every spec of a `[Describe]` | `--filter FullyQualifiedName~` can no longer target a context or spec by text; tools keyed on FQN see duplicates | Filter with `ContextPath` / `TestDescription` / `DisplayName`; key on `TestCase.Id` (decision #43) |
+| 📌 NEW — VSTest FQN is shared by every spec of a `[Feature]` | `--filter FullyQualifiedName~` can no longer target a context or spec by text; tools keyed on FQN see duplicates | Filter with `ContextPath` / `TestDescription` / `DisplayName`; key on `TestCase.Id` (decision #43) |
 
 ## Future Enhancements (Not Committed)
 
 - Parallel test execution within a suite.
 - Data-driven specifications.
-- Roslyn analyzers for common authoring mistakes (missing `[Describe]`, etc.).
+- Roslyn analyzers for common authoring mistakes (missing `[Feature]`, etc.).
 - `dotnet new` templates.
 - Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package. 📌 Release pipeline in place; the first tagged release is still pending.
 - ~~Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.~~ 📌 DONE.
@@ -356,4 +366,4 @@ Opt-in grouped mode: a root `[Describe]` becomes one `TestCase` (`Class::Method:
 | Examples | 📌 `ConsoleExample` removed |
 | Memory bank | ✅ Refreshed October 2026 |
 
-Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with a single method-based API, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Describe]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core and authoring API that test themselves.
+Specs now offers a complete, IDE-integrated, hierarchical BDD testing experience with a single method-based API, comprehensive async support, correct once-per-context lifecycle for partial test runs (including class-level `BeforeAll` / `AfterAll`), opt-in grouped reporting per root `[Feature]` configurable at method, class, assembly, or run level, pending specs that stay visible without running, `ShouldThrow<T>` expected-exception specs with `Act` failures isolated to their own spec, and a framework-agnostic core and authoring API that test themselves.

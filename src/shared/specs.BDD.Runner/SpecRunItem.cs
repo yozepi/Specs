@@ -21,15 +21,15 @@ namespace specs.BDD.Runner
         public TTest Test { get; }
 
         /// <summary>
-        /// Context descriptions from the [Describe] down, joined with <see cref="ContextPathFormat.Separator"/>;
-        /// for grouped items, the [Describe] description only.
+        /// Context descriptions from the [Feature] down, joined with <see cref="ContextPathFormat.Separator"/>;
+        /// for grouped items, the [Feature] description only.
         /// </summary>
         public string ContextPath { get; }
 
         /// <summary>The It[...] description; empty for grouped items.</summary>
         public string TestDescription { get; }
 
-        /// <summary>Whether the item runs a whole [Describe] subtree as one result.</summary>
+        /// <summary>Whether the item runs a whole [Feature] subtree as one result.</summary>
         public bool IsGrouped { get; }
     }
 }

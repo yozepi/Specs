@@ -11,7 +11,7 @@ namespace specs.BDD.Runner
     /// Runs the selected tests of one specification class against its built suite tree.
     /// </summary>
     /// <remarks>
-    /// Grouped items run their whole [Describe] subtree as one result; pending items are
+    /// Grouped items run their whole [Feature] subtree as one result; pending items are
     /// reported up front and never touch any lifecycle; the rest go through the
     /// <see cref="SelectionTreeWalker{TTest}"/>. The root BeforeAll/AfterAll (spec constructor)
     /// run once per class, and only when at least one selected spec will actually execute.

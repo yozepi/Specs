@@ -14,7 +14,7 @@ namespace specs.BDD.UnitTests
         private static int CurrentLine([CallerLineNumber] int line = 0) => line;
         private static string CurrentFile([CallerFilePath] string path = "") => path;
 
-        [Describe]
+        [Feature]
         public void Specifications()
         {
             Describe["Specifications base class"] = () =>
@@ -510,8 +510,8 @@ namespace specs.BDD.UnitTests
         // Helper class to test inheritance
         private class TestSpecification : BDD.Specifications
         {
-            // Discovered by the Specs adapter; an empty [Describe] avoids the "no [Describe] method" warning.
-            [Describe]
+            // Discovered by the Specs adapter; an empty [Feature] avoids the "no [Feature] method" warning.
+            [Feature]
             public void Empty() { }
         }
     }

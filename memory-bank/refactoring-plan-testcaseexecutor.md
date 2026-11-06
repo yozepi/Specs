@@ -7,13 +7,13 @@
 
 ## Background
 
-`TestCaseExecutor` (in `specs.core`) provides a well-designed, adapter-pattern-based test lifecycle executor. Currently, `TestInvoker` (in the VSTest adapter) reimplements the same lifecycle logic manually. Both `TestStructureExtractor` (discovery) and `TestInvoker` (execution) also use reflection to access the private `coreBuilder` field, when `Specifications` already exposes `CoreBuilder` as `internal protected` — accessible via `InternalsVisibleTo`.
+`TestCaseExecutor` (in `specs.core`) provides a well-designed, adapter-pattern-based test lifecycle executor. Currently, `TestInvoker` (in the VSTest adapter) reimplements the same lifecycle logic manually. Both `ReportingLevelExtractor` (discovery) and `TestInvoker` (execution) also use reflection to access the private `coreBuilder` field, when `Specifications` already exposes `CoreBuilder` as `internal protected` — accessible via `InternalsVisibleTo`.
 
 ---
 
-## Phase 1: Discovery Cleanup — Remove Reflection from TestStructureExtractor ✅
+## Phase 1: Discovery Cleanup — Remove Reflection from ReportingLevelExtractor ✅
 
-- [x] **File:** `src/specs.BDD.VSTestAdapter/Discovery/TestStructureExtractor.cs`
+- [x] **File:** `src/specs.BDD.VSTestAdapter/Discovery/ReportingLevelExtractor.cs`
   1. Remove the `CoreBuilderField` static field (reflection handle)
   2. Replace `CoreBuilderField.GetValue(instance) as IContextualTestCaseBuilder` with `instance.CoreBuilder`
   3. Remove the null-check/exception for `CoreBuilderField == null`
@@ -32,7 +32,7 @@ var builder = CoreBuilderField.GetValue(instance) as IContextualTestCaseBuilder 
 var builder = instance.CoreBuilder ?? throw new InvalidOperationException("CoreBuilder is null...");
 ```
 
-**Tests:** `TestStructureExtractor_Tests` should pass unchanged.
+**Tests:** `ReportingLevelExtractor_Tests` should pass unchanged.
 
 ---
 
@@ -94,7 +94,7 @@ Added to `TestCaseExecutorSettings` as `Func<bool>? IsCancelled` — checked bef
 
 | File | Action |
 |---|---|
-| `Discovery/TestStructureExtractor.cs` | Modified — remove reflection |
+| `Discovery/ReportingLevelExtractor.cs` | Modified — remove reflection |
 | `Execution/TestInvoker.cs` | Modified — remove reflection + use TestCaseExecutor |
 | `TestExecutors/TestCaseExecutorSettings.cs` | Modified — add cancellation |
 | `TestExecutors/TestCaseExecutor.cs` | Modified — check cancellation |

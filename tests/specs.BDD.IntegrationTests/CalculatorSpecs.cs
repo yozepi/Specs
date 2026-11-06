@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ namespace specs.BDD.IntegrationTests;
 /// Integration specs for Calculator — demonstrates multi-context discovery
 /// and hierarchical test execution via the specs.BDD.VSTestAdapter.
 /// </summary>
-[TestStructure(TestStructure.PerSpec)]
+[ReportingLevel(ReportingLevel.Test)]
 public class CalculatorSpecs : Specifications
 {
     Calculator calculator = null!;
@@ -30,7 +30,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 1: Addition ──────────────────────────────────────────────────
 
-    [Describe("Addition")]
+    [Feature("Addition")]
     public void describe_addition()
     {
         Act(() => { result = calculator.Add(num1, num2); });
@@ -66,7 +66,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 2: Division ─────────────────────────────────────────────────
 
-    [Describe("Division")]
+    [Feature("Division")]
     public void describe_division()
     {
         Act(() => { result = calculator.Divide(num1, num2); });
@@ -94,7 +94,7 @@ public class CalculatorSpecs : Specifications
 
     // ─── Context 3: Multiply (nested contexts) ────────────────────────────────
 
-    [Describe("Multiplication")]
+    [Feature("Multiplication")]
     public void describe_multiplication()
     { 
         Act(() => { result = calculator.Multiply(num1, num2); });
@@ -133,7 +133,7 @@ public class CalculatorSpecs : Specifications
         };
     }
     
-    [Describe("Subtraction (grouped)", Structure = TestStructure.PerDescribe)]
+    [Feature("Subtraction (grouped)", Level = ReportingLevel.Feature)]
     public void describe_subtraction()
     {
         Act(() => { result = calculator.Subtract(num1, num2); });

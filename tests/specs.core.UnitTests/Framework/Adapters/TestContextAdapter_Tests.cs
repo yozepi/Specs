@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using NFluent;
 using specs.core.Framework.Adapters;
 using specs.core.Framework.Processors.TestCases;
@@ -9,7 +9,7 @@ namespace specs.core.UnitTests.Framework.Adapters
 {
     public class TestContextAdapter_Tests : Specifications
     {
-        [Describe(Structure = TestStructure.PerDescribe)]
+        [Feature(Level = ReportingLevel.Feature)]
         public void TestContextAdapter()
         {
             core.Framework.Adapters.TestContextAdapter subject = null!;

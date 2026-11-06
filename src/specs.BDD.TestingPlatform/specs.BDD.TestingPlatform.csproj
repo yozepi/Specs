@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <!-- MTP's TestNode uses required members (C# 11). -->
     <LangVersion>12</LangVersion>
-    <Description>Microsoft.Testing.Platform runner for Specs: discovers and runs Specifications-based specs as a fully nested tree (namespace, class, [Describe], contexts, specs) in Visual Studio, VS Code, and dotnet test, with --treenode-filter support and optional grouped execution.</Description>
+    <Description>Microsoft.Testing.Platform runner for Specs: discovers and runs Specifications-based specs as a fully nested tree (namespace, class, [Feature], contexts, specs) in Visual Studio, VS Code, and dotnet test, with --treenode-filter support and optional grouped execution.</Description>
     <PackageTags>$(PackageTags);mtp;microsoft-testing-platform;test-explorer;dotnet-test</PackageTags>
     <!-- TreeNodeFilter and IClientInfo are experimental MTP APIs. -->
     <NoWarn>$(NoWarn);TPEXP</NoWarn>

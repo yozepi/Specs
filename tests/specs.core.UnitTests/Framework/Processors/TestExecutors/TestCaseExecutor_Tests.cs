@@ -1,4 +1,4 @@
-﻿using Autofac.Extras.Moq;
+using Autofac.Extras.Moq;
 using Moq;
 using NFluent;
 using specs.core.Framework.Adapters;
@@ -12,7 +12,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
     public class TestCaseExecutor_Tests : Specifications
     {
 
-        [Describe]
+        [Feature]
         public void TestCaseExecutor_Specs()
         {
             TestCaseExecutor subject = null!;

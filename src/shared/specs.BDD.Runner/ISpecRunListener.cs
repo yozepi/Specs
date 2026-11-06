@@ -21,7 +21,7 @@ namespace specs.BDD.Runner
         /// <summary>The test is pending and was not run.</summary>
         void Pending(TTest test, DateTimeOffset startTime, TimeSpan duration);
 
-        /// <summary>A grouped [Describe] finished running as a single unit.</summary>
+        /// <summary>A grouped [Feature] finished running as a single unit.</summary>
         void GroupedCompleted(TTest test, GroupedReport report, DateTimeOffset startTime, TimeSpan duration);
 
         /// <summary>An informational message from the core executor.</summary>

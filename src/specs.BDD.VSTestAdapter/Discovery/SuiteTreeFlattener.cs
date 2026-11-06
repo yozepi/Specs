@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using specs.BDD.Attributes;
@@ -22,20 +22,20 @@ namespace specs.BDD.VSTestAdapter.Discovery
         /// </summary>
         /// <param name="specClass">The specification class to extract tests from.</param>
         /// <param name="runSettingsGrouping">
-        /// The .runsettings <c>TestStructure</c> value, or <c>null</c> when not configured.
+        /// The .runsettings <c>ReportingLevel</c> value, or <c>null</c> when not configured.
         /// </param>
         /// <returns>A flat enumerable of all discovered tests.</returns>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the specification class cannot be instantiated.
         /// </exception>
-        public static IEnumerable<SpecTest> Flatten(Type specClass, TestStructure? runSettingsGrouping = null)
+        public static IEnumerable<SpecTest> Flatten(Type specClass, ReportingLevel? runSettingsGrouping = null)
         {
-            // Build name → MethodInfo lookup so each SpecTest knows which [Describe] method
+            // Build name → MethodInfo lookup so each SpecTest knows which [Feature] method
             // it belongs to (used for source-location navigation in Test Explorer).
             var methodByContextName = new Dictionary<string, MethodInfo>(StringComparer.Ordinal);
             foreach (var m in ContextMethodScanner.FindContextMethods(specClass))
             {
-                var attr = m.GetCustomAttribute<DescribeAttribute>();
+                var attr = m.GetCustomAttribute<FeatureAttribute>();
                 var name = !string.IsNullOrWhiteSpace(attr?.Description)
                     ? attr!.Description!
                     : m.Name;
@@ -45,7 +45,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             var root = SuiteTreeBuilder.BuildSuite(specClass);
 
             // The root node represents the class level. Its immediate children are the
-            // [Describe] method contexts, so each child's description IS the root path.
+            // [Feature] method contexts, so each child's description IS the root path.
             foreach (var child in root.ChildContexts)
             {
                 methodByContextName.TryGetValue(child.Description, out var ctxMethod);
@@ -80,7 +80,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
             string rootPath,
             Dictionary<string, MethodInfo> methodByContextName)
         {
-            // Tests defined directly at the class root (before any [Describe] call).
+            // Tests defined directly at the class root (before any [Feature] call).
             foreach (var (description, action) in testCase.Tests)
             {
                 yield return new SpecTest
@@ -95,7 +95,7 @@ namespace specs.BDD.VSTestAdapter.Discovery
                 };
             }
 
-            // Recurse into each child context ([Describe] method or nested Describe block).
+            // Recurse into each child context ([Feature] method or nested Describe block).
             foreach (var child in testCase.ChildContexts)
             {
                 var childPath = $"{rootPath}{ContextPathFormat.Separator}{child.Description}";

@@ -17,8 +17,8 @@ namespace specs.BDD.TestingPlatform.Discovery
     }
 
     /// <summary>
-    /// A node of the discovered spec tree: a group (namespace, class, [Describe], context) or a
-    /// runnable leaf (an It[...] spec, or a [Describe] that runs as one grouped unit).
+    /// A node of the discovered spec tree: a group (namespace, class, [Feature], context) or a
+    /// runnable leaf (an It[...] spec, or a [Feature] that runs as one grouped unit).
     /// </summary>
     internal sealed class SpecNode
     {
@@ -66,21 +66,21 @@ namespace specs.BDD.TestingPlatform.Discovery
         public bool IsLeaf => Kind == SpecNodeKind.Spec || Kind == SpecNodeKind.GroupedDescribe;
 
         /// <summary>
-        /// For leaves: the context descriptions from the [Describe] down, joined with
-        /// <see cref="ContextPathFormat.Separator"/> (the [Describe] description only for grouped leaves).
+        /// For leaves: the context descriptions from the [Feature] down, joined with
+        /// <see cref="ContextPathFormat.Separator"/> (the [Feature] description only for grouped leaves).
         /// </summary>
         public string ContextPath { get; set; } = string.Empty;
 
         /// <summary>For spec leaves: the It[...] description; empty otherwise.</summary>
         public string TestDescription { get; set; } = string.Empty;
 
-        /// <summary>For leaves: whether the spec (or every spec of a grouped [Describe]) is pending.</summary>
+        /// <summary>For leaves: whether the spec (or every spec of a grouped [Feature]) is pending.</summary>
         public bool IsPending { get; set; }
 
         /// <summary>Source location for navigation; <c>null</c> when unknown.</summary>
         public SourceLocationReader.SourceLocation? Location { get; set; }
 
-        /// <summary>For [Describe] nodes: the declaring method; <c>null</c> otherwise.</summary>
+        /// <summary>For [Feature] nodes: the declaring method; <c>null</c> otherwise.</summary>
         public System.Reflection.MethodInfo? Method { get; set; }
 
         /// <summary>Returns this node's ancestors from the nearest parent up to the namespace node.</summary>
@@ -141,7 +141,7 @@ namespace specs.BDD.TestingPlatform.Discovery
         /// <summary>Every runnable leaf in tree order.</summary>
         public IReadOnlyList<SpecNode> Leaves { get; }
 
-        /// <summary>Problems found while discovering (e.g. classes without [Describe] methods).</summary>
+        /// <summary>Problems found while discovering (e.g. classes without [Feature] methods).</summary>
         public IReadOnlyList<string> Warnings { get; }
     }
 }

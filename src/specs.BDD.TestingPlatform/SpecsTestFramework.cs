@@ -166,7 +166,7 @@ namespace specs.BDD.TestingPlatform
             var assembly = _testAssembly()
                 ?? throw new InvalidOperationException("Specs could not determine the test assembly.");
 
-            var forest = SpecTreeBuilder.Build(assembly, _settings.TestStructure);
+            var forest = SpecTreeBuilder.Build(assembly, _settings.ReportingLevel);
             foreach (var warning in forest.Warnings)
                 await _outputDevice.DisplayAsync(this, new WarningMessageOutputDeviceData($"[Specs] {warning}"), cancellationToken).ConfigureAwait(false);
 

@@ -7,7 +7,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
 
     public class TreeSpec : Specifications
     {
-        [Describe("Cart")]
+        [Feature("Cart")]
         public void describe_cart()
         {
             It["adds an item"] = () => { };
@@ -19,7 +19,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
             };
         }
 
-        [Describe]
+        [Feature]
         public void describe_checkout()
         {
             It["charges the card"] = () => { };
@@ -28,7 +28,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
 
     public class GroupedTreeSpec : Specifications
     {
-        [Describe("grouped", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped", Level = ReportingLevel.Feature)]
         public void describe_grouped()
         {
             It["first"] = () => { };
@@ -39,7 +39,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
             };
         }
 
-        [Describe("all pending", Structure = TestStructure.PerDescribe)]
+        [Feature("all pending", Level = ReportingLevel.Feature)]
         public void describe_all_pending()
         {
             It["later"] = TODO;
@@ -48,7 +48,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
 
     public class PendingTreeSpec : Specifications
     {
-        [Describe("pending")]
+        [Feature("pending")]
         public void describe_pending()
         {
             It["runs"] = () => { };
@@ -58,7 +58,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
 
     public class SlashTreeSpec : Specifications
     {
-        [Describe("input/output")]
+        [Feature("input/output")]
         public void describe_io()
         {
             It["100% done"] = () => { };
@@ -73,7 +73,7 @@ namespace specs.BDD.TestingPlatform.Tests.TestFixtures
     {
         public class InnerSpec : Specifications
         {
-            [Describe("inner")]
+            [Feature("inner")]
             public void describe_inner()
             {
                 It["works"] = () => { };

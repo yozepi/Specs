@@ -7,7 +7,7 @@ namespace specs.BDD.UnitTests
 {
     public class ContextBuilder_Tests : Specifications
     {
-        [Describe]
+        [Feature]
         public void ContextBuilder()
         {
             Describe["ContextBuilder"] = () =>
