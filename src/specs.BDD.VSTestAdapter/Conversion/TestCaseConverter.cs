@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using specs.BDD.Runner;
 
@@ -32,6 +34,15 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 attributes: TestPropertyAttributes.Immutable,
                 owner: typeof(TestCase));
 
+        // RFC-0017 managed names; IDEs resolve these to the [Feature] method symbol (CodeLens, navigation).
+        private static readonly TestProperty ManagedTypeProperty =
+            TestProperty.Register("TestCase.ManagedType", "ManagedType", string.Empty, string.Empty,
+                typeof(string), null, TestPropertyAttributes.Hidden, typeof(TestCase));
+
+        private static readonly TestProperty ManagedMethodProperty =
+            TestProperty.Register("TestCase.ManagedMethod", "ManagedMethod", string.Empty, string.Empty,
+                typeof(string), null, TestPropertyAttributes.Hidden, typeof(TestCase));
+
         /// <summary>
         /// Converts the given <see cref="SpecTest"/> into a VSTest <see cref="TestCase"/> object.
         /// </summary>
@@ -47,6 +58,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
 
             var testCase = new TestCase(fullyQualifiedName, ExecutorUri, source)
             {
+                Id = BuildId(specTest, source),
                 DisplayName = displayName
             };
 
@@ -65,15 +77,24 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 specTest.IsPending);
 
             // Set the VSTest RFC-0033 Hierarchy property so Test Explorer nests the test under
-            // Namespace › Class › [Describe].
+            // Namespace › Class › [Feature].
             testCase.SetPropertyValue(HierarchyProperty, BuildHierarchy(specTest));
 
+            if (specTest.ContextMethod != null)
+            {
+                testCase.SetPropertyValue(ManagedTypeProperty, specTest.SpecificationClass.FullName);
+                testCase.SetPropertyValue(ManagedMethodProperty, specTest.ContextMethod.Name);
+            }
+
             // Prefer the It[...] lambda's source line so Test Explorer navigates to the test
-            // definition rather than the top of the [Describe] method.  Fall back to the
-            // [Describe] method when the lambda has no PDB sequence points (e.g. empty body).
+            // definition rather than the top of the [Feature] method.  Fall back to the
+            // [Feature] method when the lambda has no PDB sequence points (e.g. empty body).
             var location =
                 (specTest.ItAction != null
                     ? SourceLocationReader.TryGetLocation(source, SourceLocationReader.GetTestMethod(specTest.ItAction))
+                    : null)
+                ?? (specTest.DeclaredLocation is { } declared
+                    ? new SourceLocationReader.SourceLocation(declared.filePath, declared.lineNumber)
                     : null)
                 ?? (specTest.ContextMethod != null
                     ? SourceLocationReader.TryGetLocation(source, specTest.ContextMethod)
@@ -90,12 +111,30 @@ namespace specs.BDD.VSTestAdapter.Conversion
         // ── Private helpers ────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Builds a unique fully-qualified name from the spec test's class, method, context path,
-        /// and test description. This is the stable identifier VSTest uses to track results.
+        /// Builds the fully-qualified name {ClassName}.{MethodName}, shared by every spec of a
+        /// [Feature] so Visual Studio treats them as data-driven rows of the method.
+        /// </summary>
+        private static string BuildFullyQualifiedName(SpecTest specTest) =>
+            specTest.ContextMethod != null
+                ? $"{specTest.SpecificationClass.FullName}.{specTest.ContextMethod.Name}"
+                : BuildUniqueName(specTest);
+
+        /// <summary>Deterministic per-spec Id, since the fully-qualified name is not unique.</summary>
+        private static Guid BuildId(SpecTest specTest, string source)
+        {
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(source + "|" + BuildUniqueName(specTest)));
+            var bytes = new byte[16];
+            Array.Copy(hash, bytes, bytes.Length);
+            return new Guid(bytes);
+        }
+
+        /// <summary>
+        /// Builds a name unique to the spec.
         /// Format: {ClassName}::{MethodName}::{ContextPath}::{TestDescription}
         /// Grouped format: {ClassName}::{MethodName}::[grouped]
         /// </summary>
-        private static string BuildFullyQualifiedName(SpecTest specTest)
+        private static string BuildUniqueName(SpecTest specTest)
         {
             if (specTest.IsGrouped)
             {
@@ -115,7 +154,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
         /// <summary>
         /// Builds the human-readable display name shown in Test Explorer.
         /// Format: {ContextPath} → {TestDescription}, so explorers that don't nest under the
-        /// [Describe] (VS Code) still show it.
+        /// [Feature] (VS Code) still show it.
         /// Grouped format: {ContextPath} (root context name only)
         /// </summary>
         private static string BuildDisplayName(SpecTest specTest)
@@ -133,7 +172,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
         ///   [0] Container  — null, so VS uses the project/assembly name
         ///   [1] Namespace  — the namespace of the Specifications class
         ///   [2] Class      — the simple (unqualified) class name
-        ///   [3] TestGroup  — the [Describe] (first segment of the context path)
+        ///   [3] TestGroup  — the [Feature] (first segment of the context path)
         /// </summary>
         private static string[] BuildHierarchy(SpecTest specTest)
         {
@@ -142,7 +181,7 @@ namespace specs.BDD.VSTestAdapter.Conversion
                 null!,                                             // [0] Container  — VS fills from assembly
                 specTest.SpecificationClass.Namespace ?? "",      // [1] Namespace
                 specTest.SpecificationClass.Name,                 // [2] Class
-                SplitContextPath(specTest.ContextPath).FirstOrDefault() ?? "" // [3] TestGroup — [Describe]
+                SplitContextPath(specTest.ContextPath).FirstOrDefault() ?? "" // [3] TestGroup — [Feature]
             };
         }
 

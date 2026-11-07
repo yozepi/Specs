@@ -9,12 +9,12 @@ namespace specs.BDD.TestingPlatform
 {
     /// <summary>
     /// Runner settings read from the platform configuration
-    /// (<c>[appname].testconfig.json</c>, environment variables such as <c>SpecsBDD__TestStructure</c>).
+    /// (<c>[appname].testconfig.json</c>, environment variables such as <c>SpecsBDD__ReportingLevel</c>).
     /// </summary>
     internal sealed class SpecsSettings
     {
-        /// <summary>Configuration key for the runner-level <see cref="TestStructure"/> default.</summary>
-        public const string TestStructureKey = "SpecsBDD:TestStructure";
+        /// <summary>Configuration key for the runner-level <see cref="ReportingLevel"/> default.</summary>
+        public const string ReportingLevelKey = "SpecsBDD:ReportingLevel";
 
         /// <summary>Configuration key that adds per-spec source locations to grouped reports.</summary>
         public const string ShowSourceLocationsKey = "SpecsBDD:ShowSourceLocations";
@@ -22,15 +22,15 @@ namespace specs.BDD.TestingPlatform
         /// <summary>Configuration key that disables colored pass/fail markers when <c>false</c>.</summary>
         public const string ColorOutputKey = "SpecsBDD:ColorOutput";
 
-        private SpecsSettings(TestStructure? testStructure, bool showSourceLocations, bool colorOutput)
+        private SpecsSettings(ReportingLevel? reportingLevel, bool showSourceLocations, bool colorOutput)
         {
-            TestStructure = testStructure;
+            ReportingLevel = reportingLevel;
             ShowSourceLocations = showSourceLocations;
             ColorOutput = colorOutput;
         }
 
-        /// <summary>The runner-level <see cref="TestStructure"/> default; <c>null</c> when not configured.</summary>
-        public TestStructure? TestStructure { get; }
+        /// <summary>The runner-level <see cref="ReportingLevel"/> default; <c>null</c> when not configured.</summary>
+        public ReportingLevel? ReportingLevel { get; }
 
         /// <summary>Whether grouped reports include an <c>at file:line</c> line under each spec.</summary>
         public bool ShowSourceLocations { get; }
@@ -45,7 +45,7 @@ namespace specs.BDD.TestingPlatform
             var colorOutput = !(bool.TryParse(configuration[ColorOutputKey]?.Trim(), out var color) && !color);
 
             return new SpecsSettings(
-                GroupingSettings.ParseTestStructure(configuration[TestStructureKey]),
+                GroupingSettings.ParseReportingLevel(configuration[ReportingLevelKey]),
                 showSourceLocations,
                 colorOutput);
         }

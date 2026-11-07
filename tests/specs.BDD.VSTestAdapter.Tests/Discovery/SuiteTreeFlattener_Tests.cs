@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using NUnit.Framework;
 using specs.BDD.Attributes;
 using specs.BDD.Runner;
@@ -34,7 +34,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         }
 
         [Test]
-        public void UsesDescribeAttributeDescriptionAsRootContextPath()
+        public void UsesFeatureAttributeDescriptionAsRootContextPath()
         {
             var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec)).ToList();
             foreach (var test in tests)
@@ -205,7 +205,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         [Test]
         public void RunSettingsGrouping_AppliesToContextsWithoutExplicitSetting()
         {
-            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec), runSettingsGrouping: TestStructure.PerDescribe).ToList();
+            var tests = SuiteTreeFlattener.Flatten(typeof(SimpleSpec), runSettingsGrouping: ReportingLevel.Feature).ToList();
 
             Check.That(tests).HasSize(1);
             Check.That(tests[0].IsGrouped).IsTrue();
@@ -234,6 +234,18 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
             Check.That(tests["todo async"]).IsTrue();
             Check.That(tests["excluded"]).IsTrue();
             Check.That(tests["inside pending context"]).IsTrue();
+        }
+
+        [Test]
+        public void Pending_TodoSpec_CarriesItsDeclaredLocation()
+        {
+            var todo = SuiteTreeFlattener.Flatten(typeof(SpecWithPending)).Single(t => t.TestDescription == "todo");
+
+            Check.That(todo.DeclaredLocation).IsNotNull();
+            var (filePath, lineNumber) = todo.DeclaredLocation!.Value;
+            Check.That(filePath.Replace('\\', '/').EndsWith("/TestFixtures/SampleSpecifications.cs")).IsTrue();
+            var sourcePath = Path.Combine(AppContext.BaseDirectory, "TestFixtures", "SampleSpecifications.cs");
+            Check.That(File.ReadAllLines(sourcePath)[lineNumber - 1]).Contains("It[\"todo\"] = TODO;");
         }
 
         [Test]

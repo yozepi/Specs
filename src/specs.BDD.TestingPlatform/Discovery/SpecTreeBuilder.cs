@@ -8,7 +8,7 @@ using specs.core.Framework.Processors.TestCases;
 namespace specs.BDD.TestingPlatform.Discovery
 {
     /// <summary>
-    /// Builds the full spec tree (namespace → class → [Describe] → contexts → specs) of an assembly.
+    /// Builds the full spec tree (namespace → class → [Feature] → contexts → specs) of an assembly.
     /// </summary>
     internal static class SpecTreeBuilder
     {
@@ -20,9 +20,9 @@ namespace specs.BDD.TestingPlatform.Discovery
         /// </summary>
         /// <param name="assembly">The test assembly.</param>
         /// <param name="configuredStructure">
-        /// The runner-level <c>TestStructure</c> default, or <c>null</c> when not configured.
+        /// The runner-level <c>ReportingLevel</c> default, or <c>null</c> when not configured.
         /// </param>
-        public static SpecForest Build(Assembly assembly, TestStructure? configuredStructure)
+        public static SpecForest Build(Assembly assembly, ReportingLevel? configuredStructure)
         {
             var assemblyName = assembly.GetName().Name ?? string.Empty;
             var assemblyPath = assembly.Location;
@@ -77,18 +77,18 @@ namespace specs.BDD.TestingPlatform.Discovery
         private static void AddDescribes(
             SpecNode classNode,
             SpecClass specClass,
-            TestStructure? configuredStructure,
+            ReportingLevel? configuredStructure,
             List<SpecNode> leaves)
         {
             var methodByContextName = new Dictionary<string, MethodInfo>(StringComparer.Ordinal);
             foreach (var method in ContextMethodScanner.FindContextMethods(specClass.Type))
             {
-                var attr = method.GetCustomAttribute<DescribeAttribute>();
+                var attr = method.GetCustomAttribute<FeatureAttribute>();
                 var name = !string.IsNullOrWhiteSpace(attr?.Description) ? attr!.Description! : method.Name;
                 methodByContextName[name] = method;
             }
 
-            // The suite root is the class level; its children are the [Describe] contexts.
+            // The suite root is the class level; its children are the [Feature] contexts.
             foreach (var describe in specClass.Root.ChildContexts)
             {
                 methodByContextName.TryGetValue(describe.Description, out var method);
@@ -103,7 +103,8 @@ namespace specs.BDD.TestingPlatform.Discovery
                     {
                         ContextPath = describe.Description,
                         IsPending = PendingSpecs.HasAnyTests(describe) && !PendingSpecs.HasRunnableTests(describe),
-                        Location = methodLocation
+                        Location = methodLocation,
+                        Method = method
                     };
                     leaves.Add(grouped);
                     continue;
@@ -111,7 +112,8 @@ namespace specs.BDD.TestingPlatform.Discovery
 
                 var describeNode = new SpecNode(SpecNodeKind.Describe, describe.Description, path, classNode, specClass)
                 {
-                    Location = methodLocation
+                    Location = methodLocation,
+                    Method = method
                 };
                 AddContextChildren(describeNode, describe, describe.Description, specClass, methodLocation, leaves);
             }
@@ -132,8 +134,8 @@ namespace specs.BDD.TestingPlatform.Discovery
                     ContextPath = contextPath,
                     TestDescription = description,
                     IsPending = PendingSpecs.IsPending(context, description),
-                    // Prefer the It[...] lambda so navigation lands on the spec, not the [Describe] method.
-                    Location = SourceLocationReader.TryGetLocation(specClass.AssemblyPath, SourceLocationReader.GetTestMethod(action))
+                    // Prefer the It[...] lambda so navigation lands on the spec, not the [Feature] method.
+                    Location = SourceLocationReader.TryGetTestLocation(specClass.AssemblyPath, context, description, action)
                         ?? fallbackLocation
                 };
                 leaves.Add(leaf);

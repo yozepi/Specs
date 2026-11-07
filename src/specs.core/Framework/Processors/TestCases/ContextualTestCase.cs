@@ -1,16 +1,17 @@
 ﻿using specs.core.Framework.ParameterValidation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace specs.core.Framework.Processors.TestCases
 {
     internal class ContextualTestCase : ITestCaseContext, IContextualTestCase
     {
-        public static IContextualTestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null)
+        public static IContextualTestCase CreateTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null, IReadOnlyDictionary<string, (string filePath, int lineNumber)>? testLocations = null)
         {
-            return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, ownSetupOnce, ownTeardownOnce, tests, childContexts, pendingTests);
+            return new ContextualTestCase(setupOnce, setupEach, act, teardownEach, teardownOnce, ownSetupOnce, ownTeardownOnce, tests, childContexts, pendingTests, testLocations);
         }
-        public static ITestCaseContext CreateTestCaseContext(string description, Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null)
+        public static ITestCaseContext CreateTestCaseContext(string description, Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests = null, IReadOnlyDictionary<string, (string filePath, int lineNumber)>? testLocations = null)
         {
             return new ContextualTestCase(
                 setupOnce,
@@ -23,10 +24,11 @@ namespace specs.core.Framework.Processors.TestCases
                 tests,
                 childContexts,
                 pendingTests,
+                testLocations,
                 description.ThrowIfNullOrWhiteSpace(nameof(description)));
         }
 
-        private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests, string? description = null)
+        private ContextualTestCase(Action setupOnce, Action setupEach, Action act, Action teardownEach, Action teardownOnce, Action ownSetupOnce, Action ownTeardownOnce, List<(string description, Action test)> tests, List<ITestCaseContext> childContexts, IEnumerable<string>? pendingTests, IReadOnlyDictionary<string, (string filePath, int lineNumber)>? testLocations, string? description = null)
         {
             this.SetupOnce = setupOnce.ThrowIfNull(nameof(setupOnce));
             this.SetupEach = setupEach.ThrowIfNull(nameof(setupEach));
@@ -38,6 +40,8 @@ namespace specs.core.Framework.Processors.TestCases
             this.Tests = tests.ThrowIfNull(nameof(tests));
             this.ChildContexts = childContexts.ThrowIfNull(nameof(childContexts));
             this.PendingTests = new HashSet<string>(pendingTests ?? Array.Empty<string>(), StringComparer.Ordinal);
+            this.TestLocations = (testLocations ?? new Dictionary<string, (string filePath, int lineNumber)>())
+                .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
             this.Description = description;
         }
 
@@ -60,6 +64,8 @@ namespace specs.core.Framework.Processors.TestCases
         public IReadOnlyList<ITestCaseContext> ChildContexts { get; }
 
         public IReadOnlyCollection<string> PendingTests { get; }
+
+        public IReadOnlyDictionary<string, (string filePath, int lineNumber)> TestLocations { get; }
 
         private string? Description { get; } 
 

@@ -1,6 +1,6 @@
 namespace specs.BDD.Runner
 {
-    /// <summary>Aggregated outcome of a grouped [Describe].</summary>
+    /// <summary>Aggregated outcome of a grouped [Feature].</summary>
     internal enum GroupedOutcome
     {
         Passed,
@@ -9,7 +9,7 @@ namespace specs.BDD.Runner
     }
 
     /// <summary>
-    /// The result of running a [Describe] subtree as one unit: an NSpec-style tree report
+    /// The result of running a [Feature] subtree as one unit: an NSpec-style tree report
     /// plus the aggregated outcome.
     /// </summary>
     internal sealed class GroupedReport

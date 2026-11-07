@@ -74,7 +74,7 @@ public class Auth_Controller : Specifications        // Suite
 {
     BeforeAll(() => _db = SeedDatabase());           // Runs once for the whole suite
 
-    [Describe("User authentication")]                 // Feature set
+    [Feature("User authentication")]                 // Feature set
     public void user_authentication()
     {
         BeforeEach(() => _user = NewUser());
@@ -87,12 +87,12 @@ public class Auth_Controller : Specifications        // Suite
         };
     }
 
-    [Describe("Token management")]                    // Different feature set
+    [Feature("Token management")]                    // Different feature set
     public void token_management() { /* its own BeforeEach + specs */ }
 }
 ```
 
-Parent-level lifecycle (class scope) applies to every feature set. Feature-level lifecycle (inside a `[Describe]` method) applies only to that feature's scenarios.
+Parent-level lifecycle (class scope) applies to every feature set. Feature-level lifecycle (inside a `[Feature]` method) applies only to that feature's scenarios.
 
 ### Problem 2 — Five-phase lifecycle
 
@@ -137,25 +137,26 @@ Without an adapter, Specs tests were invisible to Test Explorer and `dotnet test
 The adapter also preserves the shape of the specification in the IDE:
 
 - Test Explorer nests `Assembly → Namespace → Class → Context path → It[...]` rather than showing a flat list.
-- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Describe]` method.
+- "Go to Source" lands on the `It[...]` line, not the top of the enclosing `[Feature]` method. 📌 This also holds for pending `TODO` specs and the parameterless `ShouldThrow<T>()`, whose shared bodies have no source of their own.
 - Running a single `It[...]` still honours the full inherited lifecycle, and running a partial selection fires each context's `BeforeAll` / `AfterAll` exactly once.
-- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`).
+- 📌 From the CLI, `dotnet test --filter` narrows a run by `FullyQualifiedName`, `DisplayName`, `ContextMethod`, `ContextPath`, `TestDescription`, or 📌 `IsPending` (e.g. `--filter "ContextPath~when adding"`, `--filter IsPending=true`). 📌 `FullyQualifiedName` now selects whole `[Feature]` methods (`Class.DescribeMethod`).
+- 📌 NEW — `[Feature]` methods are recognised as test methods by the IDE (CodeLens run/debug and test status above the method, Visual Studio lists each spec as a row of its method) in both the VSTest and MTP runners.
 
 ### 📌 NEW — Problem 4b — VSTest can't show the whole spec tree, and `dotnet test` is moving to MTP
 
-VSTest gives Test Explorer four levels (`Namespace › Class › group › test`), so everything below the `[Describe]` had to be squeezed into the test's name. The .NET 10 SDK and C# Dev Kit can also run tests through **Microsoft.Testing.Platform** instead of VSTest. The **`specs.BDD.TestingPlatform`** runner covers both:
+VSTest gives Test Explorer four levels (`Namespace › Class › group › test`), so everything below the `[Feature]` had to be squeezed into the test's name. The .NET 10 SDK and C# Dev Kit can also run tests through **Microsoft.Testing.Platform** instead of VSTest. The **`specs.BDD.TestingPlatform`** runner covers both:
 
 - Every spec has a readable tree path that is also its test ID: `/MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message`.
-- `dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"` runs a `[Describe]` and everything under it; `"/*/*/*/*/when empty/*"` runs the specs directly in every `when empty` context.
-- IDEs receive the full tree. Visual Studio still nests only `namespace › class › [Describe]` and shows `describe → context → spec` beneath it; VS Code shows `namespace › class › describe → context → spec`.
+- `dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"` runs a `[Feature]` and everything under it; `"/*/*/*/*/when empty/*"` runs the specs directly in every `when empty` context.
+- IDEs receive the full tree. Visual Studio still nests only `namespace › class › [Feature]` and shows `describe → context → spec` beneath it; VS Code shows `namespace › class › describe → context → spec`.
 - Console runs list full paths and print an indented tree with pass / fail / pending markers.
-- Grouped `[Describe]`s, pending specs, `ShouldThrow<T>`, and the once-per-context lifecycle behave exactly as under VSTest (same execution core).
+- Grouped `[Feature]`s, pending specs, `ShouldThrow<T>`, and the once-per-context lifecycle behave exactly as under VSTest (same execution core).
 - Settings move from `.runsettings` to `[appname].testconfig.json` (`SpecsBDD` section) or `SpecsBDD__*` environment variables.
-- 📌 The VSTest adapter now groups by `[Describe]` in Visual Studio too (one Test Explorer group per `[Describe]` rather than one per context path).
+- 📌 The VSTest adapter now groups by `[Feature]` in Visual Studio too (one Test Explorer group per `[Feature]` rather than one per context path).
 
 ### 📌 Problem 5 — One result per `It[...]` is sometimes too noisy
 
-Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Describe]` collapse into a single test result whose output is an NSpec-style tree:
+Large suites (hundreds of fine-grained `It[...]` blocks) can swamp Test Explorer. **Grouped execution** lets a root `[Feature]` collapse into a single test result whose output is an NSpec-style tree:
 
 ```text
 Specs
@@ -167,7 +168,7 @@ Specs
 1 passed, 1 failed, 2 total
 ```
 
-It is opt-in and layered via the 📌 `TestStructure` enum (`PerSpec` / `PerDescribe`): `[Describe(Structure = ...)]` on a method wins over `[TestStructure(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: TestStructure(...)]`, which wins over `<SpecsBDD><TestStructure>` in `.runsettings`. The default remains one result per `It[...]` (`PerSpec`).
+It is opt-in and layered via the 📌 `ReportingLevel` enum (`Test` / `Feature`): `[Feature(Level = ...)]` on a method wins over `[ReportingLevel(...)]` on the suite class (not inherited by derived suites), which wins over `[assembly: ReportingLevel(...)]`, which wins over `<SpecsBDD><ReportingLevel>` in `.runsettings`. The default remains one result per `It[...]` (`Test`).
 
 📌 The report adapts to its host: green/red ANSI markers in VS Code and the CLI, emoji markers in Visual Studio (which cannot render ANSI), plain markers when `<ColorOutput>false</ColorOutput>`. `<ShowSourceLocations>true</ShowSourceLocations>` adds an `at <file>:line <n>` line under every spec, including `ItAsync[...]` specs.
 
@@ -212,7 +213,7 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **One clear style** | Method-based `Specifications` (📌 the legacy property-based `Spec` was removed) |
 | **Async is invisible** | All hooks accept `Action` or `Func<Task>` |
 | **IDE integration** | VSTest adapter with hierarchical Test Explorer nesting and `It[...]`-precise source navigation via portable PDB |
-| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Describe]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
+| **Choose your granularity** 📌 | Per-`It[...]` results by default; grouped per-root-`[Feature]` results with a full tree report on request — per method, per suite class, per assembly, or per run |
 | **Spec-first workflow** 📌 | `TODO` placeholders and `x`-prefixed exclusions stay visible as Skipped instead of being commented out |
 | **Exceptions are just specs** 📌 | `It["..."] = ShouldThrow<T>(...)` verifies the `Act` exception; a stray `Act` exception fails only its own spec |
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |

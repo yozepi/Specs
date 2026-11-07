@@ -12,7 +12,7 @@ namespace specs.BDD.UnitTests
 
         protected override Action EmptyAction() => () => { };
 
-        [Describe]
+        [Feature]
         public void AssertBuilder()
         {
             SetSharedSpecs();

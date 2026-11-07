@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Reflection;
 using specs.BDD;
 using specs.BDD.Attributes;
@@ -9,7 +9,7 @@ namespace specs.BDD.Runner
     /// <summary>
     /// Builds a complete <see cref="IContextualTestCase"/> suite tree from a
     /// <see cref="Specifications"/> subclass.
-    /// One instance of the class is created, all <c>[Describe]</c> methods are registered as
+    /// One instance of the class is created, all <c>[Feature]</c> methods are registered as
     /// named child contexts via <see cref="Specifications.Context"/>, and the resulting
     /// <see cref="IContextualTestCase"/> represents the whole class-level hierarchy.
     /// </summary>
@@ -20,7 +20,7 @@ namespace specs.BDD.Runner
     internal static class SuiteTreeBuilder
     {
         /// <summary>
-        /// Instantiates <paramref name="specClass"/>, registers all <c>[Describe]</c> methods as
+        /// Instantiates <paramref name="specClass"/>, registers all <c>[Feature]</c> methods as
         /// named child contexts, and builds the immutable test-case hierarchy.
         /// </summary>
         /// <param name="specClass">A class derived from <see cref="Specifications"/>.</param>
@@ -36,7 +36,7 @@ namespace specs.BDD.Runner
 
             foreach (var contextMethod in ContextMethodScanner.FindContextMethods(specClass))
             {
-                var attr = contextMethod.GetCustomAttribute<DescribeAttribute>();
+                var attr = contextMethod.GetCustomAttribute<FeatureAttribute>();
                 var name = !string.IsNullOrWhiteSpace(attr?.Description)
                     ? attr!.Description!
                     : contextMethod.Name;

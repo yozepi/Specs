@@ -5,11 +5,11 @@
 The Specs framework organizes tests in a clear hierarchy:
 
 1. **Suite** (Specification class) — One class per subject under test
-2. **Feature Set** (`[Describe]` decorated methods) — One method per feature/aspect of the subject
+2. **Feature Set** (`[Feature]` decorated methods) — One method per feature/aspect of the subject
 3. **Scenarios** (`Context[...]`/`Describe[...]` indexers) — Organize specs within a feature set
 4. **Specifications** (`It[...]` indexer) — Individual test assertions
 
-This is a single paradigm, not separate approaches. The `[Describe]` attribute and `Context[...]` indexer work together at different levels of the hierarchy.
+This is a single paradigm, not separate approaches. The `[Feature]` attribute and `Context[...]` indexer work together at different levels of the hierarchy.
 
 ---
 
@@ -25,7 +25,7 @@ public class Weather_Controller : Specifications  // SUITE: one per subject
     BeforeEach(() => { /* before each spec across ALL features */ });
     AfterEach(() => { /* after each spec across ALL features */ });
 
-    [Describe("Getting forecasts")]  // FEATURE SET: one aspect of the subject
+    [Feature("Getting forecasts")]  // FEATURE SET: one aspect of the subject
     public void getting_forecasts()
     {
         // FEATURE-LEVEL LIFECYCLE: applies only to specs in THIS feature
@@ -58,7 +58,7 @@ public class Weather_Controller : Specifications  // SUITE: one per subject
         };
     }
 
-    [Describe("Updating weather data")]  // ANOTHER FEATURE SET
+    [Feature("Updating weather data")]  // ANOTHER FEATURE SET
     public void updating_weather_data()
     {
         // Different lifecycle for this feature
@@ -81,7 +81,7 @@ public class Weather_Controller : Specifications  // SUITE: one per subject
 
 **Key Points**:
 - The class IS the suite (one subject under test)
-- `[Describe]` methods define feature sets within the suite
+- `[Feature]` methods define feature sets within the suite
 - `Context[...]`/`Describe[...]` organize scenarios within a feature set
 - `It[...]` defines individual specifications
 - Suite-level lifecycle wraps all feature sets
@@ -101,7 +101,7 @@ public class Order_Service : Specifications
     AfterAll(() => { db.Dispose(); });
     BeforeEach(() => { service = new OrderService(db); });
 
-    [Describe("Creating orders")]
+    [Feature("Creating orders")]
     public void creating_orders()
     {
         // FEATURE LEVEL: only for specs in this feature
@@ -120,7 +120,7 @@ public class Order_Service : Specifications
         };
     }
 
-    [Describe("Canceling orders")]
+    [Feature("Canceling orders")]
     public void canceling_orders()
     {
         // Different feature, different lifecycle
@@ -159,7 +159,7 @@ This follows the parent→child pattern:
 
 ### Hierarchical Context Organization
 ```csharp
-[Describe("User authentication")]
+[Feature("User authentication")]
 public void user_authentication()
 {
     AuthService service = null;
@@ -223,7 +223,7 @@ public void user_authentication()
 
 ### Async Lifecycle and Tests
 ```csharp
-[Describe("Async API operations")]
+[Feature("Async API operations")]
 public void async_api_operations()
 {
     ApiClient client = null;
@@ -267,7 +267,7 @@ public void async_api_operations()
 
 ### Using Context Variables
 ```csharp
-[Describe("User service operations")]
+[Feature("User service operations")]
 public void user_service_operations()
 {
     UserService service = null;
@@ -304,7 +304,7 @@ public void user_service_operations()
 
 ### Testing Multiple Scenarios
 ```csharp
-[Describe("Email validation")]
+[Feature("Email validation")]
 public void email_validation()
 {
     var validator = new EmailValidator();
@@ -343,7 +343,7 @@ public void email_validation()
 
 ### Expecting Exceptions
 ```csharp
-[Describe("Error handling")]
+[Feature("Error handling")]
 public void error_handling()
 {
     var parser = new JsonParser();
@@ -370,7 +370,7 @@ public void error_handling()
 
 ### Using Mock Objects
 ```csharp
-[Describe("Notification service")]
+[Feature("Notification service")]
 public void notification_service()
 {
     NotificationService service = null;
@@ -412,7 +412,7 @@ public void notification_service()
 
 ### Ensuring Spec Independence
 ```csharp
-[Describe("Isolated specs")]
+[Feature("Isolated specs")]
 public void isolated_specs()
 {
     // GOOD: Fresh state per spec via BeforeEach
@@ -441,7 +441,7 @@ public void isolated_specs()
 
 ### Clear Spec Structure
 ```csharp
-[Describe("Shopping cart")]
+[Feature("Shopping cart")]
 public void shopping_cart()
 {
     ShoppingCart cart = null;
@@ -484,7 +484,7 @@ public void shopping_cart()
 
 ### Creating Complex Test Objects
 ```csharp
-[Describe("Complex order processing")]
+[Feature("Complex order processing")]
 public void complex_order_processing()
 {
     Context["with complete order"] = () =>
@@ -517,12 +517,12 @@ public void complex_order_processing()
 ## Best Practices Summary
 
 1. **One Subject per Suite**: Each specification class tests one subject
-2. **One Feature per `[Describe]` Method**: Each `[Describe]` method covers one aspect/feature
+2. **One Feature per `[Feature]` Method**: Each `[Feature]` method covers one aspect/feature
 3. **One Assertion per Spec**: Each `It[...]` should test one thing
 4. **Descriptive Names**: Use clear names at every level (suite, feature, scenario, spec)
 5. **Isolated Specs**: Specs should not depend on execution order
 6. **Suite-Level for Shared Resources**: Use class-level lifecycle for expensive shared setup (DB, connections)
-7. **Feature-Level for Feature Setup**: Use lifecycle inside `[Describe]` methods for feature-specific setup
+7. **Feature-Level for Feature Setup**: Use lifecycle inside `[Feature]` methods for feature-specific setup
 8. **Minimal Setup**: Only set up what's needed at each level
 9. **Consistent Structure**: Follow the Suite → Feature → Scenario → Spec hierarchy
 10. **Async When Needed**: Use async lifecycle hooks and `ItAsync` only when testing async behavior

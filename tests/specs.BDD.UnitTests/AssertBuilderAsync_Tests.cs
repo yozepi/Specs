@@ -45,7 +45,7 @@ namespace specs.BDD.UnitTests
             };
         }
 
-        [Describe]
+        [Feature]
         public void AssertBuilderAsync()
         {
             SetSharedSpecs();

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/specs.BDD.TestingPlatform/specs.BDD.TestingPlatform.csproj" />
+    <Project Path="src/specs.specification/specs.BDD.csproj" />
+    <Project Path="src/specs.core/specs.core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/mtp/specs.BDD.TestingPlatform.IntegrationTests/specs.BDD.TestingPlatform.IntegrationTests.csproj" />
+    <Project Path="tests/mtp/specs.BDD.TestingPlatform.Tests/specs.BDD.TestingPlatform.Tests.csproj" />
+  </Folder>
+</Solution>

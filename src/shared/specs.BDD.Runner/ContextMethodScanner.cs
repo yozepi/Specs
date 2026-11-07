@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -7,12 +7,12 @@ using specs.BDD.Attributes;
 namespace specs.BDD.Runner
 {
     /// <summary>
-    /// Scans a specification class for methods decorated with <see cref="DescribeAttribute"/>.
+    /// Scans a specification class for methods decorated with <see cref="FeatureAttribute"/>.
     /// </summary>
     internal static class ContextMethodScanner
     {
         /// <summary>
-        /// Returns all methods on the given type that are decorated with <see cref="DescribeAttribute"/>.
+        /// Returns all methods on the given type that are decorated with <see cref="FeatureAttribute"/>.
         /// Searches public, non-public, and instance methods.
         /// </summary>
         /// <param name="specificationClass">The specification class to scan.</param>
@@ -21,16 +21,16 @@ namespace specs.BDD.Runner
         {
             return specificationClass
                 .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(m => m.GetCustomAttribute<DescribeAttribute>() != null);
+                .Where(m => m.GetCustomAttribute<FeatureAttribute>() != null);
         }
 
         /// <summary>
-        /// Validates that the given specification class has at least one <see cref="DescribeAttribute"/>-decorated
+        /// Validates that the given specification class has at least one <see cref="FeatureAttribute"/>-decorated
         /// method. Throws <see cref="InvalidSpecificationException"/> if none are found.
         /// </summary>
         /// <param name="specificationClass">The class to validate.</param>
         /// <exception cref="InvalidSpecificationException">
-        /// Thrown when no [Describe] methods are found on the class.
+        /// Thrown when no [Feature] methods are found on the class.
         /// </exception>
         public static void ValidateHasContextMethods(Type specificationClass)
         {
@@ -38,7 +38,7 @@ namespace specs.BDD.Runner
             {
                 throw new InvalidSpecificationException(
                     $"Specification class '{specificationClass.FullName}' has no methods decorated with " +
-                    $"[Describe] attribute. All Specification classes must have at least one [Describe] method.");
+                    $"[Feature] attribute. All Specification classes must have at least one [Feature] method.");
             }
         }
     }

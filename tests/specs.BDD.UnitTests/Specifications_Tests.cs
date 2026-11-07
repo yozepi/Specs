@@ -4,13 +4,17 @@ using specs.core.Framework.Assertions;
 using specs.core.Framework.Processors.TestCases;
 using specs.core.Framework.Processors.TestExecutors;
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace specs.BDD.UnitTests
 {
     public class Specifications_Tests : Specifications
     {
-        [Describe]
+        private static int CurrentLine([CallerLineNumber] int line = 0) => line;
+        private static string CurrentFile([CallerFilePath] string path = "") => path;
+
+        [Feature]
         public void Specifications()
         {
             Describe["Specifications base class"] = () =>
@@ -332,10 +336,12 @@ namespace specs.BDD.UnitTests
 
                     Context["It assigned TODO"] = () =>
                     {
+                        int todoLine = 0;
+
                         BeforeEach(() =>
                         {
                             subject.It["runnable"] = () => { };
-                            subject.It["todo"] = BDD.Specifications.TODO;
+                            subject.It["todo"] = BDD.Specifications.TODO; todoLine = CurrentLine();
                         });
 
                         It["should mark only the TODO spec as pending"] = () =>
@@ -343,18 +349,26 @@ namespace specs.BDD.UnitTests
 
                         It["should still register both specs"] = () =>
                             Check.That(built.Tests.Select(t => t.description)).ContainsExactly("runnable", "todo");
+
+                        It["should record where the TODO spec was declared"] = () =>
+                            Check.That(built.TestLocations["todo"]).IsEqualTo((CurrentFile(), todoLine));
                     };
 
                     Context["ItAsync assigned TODOAsync"] = () =>
                     {
+                        int todoLine = 0;
+
                         BeforeEach(() =>
                         {
                             subject.ItAsync["runnable"] = () => Task.CompletedTask;
-                            subject.ItAsync["todo"] = BDD.Specifications.TODOAsync;
+                            subject.ItAsync["todo"] = BDD.Specifications.TODOAsync; todoLine = CurrentLine();
                         });
 
                         It["should mark only the TODOAsync spec as pending"] = () =>
                             Check.That(built.PendingTests).ContainsExactly("todo");
+
+                        It["should record where the TODOAsync spec was declared"] = () =>
+                            Check.That(built.TestLocations["todo"]).IsEqualTo((CurrentFile(), todoLine));
                     };
 
                     Context["xIt"] = () =>
@@ -496,8 +510,8 @@ namespace specs.BDD.UnitTests
         // Helper class to test inheritance
         private class TestSpecification : BDD.Specifications
         {
-            // Discovered by the Specs adapter; an empty [Describe] avoids the "no [Describe] method" warning.
-            [Describe]
+            // Discovered by the Specs adapter; an empty [Feature] avoids the "no [Feature] method" warning.
+            [Feature]
             public void Empty() { }
         }
     }

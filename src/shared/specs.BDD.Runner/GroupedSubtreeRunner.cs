@@ -9,7 +9,7 @@ using specs.core.Framework.Processors.TestExecutors;
 namespace specs.BDD.Runner
 {
     /// <summary>
-    /// Executes an entire root [Describe] subtree as a single grouped unit and renders the
+    /// Executes an entire root [Feature] subtree as a single grouped unit and renders the
     /// full contextual tree (contexts, tests, pass/fail markers, failure details) in the
     /// style of NSpec's console formatter.
     /// </summary>
@@ -23,7 +23,7 @@ namespace specs.BDD.Runner
     internal static class GroupedSubtreeRunner
     {
         /// <summary>
-        /// Runs the root [Describe] context named <paramref name="contextName"/> and returns its
+        /// Runs the root [Feature] context named <paramref name="contextName"/> and returns its
         /// report, or <c>null</c> when the suite no longer contains that context.
         /// </summary>
         public static GroupedReport? Run(
@@ -53,7 +53,7 @@ namespace specs.BDD.Runner
             return BuildReport(state);
         }
 
-        /// <summary>The failure reported when a grouped [Describe] was removed since discovery.</summary>
+        /// <summary>The failure reported when a grouped [Feature] was removed since discovery.</summary>
         public static Exception MissingContext(string contextName) =>
             new InvalidOperationException($"Context '{contextName}' no longer exists in the current build.");
 
@@ -144,7 +144,7 @@ namespace specs.BDD.Runner
 
             if (PendingSpecs.IsPending(node, description))
             {
-                AppendPending(description, test, depth, state);
+                AppendPending(node, description, test, depth, state);
                 return;
             }
 
@@ -166,14 +166,14 @@ namespace specs.BDD.Runner
             {
                 state.Passed++;
                 state.Output.AppendLine($"{Indent(depth)}{state.PassMark} {description}");
-                AppendLocation(test, depth + 1, state);
+                AppendLocation(node, description, test, depth + 1, state);
             }
             else
             {
                 var cause = SpecExceptions.Unwrap(failure);
                 state.Failures.Add((path + ContextPathFormat.Separator + description, cause));
                 state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED:");
-                AppendLocation(test, depth + 1, state);
+                AppendLocation(node, description, test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
             }
         }
@@ -194,13 +194,13 @@ namespace specs.BDD.Runner
                 state.Total++;
                 if (PendingSpecs.IsPending(node, description))
                 {
-                    AppendPending(description, test, depth, state);
+                    AppendPending(node, description, test, depth, state);
                     continue;
                 }
 
                 state.Failures.Add((path + ContextPathFormat.Separator + description, cause));
                 state.Output.AppendLine($"{Indent(depth)}{state.FailMark} {description} - FAILED: BeforeAll failed:");
-                AppendLocation(test, depth + 1, state);
+                AppendLocation(node, description, test, depth + 1, state);
                 state.Output.AppendLine(IndentMessage(cause.Message, depth + 1));
             }
 
@@ -223,7 +223,7 @@ namespace specs.BDD.Runner
             foreach (var (description, test) in node.Tests)
             {
                 state.Total++;
-                AppendPending(description, test, depth, state);
+                AppendPending(node, description, test, depth, state);
             }
 
             if (node is IContextualTestCase contextualNode)
@@ -236,11 +236,11 @@ namespace specs.BDD.Runner
             }
         }
 
-        private static void AppendPending(string description, Action test, int depth, RunState state)
+        private static void AppendPending(ITestCase node, string description, Action test, int depth, RunState state)
         {
             state.Pending++;
             state.Output.AppendLine($"{Indent(depth)}{state.PendingMark} {description} - PENDING");
-            AppendLocation(test, depth + 1, state);
+            AppendLocation(node, description, test, depth + 1, state);
         }
 
         // ── Report assembly ────────────────────────────────────────────────────────────────────
@@ -295,12 +295,11 @@ namespace specs.BDD.Runner
 
         private static string Indent(int depth) => ReportMarkers.Indent(depth);
 
-        private static void AppendLocation(Action test, int depth, RunState state)
+        private static void AppendLocation(ITestCase node, string description, Action test, int depth, RunState state)
         {
             if (state.SourceForLocations == null) return;
 
-            var location = SourceLocationReader.TryGetLocation(
-                state.SourceForLocations, SourceLocationReader.GetTestMethod(test));
+            var location = SourceLocationReader.TryGetTestLocation(state.SourceForLocations, node, description, test);
             if (location != null)
                 state.Output.AppendLine($"{Indent(depth)}at {location.FilePath}:line {location.LineNumber}");
         }

@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using specs.core.Framework.Processors.TestCases;
 using specs.BDD;
 using specs.BDD.Attributes;
@@ -8,7 +8,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestCases
     public class RunAllRunner_Tests : Specifications
     {
 
-        [Describe]
+        [Feature]
         public void RunAllRunner_Specs()
         {
             RunAllRunner subject = null!;

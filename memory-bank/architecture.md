@@ -5,10 +5,10 @@
 The Specs framework organizes tests in a **Suite → Feature Set → Specification** hierarchy:
 
 - **Suite** = A specification class (one per subject under test)
-- **Feature Set** = A `[Describe]` decorated method (one per feature/aspect)  
+- **Feature Set** = A `[Feature]` decorated method (one per feature/aspect)  
 - **Specification** = An `It[...]` assertion (one per expected behavior)
 
-The `[Describe]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Describe]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
+The `[Feature]` attribute and `Context[...]` indexer are NOT separate paradigms — they work together at different levels of the same hierarchy. `[Feature]` marks methods as feature sets within a suite, while `Context[...]`/`Describe[...]` organize scenarios within those feature sets.
 
 The framework has ONE API style (📌 the legacy property-based `Spec` API and `Domain/` layer were removed; see `systemPatterns.md` decision #31):
 
@@ -210,8 +210,8 @@ dotnet test / VS Test Explorer
 specs.BDD.VSTestAdapter
     ↓ Discovery
     ├─ SpecificationClassScanner  → finds Specifications subclasses
-    ├─ ContextMethodScanner       → finds [Describe]-decorated methods, validates presence
-    ├─ SuiteTreeBuilder           → registers each [Describe] method as a named child context,
+    ├─ ContextMethodScanner       → finds [Feature]-decorated methods, validates presence
+    ├─ SuiteTreeBuilder           → registers each [Feature] method as a named child context,
     │                               reads Specifications.CoreBuilder (no reflection),
     │                               calls Build() → IContextualTestCase
     ├─ TestStructureExtractor     → recursively flattens the tree → SpecTest list
@@ -227,7 +227,7 @@ specs.BDD.VSTestAdapter
     ├─ TestFinder                 → navigates IContextualTestCase hierarchy by context path
     └─ ResultReporter             → creates Passed/Failed TestResult with timing
 
-Key constraint: every Specifications class MUST have at least one [Describe] method.
+Key constraint: every Specifications class MUST have at least one [Feature] method.
   → Discovery throws InvalidSpecificationException otherwise.
 ```
 
@@ -292,5 +292,5 @@ Code written against the removed `Spec` class migrates to `Specifications` by:
 2. Convert property assignments to method calls:
    - `BeforeEach = () => {}` → `BeforeEach(() => {})`
    - `Act = () => {}` → `Act(() => {})`
-3. Move definitions into `[Describe("...")]`-decorated methods
+3. Move definitions into `[Feature("...")]`-decorated methods
 4. Replace `ShouldThrow<T>()` helper calls with `It["..."] = ShouldThrow<T>()` (or an assertion library)

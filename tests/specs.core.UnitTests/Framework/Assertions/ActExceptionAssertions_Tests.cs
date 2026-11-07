@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using specs.BDD;
 using specs.BDD.Attributes;
 using specs.core.Framework.Assertions;
@@ -8,7 +8,7 @@ namespace specs.core.UnitTests.Framework.Assertions
 {
     public class ActExceptionAssertions_Tests : Specifications
     {
-        [Describe]
+        [Feature]
         public void VerifyActException_Specs()
         {
             Action act = null!;

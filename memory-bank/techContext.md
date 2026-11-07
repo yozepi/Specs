@@ -83,7 +83,7 @@ flowchart TD
         AIT["<b>specs.BDD.IntegrationTests</b><br/>[Container: Specs-hosted]<br/>📌 End-to-end VSTest"]:::app
     end
 
-    subgraph MTPT["📌 Folder: tests/mtp/ (Specs.Mtp.slnx)"]
+    subgraph MTPT["📌 Folder: tests/mtp/ (built by root Specs.Mtp.slnx)"]
         direction LR
         TPT["<b>...TestingPlatform.Tests</b><br/>[Container: NUnit on MTP]<br/>Runner components"]:::app
         TPI["<b>...TestingPlatform.IntegrationTests</b><br/>[Container: MTP test app]<br/>Same specs as AIT"]:::app
@@ -130,7 +130,7 @@ Every test project in `tests/` references `specs.BDD.VSTestAdapter` and — exce
 | `specs.core` | **None** at runtime (📌 `MinVer`, build-time only) | — |
 | `specs.specification` (specs.BDD) | **None** at runtime (📌 `MinVer`, build-time only) | `specs.core` |
 | `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` (📌 `MinVer`, build-time only) | `specs.core`, `specs.specification`; 📌 compiles `src/shared/specs.BDD.Runner/**/*.cs` |
-| 📌 NEW — `specs.BDD.TestingPlatform` | `Microsoft.Testing.Platform 2.5.1` and `Microsoft.Testing.Platform.MSBuild 2.5.1` (both `PrivateAssets="none"` so consumers get the entry-point generation and IDE capability targets), `System.Reflection.Metadata 6.0.0` (`MinVer`, build-time only) | `specs.core`, `specs.specification`; compiles `src/shared/specs.BDD.Runner/**/*.cs`. Sets `IsTestingPlatformApplication=false` (MTP's targets otherwise treat it as a test app), `Description`, `PackageTags`, and packs `build/specs.BDD.TestingPlatform.props` into `build/` and `buildMultiTargeting/` |
+| 📌 NEW — `specs.BDD.TestingPlatform` | `Microsoft.Testing.Platform 2.5.1` and `Microsoft.Testing.Platform.MSBuild 2.5.1` (both `PrivateAssets="none"` so consumers get the entry-point generation and IDE capability targets), `System.Reflection.Metadata 6.0.0` (`MinVer`, build-time only) | `specs.core`, `specs.specification`; compiles `src/shared/specs.BDD.Runner/**/*.cs`. Sets `IsTestingPlatformApplication=false` (MTP's targets otherwise treat it as a test app), `Description`, `PackageTags`, and packs `build/specs.BDD.MTP.props` into `build/` and `buildMultiTargeting/` |
 
 📌 UPDATED — versions are no longer written in the `.csproj` files; they come from `Directory.Packages.props` (see "Build Configuration").
 
@@ -140,14 +140,14 @@ Every test project in `tests/` references `specs.BDD.VSTestAdapter` and — exce
 
 | Project | Test framework | Assertions | Mocking | SDK |
 |---------|---------------|------------|---------|-----|
-| `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Describe]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
+| `specs.core.UnitTests` | 📌 **Specs itself** (`Specifications` + `[Feature]`, run by `specs.BDD.VSTestAdapter`) | NFluent 3.1 | Autofac.Extras.Moq 7.0 | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.UnitTests` | 📌 UPDATED **Specs itself** (was NUnit3TestAdapter 5.0 + `TestHarness`/nspec) | NFluent 3.1 | — | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.1 📌 (was 3.0; unified by central package management) | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.IntegrationTests` 📌 RENAMED (was `specs.BDD.VSTestAdapter.IntegrationTests`; namespace now `specs.BDD.IntegrationTests`) | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 | 📌 NEW — `specs.BDD.TestingPlatform.Tests` (`tests/mtp/`) | NUnit 3.14 on MTP (`EnableNUnitRunner`, `NUnit3TestAdapter` `VersionOverride="6.3.1"` — 6.x adds MTP 2 support) | NFluent 3.1 | Moq 4.20 | MTP (no Test SDK) |
-| 📌 NEW — `specs.BDD.TestingPlatform.IntegrationTests` (`tests/mtp/`) | Specs MTP runner itself (MTP test app; compiles `..\..\specs.BDD.IntegrationTests\*.cs`) | NFluent 3.1 | — | MTP; imports `build/specs.BDD.TestingPlatform.props` directly (a project reference doesn't import package build props) |
+| 📌 NEW — `specs.BDD.TestingPlatform.IntegrationTests` (`tests/mtp/`) | Specs MTP runner itself (MTP test app; compiles `..\..\specs.BDD.IntegrationTests\*.cs`) | NFluent 3.1 | — | MTP; imports `build/specs.BDD.MTP.props` directly (a project reference doesn't import package build props) |
 
-> 📌 **`specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` are self-hosted.** Neither references `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, or `TestHarness`; every test class derives from `Specifications` and declares `[Describe]` methods, and each project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. 📌 The leftover global `<Using Include="NUnit.Framework" />` was removed from both.
+> 📌 **`specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` are self-hosted.** Neither references `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, or `TestHarness`; every test class derives from `Specifications` and declares `[Feature]` methods, and each project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. 📌 The leftover global `<Using Include="NUnit.Framework" />` was removed from both.
 >
 > **📌 See**: `systemPatterns.md` section "Test Hosting".
 
@@ -178,7 +178,18 @@ Centrally managed versions:
 | `Autofac.Extras.Moq` | 7.0.0 | Core tests |
 | `coverlet.collector` | 6.0.4 | Core + BDD tests |
 
-Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `PackageId` / `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` sets `Description` / `PackageTags` so far, so package IDs default to the assembly names `specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`, `specs.BDD.TestingPlatform`).
+Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` sets them so far).
+
+📌 UPDATED — Package IDs:
+
+| Project / assembly | `PackageId` |
+|--------------------|-------------|
+| `specs.core` | `specs.core` (default) |
+| `specs.BDD` (`specs.specification`) | `specs.BDD` (default) |
+| `specs.BDD.VSTestAdapter` | `specs.BDD.VSTest` (assembly keeps its name: VSTest loads only `*TestAdapter.dll`) |
+| `specs.BDD.TestingPlatform` | `specs.BDD.MTP` |
+
+NuGet auto-imports only `build/<PackageId>.props`, so the MTP props file is `build/specs.BDD.MTP.props`.
 
 ## 📌 NEW — Packaging & Release
 
@@ -224,7 +235,7 @@ flowchart TD
 
 | Workflow | Trigger | Steps |
 |----------|---------|-------|
-| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → upload `packages` artifact |
+| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution ../../Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → upload `packages` artifact. 📌 UPDATED — every root command names `Specs.sln` explicitly (two root solutions make bare commands ambiguous) |
 | `.github/workflows/release.yml` | Push of a `v*` tag | Same build/test (📌 including the MTP step)/pack, then `NuGet/login@v1` (OIDC → 1-hour API key) → `dotnet nuget push artifacts/*.nupkg --skip-duplicate` (`.snupkg` go up alongside) → `gh release create <tag> --generate-notes` (`--prerelease` when the tag contains `-`) |
 
 Versioning (MinVer, tag prefix `v`):
@@ -250,7 +261,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 ```xml
 <RunSettings>
   <SpecsBDD>
-    <TestStructure>PerDescribe</TestStructure>
+    <ReportingLevel>Feature</ReportingLevel>
     <ShowSourceLocations>true</ShowSourceLocations>
     <ColorOutput>false</ColorOutput>
   </SpecsBDD>
@@ -259,7 +270,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
-| `SpecsBDD/TestStructure` 📌 UPDATED | `TestStructure` name (`PerSpec` / `PerDescribe`, case-insensitive) | unset (→ `PerSpec`) | Lowest-priority test-structure layer; overridden by assembly `[TestStructure]`, class `[TestStructure]`, or `[Describe(Structure = ...)]`. Renamed from `SpecReporting` (which replaced the former `GroupByRootContext` bool) |
+| `SpecsBDD/ReportingLevel` 📌 UPDATED | `ReportingLevel` name (`Test` / `Feature`, case-insensitive) | unset (→ `Test`) | Lowest-priority reporting-level layer; overridden by assembly `[ReportingLevel]`, class `[ReportingLevel]`, or `[Feature(Level = ...)]`. Renamed from `TestStructure` (earlier `SpecReporting`); the old key is no longer read |
 | `SpecsBDD/ShowSourceLocations` 📌 NEW | `bool` | `false` | Grouped reports add `at <file>:line <n>` under each `It` |
 | `SpecsBDD/ColorOutput` 📌 NEW | `bool` | `true` | `false` forces plain `✓` / `✗` markers in grouped reports |
 
@@ -267,7 +278,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 |----------------------|--------|
 | `VSAPPIDNAME` 📌 NEW | When `devenv.exe` (Visual Studio host) and color is enabled, grouped reports use emoji markers (`✅` / `❌`) instead of ANSI escapes |
 
-`GroupingSettings` parses the XML defensively — missing or malformed XML falls back to the defaults above. For `TestStructure`, numeric strings and undefined names yield `null` and fall through to the default. `TestStructure` is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded); `ShowSourceLocations` / `ColorOutput` are read at execution time.
+`GroupingSettings` parses the XML defensively — missing or malformed XML falls back to the defaults above. For `ReportingLevel`, numeric strings and undefined names yield `null` and fall through to the default. `ReportingLevel` is honoured both during discovery (`IDiscoveryContext.RunSettings`) and when `RunTests(sources, …)` re-discovers (`IRunContext` is forwarded); `ShowSourceLocations` / `ColorOutput` are read at execution time.
 
 > **📌 See**: `systemPatterns.md` section "Grouped Root-Context Execution" for the full precedence chain.
 
@@ -279,7 +290,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 // [appname].testconfig.json
 {
   "SpecsBDD": {
-    "TestStructure": "PerDescribe",
+    "ReportingLevel": "Feature",
     "ShowSourceLocations": true,
     "ColorOutput": false
   }
@@ -288,19 +299,19 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 | Key | Environment variable | Default | Notes |
 |-----|----------------------|---------|-------|
-| `SpecsBDD:TestStructure` | `SpecsBDD__TestStructure` | unset (→ `PerSpec`) | Parsed by the shared `GroupingSettings.ParseTestStructure` (names only, case-insensitive); takes the `.runsettings` slot in the precedence chain |
+| `SpecsBDD:ReportingLevel` | `SpecsBDD__ReportingLevel` | unset (→ `Test`) | Parsed by the shared `GroupingSettings.ParseReportingLevel` (names only, case-insensitive); takes the `.runsettings` slot in the precedence chain |
 | `SpecsBDD:ShowSourceLocations` | `SpecsBDD__ShowSourceLocations` | `false` | Per-`It` locations in grouped reports |
 | `SpecsBDD:ColorOutput` | `SpecsBDD__ColorOutput` | `true` | `false` → plain markers in grouped reports and the console tree |
 
 `VSAPPIDNAME=devenv.exe` selects emoji markers, as in the VSTest adapter.
 
-Consumer setup: reference the `specs.BDD.TestingPlatform` package (instead of the VSTest adapter). Its `build/specs.BDD.TestingPlatform.props` sets `IsTestProject=true`, `IsTestingPlatformApplication=true`, `OutputType=Exe` (unless already set), and registers the `TestingPlatformBuilderHook` item (`specs.BDD.TestingPlatform.TestingPlatformBuilderHook`), so the MTP MSBuild package generates an entry point that calls `AddSpecsBDD()`. A hand-written entry point can call `builder.AddSpecsBDD()` directly.
+Consumer setup: reference the `specs.BDD.TestingPlatform` package (instead of the VSTest adapter). Its `build/specs.BDD.MTP.props` sets `IsTestProject=true`, `IsTestingPlatformApplication=true`, `OutputType=Exe` (unless already set), and registers the `TestingPlatformBuilderHook` item (`specs.BDD.TestingPlatform.TestingPlatformBuilderHook`), so the MTP MSBuild package generates an entry point that calls `AddSpecsBDD()`. A hand-written entry point can call `builder.AddSpecsBDD()` directly.
 
 Command-line usage (from a test app or an MTP-mode `dotnet test`):
 
 ```powershell
 dotnet test --list-tests                                           # flat paths + indented tree
-dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"             # a [Describe] and everything under it
+dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"             # a [Feature] and everything under it
 dotnet test --treenode-filter "/*/*/*/*/when empty/*"              # specs directly in every 'when empty' context
 dotnet test --treenode-filter "/*/*/CalculatorSpecs/Subtraction \(grouped\)"   # escape filter operators
 ```
@@ -339,7 +350,7 @@ Specs/
 │   │   ├── AssertBuilder.cs
 │   │   ├── AssertBuilderAsync.cs
 │   │   ├── IAssertProvider.cs
-│   │   └── Attributes/DescribeAttribute.cs, TestStructure.cs, TestStructureAttribute.cs
+│   │   └── Attributes/FeatureAttribute.cs, ReportingLevel.cs, ReportingLevelAttribute.cs
 │   │
 │   └── specs.BDD.VSTestAdapter/            # DELIVERABLE
 │   │   ├── Discovery/                      # SpecsTestDiscoverer, SuiteTreeFlattener
@@ -353,17 +364,17 @@ Specs/
 │       ├── Discovery/                      # SpecTreeBuilder, SpecNode, SpecPath
 │       ├── Execution/                      # SpecSelection, TestNodeFactory, MtpRunListener
 │       ├── Output/                         # ConsoleTreeReport
-│       └── build/specs.BDD.TestingPlatform.props   # packed to build/ + buildMultiTargeting/
+│       └── build/specs.BDD.MTP.props   # packed to build/ + buildMultiTargeting/
 │
 ├── tests/                                  # 📌 NEW — all test projects
 │   ├── Directory.Build.props               # 📌 NEW — imports root, IsPackable=false
-│   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Describe])
+│   ├── specs.core.UnitTests/               # Specs-hosted (Specifications + [Feature])
 │   ├── specs.BDD.UnitTests/                # 📌 Specs-hosted (was src/specs.specification.UnitTests, NUnit + nspec)
 │   ├── specs.BDD.VSTestAdapter.Tests/      # NUnit
 │   ├── specs.BDD.IntegrationTests/         # 📌 RENAMED (was specs.BDD.VSTestAdapter.IntegrationTests) — VSTest via Specs adapter
 │   └── mtp/                                # 📌 NEW — MTP-mode folder
 │       ├── global.json                     # test.runner = Microsoft.Testing.Platform
-│       ├── Specs.Mtp.slnx                  # core, BDD, TestingPlatform + the two projects below
+│       ├── (Specs.Mtp.slnx moved to the repo root 📌 UPDATED)
 │       ├── specs.BDD.TestingPlatform.Tests/          # NUnit on MTP (+ end-to-end app tests)
 │       └── specs.BDD.TestingPlatform.IntegrationTests/  # MTP app over specs.BDD.IntegrationTests/*.cs
 │
@@ -406,13 +417,15 @@ dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj -
 # 📌 List only pending specs (or exclude them with IsPending=false)
 dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj --filter IsPending=true
 
-# 📌 NEW — MTP runner tests (tests/mtp/global.json switches dotnet test to MTP mode; same command CI uses)
+# 📌 NEW — MTP runner tests (tests/mtp/global.json switches dotnet test to MTP mode)
+# 📌 UPDATED — Specs.Mtp.slnx lives at the repo root, whose global.json stays in VSTest mode;
+# CI runs `dotnet test --solution ../../Specs.Mtp.slnx` from tests/mtp
 cd tests\mtp
-dotnet test --solution Specs.Mtp.slnx -c Release
+dotnet test --project specs.BDD.TestingPlatform.Tests -c Release
 cd ..\..
 
 # 📌 UPDATED — Pack all deliverables (test projects are IsPackable=false) — same command CI uses
-dotnet pack -c Release -o artifacts
+dotnet pack Specs.sln -c Release -o artifacts
 
 # 📌 NEW — Cut a release (triggers .github/workflows/release.yml)
 git tag v1.0.0
@@ -437,13 +450,13 @@ git push origin v1.0.0
 | `IContextualTestCase` must be immutable after `Build()` | Thread-safety, cacheability, predictability |
 | All async hooks ultimately reduce to a synchronous `Action` | Uniform public surface; lifecycle ordering would otherwise be non-deterministic |
 | Discovery must not execute user `BeforeAll`/`Act`/etc. | Safety; discovery may happen in IDE without setting up resources |
-| Test FullyQualifiedName must be stable across runs | VSTest expects stable IDs for re-runs / filtering |
+| 📌 UPDATED — `TestCase.Id` must be deterministic and unique per spec; the FQN must name the `[Feature]` method (`Class.DescribeMethod`) | VSTest tracks results by `Id` (its default `Id` is derived from the FQN, which is now shared per `[Feature]`); IDEs resolve CodeLens / navigation from the FQN and RFC-0017 `ManagedType` / `ManagedMethod`. See `systemPatterns.md` decision #43 |
 | 📌 `RunTests(sources)` must apply the VSTest filter itself | VSTest passes `--filter` to source-based runs only via `IRunContext.GetTestCaseFilter`; ignoring it runs the whole assembly |
 | 📌 Discovery and execution must build the suite tree through `SuiteTreeBuilder` | Any divergence in node descriptions or ordering makes `TestFinder` / `SelectionTreeWalker` unable to match discovered `ContextPath` values |
 | 📌 NEW — Runner-agnostic code goes in `src/shared/specs.BDD.Runner/` and must not reference VSTest or MTP types | It is compiled into both runners; a host type there breaks the other runner's build |
 | 📌 NEW — Shared-runner types stay `internal` | Each runner compiles its own copy; making them public would expose duplicate `specs.BDD.Runner.*` types from two assemblies |
 | 📌 NEW — MTP tests run only from `tests/mtp/` | Its `global.json` selects MTP mode; `dotnet test` on `Specs.sln` stays in VSTest mode and does not include the MTP projects |
-| 📌 NEW — `src/specs.BDD.TestingPlatform/build/` is shipped source, not build output | The MTP integration app imports `specs.BDD.TestingPlatform.props` and the package ships it as its MSBuild hook. A `[Bb]uild/` ignore rule (as in the deleted `src/.gitignore`) would drop it from clones and CI |
+| 📌 NEW — `src/specs.BDD.TestingPlatform/build/` is shipped source, not build output | The MTP integration app imports `specs.BDD.MTP.props` and the package ships it as its MSBuild hook. A `[Bb]uild/` ignore rule (as in the deleted `src/.gitignore`) would drop it from clones and CI |
 | 📌 NEW — MTP tree paths escape only `%` and `/` | Names keep spaces and punctuation so filters match them as written; `--treenode-filter` operators in names must be `\`-escaped by the caller |
 | 📌 `ContextPathFormat.Separator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
 | 📌 Pending specs must never invoke any lifecycle action | A parked `xContext` may contain deliberately broken setup; execution derives pending state from the rebuilt tree, not the serialized `IsPending` flag |
@@ -453,10 +466,10 @@ git push origin v1.0.0
 
 ## Testing Strategy
 
-- 📌 **Specs tests `specs.core` and `specs.BDD` with Specs.** `specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` derive from `Specifications` + `[Describe]` and are discovered/run by `specs.BDD.VSTestAdapter`.
+- 📌 **Specs tests `specs.core` and `specs.BDD` with Specs.** `specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` derive from `Specifications` + `[Feature]` and are discovered/run by `specs.BDD.VSTestAdapter`.
 - **NUnit covers only the runners.** `specs.BDD.VSTestAdapter.Tests` and 📌 `specs.BDD.TestingPlatform.Tests` are NUnit fixtures; a runner cannot credibly test itself.
-- **`specs.BDD.IntegrationTests`** (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) exercises the real VSTest pipeline end to end (`CalculatorSpecs` — 📌 class-level `[TestStructure(PerSpec)]` with a `Subtraction (grouped)` `[Describe(Structure = PerDescribe)]` override and constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
-- 📌 NEW — **MTP runner**: `specs.BDD.TestingPlatform.Tests` (69 NUnit tests on MTP) covers `SpecTreeBuilder`, `SpecSelection`, `TestNodeFactory`, `MtpRunListener`, `ConsoleTreeReport`, `SpecsSettings` / `ClientMode`, and `IntegrationApp_Tests`, which launches the built `specs.BDD.TestingPlatform.IntegrationTests` app (`dotnet <app>.dll --no-ansi --progress off …`) and checks totals (34 / 29 succeeded / 5 skipped, matching VSTest), `--list-tests` output, and `--treenode-filter` subsets. Fixtures live in `TestFixtures/TreeSpecs.cs`. The integration app itself reports 34 results through MTP.
+- **`specs.BDD.IntegrationTests`** (📌 renamed from `specs.BDD.VSTestAdapter.IntegrationTests`) exercises the real VSTest pipeline end to end (`CalculatorSpecs` — 📌 class-level `[ReportingLevel(Test)]` with a `Subtraction (grouped)` `[Feature(Level = Feature)]` override and constructor-level `BeforeAll` — plus `StringSpecs`, `AsyncAndExceptionSpecs`, and 📌 `PendingSpecs`, whose pending bodies and pending-context `BeforeAll` throw to prove they never run). 📌 `CalculatorSpecs` (divide by zero) and `AsyncAndExceptionSpecs` (async `Act`) assert exceptions with `ShouldThrow<T>` instead of manual `try/catch`.
+- 📌 NEW — **MTP runner**: `specs.BDD.TestingPlatform.Tests` (📌 70 NUnit tests on MTP) covers `SpecTreeBuilder`, `SpecSelection`, `TestNodeFactory`, `MtpRunListener`, `ConsoleTreeReport`, `SpecsSettings` / `ClientMode`, and `IntegrationApp_Tests`, which launches the built `specs.BDD.TestingPlatform.IntegrationTests` app (`dotnet <app>.dll --no-ansi --progress off …`) and checks totals (34 / 29 succeeded / 5 skipped, matching VSTest), `--list-tests` output, and `--treenode-filter` subsets. Fixtures live in `TestFixtures/TreeSpecs.cs`. The integration app itself reports 34 results through MTP.
 - 📌 **TestHarness retired** — the nspec bridge and its `nspec` / `NUnit` dependencies were deleted once `specs.BDD.UnitTests` self-hosted.
 - Test layout mirrors source layout (`src/specs.core/Framework/Processors/TestCases/...` → `tests/specs.core.UnitTests/Framework/Processors/TestCases/...`); 📌 test files and classes are named `<TypeUnderTest>_Tests`.
 - Assertion style: NFluent (`Check.That(...).IsEqualTo(...)`) in the self-hosted projects; NUnit constraint-based (`Assert.That(value, Is.EqualTo(...))`) in `specs.BDD.VSTestAdapter.Tests`.
@@ -474,21 +487,21 @@ The adapter behaves like any other VSTest extension:
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| `InvalidSpecificationException: Specifications subclass has no [Describe] methods` at discovery | The suite class doesn't declare any `[Describe]` method | Add at least one `[Describe("...")]`-decorated `public void` method |
+| `InvalidSpecificationException: Specifications subclass has no [Feature] methods` at discovery | The suite class doesn't declare any `[Feature]` method | Add at least one `[Feature("...")]`-decorated `public void` method |
 | Async hangs during a test | User code calls `.Result` / `.Wait()` on captured contexts without `ConfigureAwait(false)` | Use `ConfigureAwait(false)` in libraries under test, or use the `Func<Task>` overloads |
 | "Go to source" navigates only to class | Source PDB missing or non-portable | Build with `<DebugType>portable</DebugType>` (default for SDK-style projects) |
 | Test result missing from Test Explorer | The adapter assembly wasn't copied to the output directory | Ensure the test project references `specs.BDD.VSTestAdapter` directly or via a package |
-| 📌 Test Explorer shows a flat list instead of a tree | The `TestCase.Hierarchy` (RFC-0033) property is missing or not exactly 4 elements | `TestCaseConverter.BuildHierarchy` must emit `[null, Namespace, Class, <[Describe]>]` (📌 first `ContextPath` segment) |
-| 📌 NEW — MTP project builds as a library / no entry point | A `ProjectReference` to `specs.BDD.TestingPlatform` does not import the package's `build/` props | Import `build\specs.BDD.TestingPlatform.props` directly (as the MTP integration app does), or consume the NuGet package |
+| 📌 Test Explorer shows a flat list instead of a tree | The `TestCase.Hierarchy` (RFC-0033) property is missing or not exactly 4 elements | `TestCaseConverter.BuildHierarchy` must emit `[null, Namespace, Class, <[Feature]>]` (📌 first `ContextPath` segment) |
+| 📌 NEW — MTP project builds as a library / no entry point | A `ProjectReference` to `specs.BDD.TestingPlatform` does not import the package's `build/` props | Import `build\specs.BDD.MTP.props` directly (as the MTP integration app does), or consume the NuGet package |
 | 📌 NEW — `dotnet test` ignores `--treenode-filter` / runs MTP projects as VSTest | Not in MTP mode | Run from a folder whose `global.json` has `"test": { "runner": "Microsoft.Testing.Platform" }` (e.g. `tests/mtp`) |
 | 📌 NEW — `--treenode-filter` matches nothing for a name with `(`, `)`, `*`, `\|`, `&`, `[`, `]` | Those are filter operators | Escape them with `\` (e.g. `Subtraction \(grouped\)`) |
 | 📌 NEW — IDE warns "The run request matched none of the N discovered specs" | The client sent UIDs that no longer exist (stale discovery) | Rebuild / refresh the test explorer |
 | 📌 `"Test '...' no longer exists in the current build."` | Stale `TestCase` objects from a previous discovery no longer match the rebuilt suite tree | Re-run discovery (rebuild / refresh Test Explorer) |
 | 📌 `BeforeAll` runs more than once for a partial selection | A code path bypassed `SelectionTreeWalker` and used the cascaded single-test lifecycle | Route suite runs through `TestInvoker.InvokeSuite` |
 | 📌 Grouped output shows raw `ESC[32m` escape sequences | Host does not render ANSI escapes and was not detected as Visual Studio | Set `<SpecsBDD><ColorOutput>false</ColorOutput>` in `.runsettings` |
-| 📌 `ItAsync[...]` "Go to Source" lands on the `[Describe]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
+| 📌 `ItAsync[...]` "Go to Source" lands on the `[Feature]` method | Async body sequence points live on the state machine `MoveNext`, and the wrapper hid the user lambda | Fixed: `AddTest(Func<Task>)` binds `RunSync` to the user delegate; `SourceLocationReader` follows `MoveNext` |
 | 📌 `dotnet test --filter` runs every Specs test | Adapter versions before the filtering fix ignored `IRunContext.GetTestCaseFilter` in `RunTests(sources)` | Fixed: `SpecsTestExecutor` applies the filter; an invalid expression is logged as an error and runs nothing |
-| 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `TestStructure` API | Use `Structure = TestStructure.PerDescribe` / `[assembly: TestStructure(TestStructure.PerDescribe)]` |
+| 📌 Old `Grouped = true` / `[assembly: GroupSpecsByRootContext]` no longer compile | Replaced by the `ReportingLevel` API | Use `Level = ReportingLevel.Feature` / `[assembly: ReportingLevel(ReportingLevel.Feature)]` |
 | 📌 `SpecReporting` / `Reporting =` / `[SpecReporting]` no longer compile; `<SpecReporting>` in `.runsettings` is ignored | Renamed to `TestStructure` (decision #32) | `Individual` → `PerSpec`, `GroupedByRootContext` → `PerDescribe`; `Reporting =` → `Structure =`; use `<SpecsBDD><TestStructure>` |
 | 📌 A spec fails with the `Act` exception instead of its own assertion message | `Act` threw and the `It` did not verify it; the unverified `Act` exception replaces any `It` failure | Assert it with `It[...] = ShouldThrow<T>(...)`, or fix the `Act` |
 | 📌 `ShouldThrow<T>` fails with `ExpectedExceptionNotThrownException` | `Act` threw nothing, or a type not assignable to `T` (see `InnerException`) | Check the `Act` under that context and the expected type |

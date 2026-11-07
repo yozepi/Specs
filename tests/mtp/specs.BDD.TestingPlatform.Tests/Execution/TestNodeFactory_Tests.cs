@@ -125,7 +125,7 @@ namespace specs.BDD.TestingPlatform.Tests.Execution
         }
 
         [Test]
-        public void Leaf_MethodIdentifier_IsNamespaceClassAndDescribe()
+        public void Leaf_MethodIdentifier_IsNamespaceClassAndDescribeMethod()
         {
             var factory = new TestNodeFactory(Session, isIdeClient: true);
             var leaf = Leaf($"{Ns}/TreeSpec/Cart/when empty/shows a message");
@@ -135,12 +135,12 @@ namespace specs.BDD.TestingPlatform.Tests.Execution
 
             Check.That(identifier.Namespace).IsEqualTo("specs.BDD.TestingPlatform.Tests.TestFixtures");
             Check.That(identifier.TypeName).IsEqualTo("TreeSpec");
-            Check.That(identifier.MethodName).IsEqualTo("Cart");
+            Check.That(identifier.MethodName).IsEqualTo("describe_cart");
             Check.That(identifier.AssemblyFullName).IsEqualTo(typeof(TreeSpec).Assembly.FullName);
         }
 
         [Test]
-        public void Leaf_GroupedDescribe_MethodIdentifierIsTheDescribe()
+        public void Leaf_GroupedDescribe_MethodIdentifierIsTheDescribeMethod()
         {
             var factory = new TestNodeFactory(Session, isIdeClient: true);
             var leaf = Leaf($"{Ns}/GroupedTreeSpec/grouped");
@@ -149,7 +149,7 @@ namespace specs.BDD.TestingPlatform.Tests.Execution
                 .TestNode.Properties.Single<TestMethodIdentifierProperty>();
 
             Check.That(identifier.TypeName).IsEqualTo("GroupedTreeSpec");
-            Check.That(identifier.MethodName).IsEqualTo("grouped");
+            Check.That(identifier.MethodName).IsEqualTo("describe_grouped");
         }
 
         [Test]

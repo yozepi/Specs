@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
@@ -9,7 +9,7 @@ using specs.core.Framework.Processors.TestCases;
 namespace specs.BDD.VSTestAdapter.Execution
 {
     /// <summary>
-    /// Maps a grouped root [Describe] run (see <see cref="GroupedSubtreeRunner"/>) to a single
+    /// Maps a grouped root [Feature] run (see <see cref="GroupedSubtreeRunner"/>) to a single
     /// VSTest <see cref="TestResult"/> whose standard output carries the NSpec-style tree report.
     /// </summary>
     internal static class GroupedContextRunner

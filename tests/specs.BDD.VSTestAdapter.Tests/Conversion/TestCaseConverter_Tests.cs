@@ -48,42 +48,39 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         // ── Fully-qualified name ──────────────────────────────────────────────────────────────
 
         [Test]
-        public void FullyQualifiedName_ContainsClassName()
+        public void FullyQualifiedName_IsClassAndDescribeMethod()
         {
             var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
-            Check.That(testCase.FullyQualifiedName).Contains(typeof(FakeSpecClass).FullName!);
+            Check.That(testCase.FullyQualifiedName).IsEqualTo($"{typeof(FakeSpecClass).FullName}.describe_something");
         }
 
         [Test]
-        public void FullyQualifiedName_ContainsMethodName()
+        public void FullyQualifiedName_IsSharedBySpecsOfTheSameDescribe()
         {
-            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
-            Check.That(testCase.FullyQualifiedName).Contains("describe_something");
+            var first = TestCaseConverter.ToVSTestCase(BuildSpecTest(testDescription: "first"), FakeSource);
+            var second = TestCaseConverter.ToVSTestCase(BuildSpecTest(testDescription: "second"), FakeSource);
+
+            Check.That(first.FullyQualifiedName).IsEqualTo(second.FullyQualifiedName);
         }
 
         [Test]
-        public void FullyQualifiedName_ContainsContextPath()
+        public void Id_IsUniquePerSpec()
         {
-            var specTest = BuildSpecTest(contextPath: "my context → sub context");
-            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
-            Check.That(testCase.FullyQualifiedName).Contains("my context → sub context");
+            var first = TestCaseConverter.ToVSTestCase(BuildSpecTest(testDescription: "first"), FakeSource);
+            var second = TestCaseConverter.ToVSTestCase(BuildSpecTest(testDescription: "second"), FakeSource);
+            var otherContext = TestCaseConverter.ToVSTestCase(BuildSpecTest(contextPath: "other", testDescription: "first"), FakeSource);
+
+            Check.That(first.Id).IsNotEqualTo(second.Id);
+            Check.That(first.Id).IsNotEqualTo(otherContext.Id);
         }
 
         [Test]
-        public void FullyQualifiedName_ContainsTestDescription()
+        public void Id_IsDeterministic()
         {
-            var specTest = BuildSpecTest(testDescription: "should behave correctly");
-            var testCase = TestCaseConverter.ToVSTestCase(specTest, FakeSource);
-            Check.That(testCase.FullyQualifiedName).Contains("should behave correctly");
-        }
+            var first = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var second = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
 
-        [Test]
-        public void FullyQualifiedName_UsesDoubleColonSeparator()
-        {
-            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
-            // FQN format: ClassName::MethodName::ContextPath::TestDescription
-            var parts = testCase.FullyQualifiedName.Split("::");
-            Check.That(parts).HasSize(4);
+            Check.That(first.Id).IsEqualTo(second.Id);
         }
 
         // ── Display name ──────────────────────────────────────────────────────────────────────
@@ -137,11 +134,11 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         }
 
         [Test]
-        public void Grouped_FullyQualifiedName_UsesGroupedMarker()
+        public void Grouped_FullyQualifiedName_IsClassAndDescribeMethod()
         {
             var testCase = TestCaseConverter.ToVSTestCase(BuildGroupedSpecTest(), FakeSource);
             Check.That(testCase.FullyQualifiedName)
-                .IsEqualTo($"{typeof(FakeSpecClass).FullName}::describe_something::[grouped]");
+                .IsEqualTo($"{typeof(FakeSpecClass).FullName}.describe_something");
         }
 
         [Test]
@@ -245,6 +242,26 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
             Check.That(storedDesc).IsEqualTo("should behave correctly");
         }
 
+        // ── Managed names (RFC-0017) ──────────────────────────────────────────────────────────
+
+        [Test]
+        public void ManagedType_IsSpecClassFullName()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var property = TestProperty.Find("TestCase.ManagedType")!;
+
+            Check.That(testCase.GetPropertyValue<string>(property, null)).IsEqualTo(typeof(FakeSpecClass).FullName);
+        }
+
+        [Test]
+        public void ManagedMethod_IsDescribeMethodName()
+        {
+            var testCase = TestCaseConverter.ToVSTestCase(BuildSpecTest(), FakeSource);
+            var property = TestProperty.Find("TestCase.ManagedMethod")!;
+
+            Check.That(testCase.GetPropertyValue<string>(property, null)).IsEqualTo("describe_something");
+        }
+
         // ── Source location ───────────────────────────────────────────────────────────────────
 
         [Test]
@@ -281,6 +298,30 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
 
             // The fallback should still resolve because the context method lives in this assembly.
             Check.That(testCase.CodeFilePath).IsNotNull();
+        }
+
+        [Test]
+        public void WhenItActionIsTodo_FallsBackToDeclaredLocation()
+        {
+            var specTest = BuildSpecTest();
+            specTest.ItAction = Specifications.TODO;
+            specTest.DeclaredLocation = (@"C:\specs\PendingSpecs.cs", 17);
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            Check.That(testCase.CodeFilePath).IsEqualTo(@"C:\specs\PendingSpecs.cs");
+            Check.That(testCase.LineNumber).IsEqualTo(17);
+        }
+
+        [Test]
+        public void WhenItActionIsProvided_PrefersLambdaOverDeclaredLocation()
+        {
+            var specTest = BuildSpecTestWithItAction();
+            specTest.DeclaredLocation = (@"C:\specs\Elsewhere.cs", 1);
+
+            var testCase = TestCaseConverter.ToVSTestCase(specTest, RealSource);
+
+            Check.That(testCase.CodeFilePath).Contains("TestCaseConverter_Tests");
         }
 
         [Test]
@@ -375,7 +416,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Conversion
         /// <summary>Minimal Specifications subclass used as a test double.</summary>
         private class FakeSpecClass : specs.BDD.Specifications
         {
-            [specs.BDD.Attributes.Describe("fake context")]
+            [specs.BDD.Attributes.Feature("fake context")]
             public void describe_something()
             {
                 It["a test"] = () => { };

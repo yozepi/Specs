@@ -14,7 +14,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
     public class SpecsTestExecutor_Tests
     {
         private static readonly string Source = typeof(MultiContextSpec).Assembly.Location;
-        private static readonly string MultiContextPrefix = typeof(MultiContextSpec).FullName + "::";
+        private static readonly string MultiContextPrefix = typeof(MultiContextSpec).FullName + ".";
 
         private Mock<IRunContext> _runContext = null!;
         private Mock<IFrameworkHandle> _frameworkHandle = null!;
@@ -103,7 +103,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Execution
         [TestCase(false, 1, TestOutcome.Passed)]
         public void RunTests_FilterOnIsPending_SelectsByPendingState(bool isPending, int expectedCount, TestOutcome expectedOutcome)
         {
-            var prefix = typeof(SpecWithPending).FullName + "::";
+            var prefix = typeof(SpecWithPending).FullName + ".";
             _filter
                 .Setup(f => f.MatchTestCase(It.IsAny<TestCase>(), It.IsAny<Func<string, object>>()))
                 .Returns<TestCase, Func<string, object>>((tc, provider) =>

@@ -1,4 +1,4 @@
-﻿using specs.BDD;
+using specs.BDD;
 using specs.BDD.Attributes;
 
 namespace specs.BDD.IntegrationTests;
@@ -41,7 +41,7 @@ public class AsyncAndExceptionSpecs : Specifications
 {
     // ─── Async Act + ItAsync ─────────────────────────────────────────────────
 
-    [Describe("Async fetch")]
+    [Feature("Async fetch")]
     public void describe_async_fetch()
     {
         AsyncDataService service = null!;
@@ -82,7 +82,7 @@ public class AsyncAndExceptionSpecs : Specifications
 
     // ─── Exception handling in Act ───────────────────────────────────────────
 
-    [Describe("Async exception handling")]
+    [Feature("Async exception handling")]
     public void describe_async_exception_handling()
     {
         AsyncDataService service = null!;
@@ -118,7 +118,7 @@ public class AsyncAndExceptionSpecs : Specifications
 
     // ─── Async BeforeAll / AfterAll ──────────────────────────────────────────
 
-    [Describe("Async lifecycle")]
+    [Feature("Async lifecycle")]
     public void describe_async_lifecycle()
     {
         AsyncDataService service = null!;

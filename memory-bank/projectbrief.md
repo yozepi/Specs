@@ -16,7 +16,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Primary Goals
 
-1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Describe]` methods.
+1. **Structured BDD authoring** — intuitive `Describe` / `Context` / `It` indexers and `[Feature]` methods.
 2. **Hierarchical organization** — nested contexts inherit setup/act behavior from their parents.
 3. **Sophisticated lifecycle** — `SetupOnce`, `SetupEach`, `Act`, `TeardownEach`, `TeardownOnce` with correct ordering.
 4. **First-class async** — every lifecycle hook has a `Func<Task>` overload.
@@ -27,7 +27,7 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Solution Structure
 
-The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects live in `tests/mtp/Specs.Mtp.slnx`, which has its own `global.json` to run `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
+The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects are built by `Specs.Mtp.slnx` (📌 UPDATED — moved to the repo root; it lists `specs.core`, `specs.BDD`, `specs.BDD.TestingPlatform`, and the two MTP projects). The projects stay in `tests/mtp/`, whose `global.json` runs `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
 
 ### Deliverable Projects (📌 4)
 
@@ -42,11 +42,11 @@ The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects
 
 | Project | Folder | Tests |
 |---------|--------|-------|
-| **specs.core.UnitTests** | 📌 `tests/specs.core.UnitTests/` | 📌 333 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
-| **specs.BDD.UnitTests** | 📌 `tests/specs.BDD.UnitTests/` | 📌 147 BDD API spec results — **written in Specs itself** (was 5 NUnit wrappers over nspec) |
-| **specs.BDD.VSTestAdapter.Tests** | 📌 `tests/specs.BDD.VSTestAdapter.Tests/` | 📌 273 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
+| **specs.core.UnitTests** | 📌 `tests/specs.core.UnitTests/` | 📌 340 core framework test results — **written in Specs itself** and run by `specs.BDD.VSTestAdapter` (NFluent + Autofac.Extras.Moq); one suite runs in grouped mode |
+| **specs.BDD.UnitTests** | 📌 `tests/specs.BDD.UnitTests/` | 📌 149 BDD API spec results — **written in Specs itself** (was 5 NUnit wrappers over nspec) |
+| **specs.BDD.VSTestAdapter.Tests** | 📌 `tests/specs.BDD.VSTestAdapter.Tests/` | 📌 276 results — adapter component unit tests (NUnit + Moq) plus 8 pending fixture specs reported as Skipped |
 | **specs.BDD.IntegrationTests** 📌 RENAMED (was `specs.BDD.VSTestAdapter.IntegrationTests`) | 📌 `tests/specs.BDD.IntegrationTests/` | 📌 34 end-to-end VSTest pipeline results (NFluent), 5 of them pending/Skipped; `CalculatorSpecs` runs per spec except its `Subtraction (grouped)` describe |
-| 📌 NEW **specs.BDD.TestingPlatform.Tests** | `tests/mtp/specs.BDD.TestingPlatform.Tests/` | 69 MTP runner tests (NUnit on MTP + Moq), including end-to-end runs of the MTP integration app |
+| 📌 NEW **specs.BDD.TestingPlatform.Tests** | `tests/mtp/specs.BDD.TestingPlatform.Tests/` | 📌 70 MTP runner tests (NUnit on MTP + Moq), including end-to-end runs of the MTP integration app |
 | 📌 NEW **specs.BDD.TestingPlatform.IntegrationTests** | `tests/mtp/specs.BDD.TestingPlatform.IntegrationTests/` | MTP test app compiling the `specs.BDD.IntegrationTests` specs; 34 results (5 Skipped), matching VSTest |
 
 > 📌 REMOVED: the internal-only `TestHarness` project (nspec bridge). See `systemPatterns.md` decision #33.
@@ -65,7 +65,7 @@ public class CalculatorSpecs : Specifications      // Suite
     private Calculator _calc = null!;
     private int _result;
 
-    [Describe("Addition")]                          // Feature set
+    [Feature("Addition")]                          // Feature set
     public void addition()
     {
         BeforeEach(() => _calc = new Calculator());
@@ -80,7 +80,7 @@ public class CalculatorSpecs : Specifications      // Suite
 | Term | Code element |
 |------|--------------|
 | **Suite** | Class inheriting `Specifications` (one subject) |
-| **Feature Set** | `[Describe("...")]`-decorated method (one feature of the subject) |
+| **Feature Set** | `[Feature("...")]`-decorated method (one feature of the subject) |
 | **Scenario** | `Context[...]` / `Describe[...]` block (when/given) |
 | **Specification** | `It[...]` (single assertion) |
 | 📌 **Pending specification** | `It[...] = TODO`, `xIt[...]`, or any spec inside `xContext[...]` / `xDescribe[...]` (discovered, never executed) |
@@ -107,9 +107,9 @@ public class CalculatorSpecs : Specifications      // Suite
 - Hierarchical test construction, lifecycle, async support.
 - BDD authoring API with async support.
 - VSTest discovery + execution + source location resolution + Test Explorer tree nesting + 📌 `dotnet test --filter` support.
-- 📌 NEW — **Microsoft.Testing.Platform runner**: discovery + execution as a nested node tree (namespace → class → `[Describe]` → contexts → specs), `--treenode-filter` on tree paths, an indented console tree report, and `SpecsBDD:*` settings in `testconfig.json` / environment variables.
+- 📌 NEW — **Microsoft.Testing.Platform runner**: discovery + execution as a nested node tree (namespace → class → `[Feature]` → contexts → specs), `--treenode-filter` on tree paths, an indented console tree report, and `SpecsBDD:*` settings in `testconfig.json` / environment variables.
 - Correct once-per-context `BeforeAll` / `AfterAll` for arbitrary test selections.
-- 📌 Opt-in **grouped execution** — a root `[Describe]` runs as one test result with an NSpec-style tree report in its output, selected via the 📌 `TestStructure` enum (`PerSpec` / `PerDescribe`) at method (`[Describe(Structure = ...)]`), class or assembly (`[TestStructure(...)]`), or `.runsettings` level.
+- 📌 Opt-in **grouped execution** — a root `[Feature]` runs as one test result with an NSpec-style tree report in its output, selected via the 📌 `ReportingLevel` enum (`Test` / `Feature`) at method (`[Feature(Level = ...)]`), class or assembly (`[ReportingLevel(...)]`), or `.runsettings` level.
 - 📌 Class-level (constructor-registered) `BeforeAll` / `AfterAll` running once per suite.
 - 📌 **Pending specs** — `TODO` / `TODOAsync` placeholders and `xIt` / `xItAsync` / `xContext` / `xDescribe` exclusions, reported as Skipped and filterable via `IsPending`.
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
@@ -134,16 +134,16 @@ public class CalculatorSpecs : Specifications      // Suite
 
 ## Success Criteria
 
-- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Describe]` methods.
-- ✅ Test Explorer renders the full `Class → [Describe] → Describe → It` hierarchy.
+- ✅ Test Explorer discovery and execution work for any `Specifications`-derived class with `[Feature]` methods.
+- ✅ Test Explorer renders the full `Class → [Feature] → Describe → It` hierarchy.
 - ✅ Source location ("Go to source") navigates to the `It[...]` line for every discovered test.
 - ✅ `BeforeAll` / `AfterAll` fire exactly once per context, even when only part of a suite is run.
 - ✅ Sync and async hooks produce identical lifecycle semantics.
 - ✅ Execution is consolidated through `TestCaseExecutor` (no duplicated execution logic in adapter) — 📌 and the adapter reaches it through the same public API available to third-party runners.
-- ✅ **The framework tests its own core with itself** — 📌 333 self-hosted core results and 147 self-hosted BDD results, plus 273 adapter and 34 integration results.
+- ✅ **The framework tests its own core with itself** — 📌 340 self-hosted core results and 149 self-hosted BDD results, plus 276 adapter and 34 integration results.
 - ✅ 📌 NEW — The same integration specs give identical totals under VSTest and Microsoft.Testing.Platform (34 results, 29 passed, 5 pending).
-- ✅ 📌 NEW — Under MTP, IDEs receive the full `namespace → class → [Describe] → context → spec` tree, and `--treenode-filter` selects any subtree by path.
-- ✅ A root `[Describe]` can opt into grouped execution and still honour the full once-per-node lifecycle.
+- ✅ 📌 NEW — Under MTP, IDEs receive the full `namespace → class → [Feature] → context → spec` tree, and `--treenode-filter` selects any subtree by path.
+- ✅ A root `[Feature]` can opt into grouped execution and still honour the full once-per-node lifecycle.
 - ✅ 📌 Constructor-registered `BeforeAll` / `AfterAll` fire exactly once per suite class in both per-`It` and grouped modes.
 - ✅ 📌 Pending specs are discovered and reported as Skipped without running any lifecycle hook (including the `BeforeAll` / `AfterAll` of contexts whose selected specs are all pending).
 - ✅ 📌 An exception thrown by `Act` is verifiable from `It` via `ShouldThrow<T>`, and otherwise fails only that spec while `AfterEach` / `AfterAll` still run — identically in `TestCaseExecutor`, per-`It`, and grouped execution.

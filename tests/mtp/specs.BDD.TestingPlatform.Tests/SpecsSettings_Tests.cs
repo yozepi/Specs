@@ -17,19 +17,19 @@ namespace specs.BDD.TestingPlatform.Tests
             return SpecsSettings.From(configuration.Object);
         }
 
-        [TestCase("PerDescribe", TestStructure.PerDescribe)]
-        [TestCase("perspec", TestStructure.PerSpec)]
-        public void TestStructure_ValidName_IsParsed(string value, TestStructure expected)
+        [TestCase("Feature", ReportingLevel.Feature)]
+        [TestCase("Test", ReportingLevel.Test)]
+        public void ReportingLevel_ValidName_IsParsed(string value, ReportingLevel expected)
         {
-            Check.That(Read(SpecsSettings.TestStructureKey, value).TestStructure).IsEqualTo(expected);
+            Check.That(Read(SpecsSettings.ReportingLevelKey, value).ReportingLevel).IsEqualTo(expected);
         }
 
         [TestCase(null)]
         [TestCase("1")]
         [TestCase("bogus")]
-        public void TestStructure_MissingOrInvalid_IsNull(string? value)
+        public void ReportingLevel_MissingOrInvalid_IsNull(string? value)
         {
-            Check.That(Read(SpecsSettings.TestStructureKey, value).TestStructure).IsNull();
+            Check.That(Read(SpecsSettings.ReportingLevelKey, value).ReportingLevel).IsNull();
         }
 
         [Test]

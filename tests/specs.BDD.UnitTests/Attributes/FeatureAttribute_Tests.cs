@@ -1,15 +1,15 @@
-﻿using NFluent;
+using NFluent;
 using specs.BDD.Attributes;
 using System.Reflection;
 
 namespace specs.BDD.UnitTests.Attributes
 {
-    public class DescribeAttribute_Tests : Specifications
+    public class FeatureAttribute_Tests : Specifications
     {
-        [Describe]
-        public void DescribeAttribute()
+        [Feature]
+        public void FeatureAttribute()
         {
-            DescribeAttribute subject = null!;
+            FeatureAttribute subject = null!;
 
             Describe["constructor"] = () =>
             {
@@ -17,7 +17,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     Act(() =>
                     {
-                        subject = new DescribeAttribute();
+                        subject = new FeatureAttribute();
                     });
 
                     It["should create instance successfully"] = () =>
@@ -42,7 +42,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                     Act(() =>
                     {
-                        subject = new DescribeAttribute(description);
+                        subject = new FeatureAttribute(description);
                     });
 
                     It["should create instance successfully"] = () =>
@@ -60,7 +60,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     Act(() =>
                     {
-                        subject = new DescribeAttribute(null);
+                        subject = new FeatureAttribute(null);
                     });
 
                     It["should create instance successfully"] = () =>
@@ -78,7 +78,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     Act(() =>
                     {
-                        subject = new DescribeAttribute("");
+                        subject = new FeatureAttribute("");
                     });
 
                     It["should create instance successfully"] = () =>
@@ -96,7 +96,7 @@ namespace specs.BDD.UnitTests.Attributes
                 {
                     Act(() =>
                     {
-                        subject = new DescribeAttribute("   ");
+                        subject = new FeatureAttribute("   ");
                     });
 
                     It["should preserve whitespace in Description"] = () =>
@@ -110,7 +110,7 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 BeforeEach(() =>
                 {
-                    subject = new DescribeAttribute("Test description");
+                    subject = new FeatureAttribute("Test description");
                 });
 
                 It["should return the value provided in constructor"] = () =>
@@ -120,7 +120,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                 It["should be read-only (no setter)"] = () =>
                 {
-                    var propertyInfo = typeof(DescribeAttribute).GetProperty("Description");
+                    var propertyInfo = typeof(FeatureAttribute).GetProperty("Description");
                     Check.That(propertyInfo).IsNotNull();
                     Check.That(propertyInfo!.CanWrite).IsFalse();
                 };
@@ -143,7 +143,7 @@ namespace specs.BDD.UnitTests.Attributes
                     {
                         It[$"should preserve this description: '{testDescription}'"] = () =>
                         {
-                            var attr = new DescribeAttribute(testDescription);
+                            var attr = new FeatureAttribute(testDescription);
                             Check.That(attr.Description).IsEqualTo(testDescription);
                         };
                     }
@@ -156,7 +156,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                 BeforeEach(() =>
                 {
-                    var attributes = typeof(DescribeAttribute)
+                    var attributes = typeof(FeatureAttribute)
                         .GetCustomAttributes(typeof(AttributeUsageAttribute), false);
                     attributeUsage = (AttributeUsageAttribute)attributes[0];
                 });
@@ -186,12 +186,12 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 It["should inherit from System.Attribute"] = () =>
                 {
-                    Check.That(typeof(DescribeAttribute).IsSubclassOf(typeof(Attribute))).IsTrue();
+                    Check.That(typeof(FeatureAttribute).IsSubclassOf(typeof(Attribute))).IsTrue();
                 };
 
                 It["should be an Attribute type"] = () =>
                 {
-                    var attr = new DescribeAttribute("test");
+                    var attr = new FeatureAttribute("test");
                     Check.That(attr is Attribute).IsTrue();
                 };
             };
@@ -209,13 +209,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     It["should retrieve attribute from method"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<DescribeAttribute>();
+                        var attr = method.GetCustomAttribute<FeatureAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
                     It["should have correct description"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<DescribeAttribute>();
+                        var attr = method.GetCustomAttribute<FeatureAttribute>();
                         Check.That(attr!.Description).IsEqualTo("Single context");
                     };
                 };
@@ -231,13 +231,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     It["should return null when no attribute present"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<DescribeAttribute>();
+                        var attr = method.GetCustomAttribute<FeatureAttribute>();
                         Check.That(attr).IsNull();
                     };
 
                     It["should return empty collection when using GetCustomAttributes"] = () =>
                     {
-                        var attrs = method.GetCustomAttributes<DescribeAttribute>();
+                        var attrs = method.GetCustomAttributes<FeatureAttribute>();
                         Check.That(attrs).IsEmpty();
                     };
                 };
@@ -253,13 +253,13 @@ namespace specs.BDD.UnitTests.Attributes
 
                     It["should retrieve attribute"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<DescribeAttribute>();
+                        var attr = method.GetCustomAttribute<FeatureAttribute>();
                         Check.That(attr).IsNotNull();
                     };
 
                     It["should have null description"] = () =>
                     {
-                        var attr = method.GetCustomAttribute<DescribeAttribute>();
+                        var attr = method.GetCustomAttribute<FeatureAttribute>();
                         Check.That(attr!.Description).IsNull();
                     };
                 };
@@ -279,7 +279,7 @@ namespace specs.BDD.UnitTests.Attributes
 
                     foreach (var desc in testDescriptions)
                     {
-                        var attr = new DescribeAttribute(desc);
+                        var attr = new FeatureAttribute(desc);
                         Check.That(attr.Description).IsEqualTo(desc);
                     }
                 };
@@ -287,7 +287,7 @@ namespace specs.BDD.UnitTests.Attributes
                 It["should allow discovery of all context methods in class"] = () =>
                 {
                     var methods = typeof(TestClass).GetMethods()
-                        .Where(m => m.GetCustomAttributes<DescribeAttribute>().Any())
+                        .Where(m => m.GetCustomAttributes<FeatureAttribute>().Any())
                         .ToList();
 
                     Check.That(methods).HasSize(2);
@@ -298,7 +298,7 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 BeforeEach(() =>
                 {
-                    subject = new DescribeAttribute("Original description");
+                    subject = new FeatureAttribute("Original description");
                 });
 
                 It["should not allow Description to be modified after construction"] = () =>
@@ -320,8 +320,8 @@ namespace specs.BDD.UnitTests.Attributes
             {
                 It["should create independent instances with same description"] = () =>
                 {
-                    var attr1 = new DescribeAttribute("same description");
-                    var attr2 = new DescribeAttribute("same description");
+                    var attr1 = new FeatureAttribute("same description");
+                    var attr2 = new FeatureAttribute("same description");
 
                     Check.That(attr1).IsNotNull();
                     Check.That(attr2).IsNotNull();
@@ -331,8 +331,8 @@ namespace specs.BDD.UnitTests.Attributes
 
                 It["should create independent instances with different descriptions"] = () =>
                 {
-                    var attr1 = new DescribeAttribute("first");
-                    var attr2 = new DescribeAttribute("second");
+                    var attr1 = new FeatureAttribute("first");
+                    var attr2 = new FeatureAttribute("second");
 
                     Check.That(attr1.Description).IsEqualTo("first");
                     Check.That(attr2.Description).IsEqualTo("second");
@@ -343,12 +343,12 @@ namespace specs.BDD.UnitTests.Attributes
         // Test helper class with Context attributes for reflection tests
         private class TestClass
         {
-            [Describe("Single context")]
+            [Feature("Single context")]
             public void MethodWithSingleContext() { }
 
             public void MethodWithoutContext() { }
 
-            [Describe]
+            [Feature]
             public void MethodWithNullDescription() { }
         }
     }

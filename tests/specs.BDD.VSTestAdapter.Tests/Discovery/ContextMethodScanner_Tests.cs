@@ -1,4 +1,4 @@
-﻿using NFluent;
+using NFluent;
 using NUnit.Framework;
 using specs.BDD.Runner;
 using specs.BDD.VSTestAdapter.Tests.TestFixtures;
@@ -12,7 +12,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         // ── FindContextMethods ────────────────────────────────────────────────────────────────
 
         [Test]
-        public void FindContextMethods_ReturnsMethodsDecoratedWithDescribeAttribute()
+        public void FindContextMethods_ReturnsMethodsDecoratedWithFeatureAttribute()
         {
             var methods = ContextMethodScanner.FindContextMethods(typeof(SimpleSpec)).ToList();
 
@@ -33,7 +33,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         }
 
         [Test]
-        public void FindContextMethods_IgnoresMethodsWithoutDescribeAttribute()
+        public void FindContextMethods_IgnoresMethodsWithoutFeatureAttribute()
         {
             var methods = ContextMethodScanner.FindContextMethods(typeof(SpecWithNoContextMethods)).ToList();
 
@@ -84,7 +84,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
         }
 
         [Test]
-        public void ValidateHasContextMethods_ExceptionMessageMentionsDescribeAttribute()
+        public void ValidateHasContextMethods_ExceptionMessageMentionsFeatureAttribute()
         {
             InvalidSpecificationException? caught = null;
             try
@@ -96,7 +96,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
                 caught = ex;
             }
 
-            Check.That(caught!.Message).Contains("[Describe]");
+            Check.That(caught!.Message).Contains("[Feature]");
         }
     }
 }

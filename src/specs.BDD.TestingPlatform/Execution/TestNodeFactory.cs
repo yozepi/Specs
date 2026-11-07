@@ -14,7 +14,7 @@ namespace specs.BDD.TestingPlatform.Execution
     /// <remarks>
     /// IDE clients get the full tree as group nodes with parent links, plus a method identifier on
     /// every leaf. Visual Studio ignores the group nodes and nests only Namespace › Class › Method › test,
-    /// showing the method level only when two or more tests share it, so the [Describe] is the method.
+    /// showing the method level only when two or more tests share it, so the [Feature] is the method.
     /// Each spec's name still carries its full context path, because VS Code shows only
     /// Namespace › Class › test. Console clients get flat leaves whose display
     /// name is the full tree path, since the console lists tests without hierarchy.
@@ -83,8 +83,8 @@ namespace specs.BDD.TestingPlatform.Execution
         }
 
         /// <summary>
-        /// The spec's name from its [Describe] ("describe → context → … → spec"), so explorers that
-        /// don't nest under the [Describe] (VS Code) still show it.
+        /// The spec's name from its [Feature] ("describe → context → … → spec"), so explorers that
+        /// don't nest under the [Feature] (VS Code) still show it.
         /// </summary>
         private static string IdeDisplayName(SpecNode leaf)
         {
@@ -108,19 +108,20 @@ namespace specs.BDD.TestingPlatform.Execution
                 : leaf.Ancestors().First(a => a.Kind == SpecNodeKind.Describe);
 
         /// <summary>
-        /// Identifies the leaf as Namespace › Class › [Describe], the layout test explorers build
-        /// from a method identifier.
+        /// Identifies the leaf as Namespace › Class › [Feature] method, so IDEs can resolve the
+        /// method symbol (CodeLens, navigation).
         /// </summary>
         private static TestMethodIdentifierProperty MethodIdentifier(SpecNode leaf)
         {
             var type = leaf.SpecClass!.Type;
             var className = leaf.Ancestors().First(a => a.Kind == SpecNodeKind.Class).Text;
+            var describe = DescribeOf(leaf);
 
             return new TestMethodIdentifierProperty(
                 type.Assembly.FullName ?? string.Empty,
                 type.Namespace ?? string.Empty,
                 className,
-                DescribeOf(leaf).Text,
+                describe.Method?.Name ?? describe.Text,
                 0,
                 Array.Empty<string>(),
                 "System.Void");

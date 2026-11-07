@@ -4,7 +4,9 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>10</LangVersion>
-    <Description>VSTest adapter for Specs: discovers and runs Specifications-based specs in Visual Studio Test Explorer and dotnet test, with source navigation, nested Test Explorer hierarchy, --filter support, and optional grouped execution.</Description>
+    <!-- Assembly keeps its name: VSTest only loads adapters named *TestAdapter.dll. -->
+    <PackageId>specs.BDD.VSTest</PackageId>
+    <Description>VSTest adapter for Specs.BDD: discovers and runs Specifications-based specs in Visual Studio Test Explorer and dotnet test, with source navigation, nested Test Explorer hierarchy, --filter support, and optional grouped execution.</Description>
     <PackageTags>$(PackageTags);vstest;testadapter;test-explorer;dotnet-test</PackageTags>
   </PropertyGroup>
 

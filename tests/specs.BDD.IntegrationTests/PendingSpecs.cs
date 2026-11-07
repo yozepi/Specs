@@ -1,4 +1,4 @@
-﻿using specs.BDD;
+using specs.BDD;
 using specs.BDD.Attributes;
 
 namespace specs.BDD.IntegrationTests;
@@ -9,7 +9,7 @@ namespace specs.BDD.IntegrationTests;
 /// </summary>
 public class PendingSpecs : Specifications
 {
-    [Describe("pending specs")]
+    [Feature("pending specs")]
     public void describe_pending_specs()
     {
         It["runs a regular spec"] = () => { };
@@ -28,7 +28,7 @@ public class PendingSpecs : Specifications
         };
     }
 
-    [Describe("grouped pending specs", Structure = TestStructure.PerDescribe)]
+    [Feature("grouped pending specs", Level = ReportingLevel.Feature)]
     public void describe_grouped_pending_specs()
     {
         It["runs a regular spec"] = () => { };

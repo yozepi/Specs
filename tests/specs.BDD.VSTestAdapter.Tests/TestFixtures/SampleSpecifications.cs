@@ -1,4 +1,4 @@
-﻿using specs.BDD;
+using specs.BDD;
 using specs.BDD.Attributes;
 
 namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
@@ -6,11 +6,11 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     // ── Valid specification classes ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// A minimal valid spec with one [Describe] method containing two direct tests.
+    /// A minimal valid spec with one [Feature] method containing two direct tests.
     /// </summary>
     public class SimpleSpec : Specifications
     {
-        [Describe("simple context")]
+        [Feature("simple context")]
         public void describe_something()
         {
             It["test one"] = () => { };
@@ -19,11 +19,11 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     }
 
     /// <summary>
-    /// A spec that uses the method name as the context path (no description on [Describe]).
+    /// A spec that uses the method name as the context path (no description on [Feature]).
     /// </summary>
     public class SpecWithNoContextDescription : Specifications
     {
-        [Describe]
+        [Feature]
         public void describe_addition()
         {
             It["should work"] = () => { };
@@ -31,17 +31,17 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     }
 
     /// <summary>
-    /// A spec with multiple [Describe] methods — each method is an independent feature set.
+    /// A spec with multiple [Feature] methods — each method is an independent feature set.
     /// </summary>
     public class MultiContextSpec : Specifications
     {
-        [Describe("feature one")]
+        [Feature("feature one")]
         public void first_feature()
         {
             It["test A"] = () => { };
         }
 
-        [Describe("feature two")]
+        [Feature("feature two")]
         public void second_feature()
         {
             It["test B"] = () => { };
@@ -54,7 +54,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class NestedContextSpec : Specifications
     {
-        [Describe("root context")]
+        [Feature("root context")]
         public void describe_something()
         {
             Context["when doing X"] = () =>
@@ -74,7 +74,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class DeeplyNestedContextSpec : Specifications
     {
-        [Describe("root")]
+        [Feature("root")]
         public void describe_something()
         {
             Context["level one"] = () =>
@@ -92,7 +92,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// </summary>
     public class MixedDepthSpec : Specifications
     {
-        [Describe("mixed depth")]
+        [Feature("mixed depth")]
         public void describe_something()
         {
             It["root level test"] = () => { };
@@ -107,7 +107,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     // ── Invalid specification classes ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// INVALID: A Specifications subclass with no [Describe] methods.
+    /// INVALID: A Specifications subclass with no [Feature] methods.
     /// Discovery should throw <see cref="specs.BDD.Runner.InvalidSpecificationException"/>.
     /// </summary>
     public class SpecWithNoContextMethods : Specifications
@@ -135,7 +135,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// </summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Describe("mixed results")]
+        [Feature("mixed results")]
         public void describe_mixed()
         {
             It["a passing test"] = () => { };
@@ -162,7 +162,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>Clears the log. Call before each test that uses this fixture.</summary>
         public static void ClearLog() => Log.Clear();
 
-        [Describe("lifecycle spec")]
+        [Feature("lifecycle spec")]
         public void describe_lifecycle()
         {
             BeforeAll(() => Log.Add("BeforeAll"));
@@ -178,12 +178,12 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     // ── Grouped-mode fixtures ─────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// A spec whose single [Describe] method opts into grouped execution — the whole subtree
+    /// A spec whose single [Feature] method opts into grouped execution — the whole subtree
     /// (one direct test + one nested context) runs as a single test result.
     /// </summary>
     public class GroupedSpec : Specifications
     {
-        [Describe("grouped feature", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped feature", Level = ReportingLevel.Feature)]
         public void describe_grouped()
         {
             It["direct test"] = () => { };
@@ -198,7 +198,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// <summary>A grouped spec with an async It[...] test.</summary>
     public class GroupedAsyncSpec : Specifications
     {
-        [Describe("grouped async", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped async", Level = ReportingLevel.Feature)]
         public void describe_grouped_async()
         {
             ItAsync["async test"] = async () =>
@@ -211,16 +211,16 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// <summary>
     /// A spec that opts into grouped execution at the class level.
     /// </summary>
-    [TestStructure(TestStructure.PerDescribe)]
+    [ReportingLevel(ReportingLevel.Feature)]
     public class ClassGroupedSpec : Specifications
     {
-        [Describe("class grouped feature")]
+        [Feature("class grouped feature")]
         public void describe_class_grouped()
         {
             It["class grouped test"] = () => { };
         }
 
-        [Describe("class grouped opt-out", Structure = TestStructure.PerSpec)]
+        [Feature("class grouped opt-out", Level = ReportingLevel.Test)]
         public void describe_opt_out()
         {
             It["opt-out test"] = () => { };
@@ -235,17 +235,17 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     }
 
     /// <summary>
-    /// A spec that mixes one grouped [Describe] method with one regular (per-It) method.
+    /// A spec that mixes one grouped [Feature] method with one regular (per-It) method.
     /// </summary>
     public class MixedGroupingSpec : Specifications
     {
-        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped part", Level = ReportingLevel.Feature)]
         public void grouped_part()
         {
             It["grouped test"] = () => { };
         }
 
-        [Describe("flat part")]
+        [Feature("flat part")]
         public void flat_part()
         {
             It["flat test"] = () => { };
@@ -261,7 +261,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>When <c>true</c>, "a failing spec" throws. Reset after use.</summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Describe("grouped with failure", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped with failure", Level = ReportingLevel.Feature)]
         public void describe_grouped_failure()
         {
             It["a passing spec"] = () => { };
@@ -296,13 +296,13 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             AfterAll(() => Log.Add("root-AfterAll"));
         }
 
-        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped part", Level = ReportingLevel.Feature)]
         public void grouped_part()
         {
             It["grouped test"] = () => Log.Add("test:grouped");
         }
 
-        [Describe("flat part")]
+        [Feature("flat part")]
         public void flat_part()
         {
             BeforeEach(() => Log.Add("ctx-BeforeEach"));
@@ -331,7 +331,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             AfterAll(() => AfterAllRan = true);
         }
 
-        [Describe("grouped part", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped part", Level = ReportingLevel.Feature)]
         public void grouped_part()
         {
             It["grouped test"] = () => { };
@@ -342,7 +342,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             };
         }
 
-        [Describe("flat part")]
+        [Feature("flat part")]
         public void flat_part()
         {
             It["flat one"] = () => { };
@@ -363,7 +363,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
 
         public static void ClearLog() => Log.Clear();
 
-        [Describe("pending feature")]
+        [Feature("pending feature")]
         public void describe_pending()
         {
             BeforeEach(() => Log.Add("BeforeEach"));
@@ -395,7 +395,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             BeforeAll(() => RootBeforeAllRan = true);
         }
 
-        [Describe("all pending")]
+        [Feature("all pending")]
         public void describe_all_pending()
         {
             It["todo one"] = TODO;
@@ -422,7 +422,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             });
         }
 
-        [Describe("flat part")]
+        [Feature("flat part")]
         public void flat_part()
         {
             It["runnable"] = () => { };
@@ -438,7 +438,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
 
         public static void ClearLog() => Log.Clear();
 
-        [Describe("grouped with pending", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped with pending", Level = ReportingLevel.Feature)]
         public void describe_grouped_pending()
         {
             It["a passing spec"] = () => { };
@@ -451,7 +451,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
             };
         }
 
-        [Describe("grouped all pending", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped all pending", Level = ReportingLevel.Feature)]
         public void describe_grouped_all_pending()
         {
             BeforeAll(() => Log.Add("all-pending-BeforeAll"));
@@ -476,7 +476,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
 
         public static void ClearLog() => Log.Clear();
 
-        [Describe("should throw")]
+        [Feature("should throw")]
         public void describe_should_throw()
         {
             AfterEach(() => Log.Add("AfterEach"));
@@ -547,7 +547,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         /// <summary>When <c>true</c>, the plain spec's Act throws. Reset after use.</summary>
         public static bool TriggerFailure { get; set; } = false;
 
-        [Describe("grouped should throw", Structure = TestStructure.PerDescribe)]
+        [Feature("grouped should throw", Level = ReportingLevel.Feature)]
         public void describe_grouped_should_throw()
         {
             Context["when Act throws"] = () =>
@@ -586,7 +586,7 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
     /// <summary>Abstract subclass of Specifications — should be excluded from scanning.</summary>
     public abstract class AbstractSpec : Specifications
     {
-        [Describe]
+        [Feature]
         public void some_context() { }
     }
 }

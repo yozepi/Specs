@@ -89,6 +89,15 @@ namespace specs.core.Framework.Processors.TestCases
         IContextualTestCaseBuilder AddPendingTest(string description, Func<Task> test);
 
         /// <summary>
+        /// Records the source location where the test named <paramref name="description"/> was declared.
+        /// </summary>
+        /// <param name="description">The description of a test added to this builder.</param>
+        /// <param name="filePath">Absolute path to the source file.</param>
+        /// <param name="lineNumber">1-based line number of the declaration.</param>
+        /// <returns>The builder instance for method chaining.</returns>
+        IContextualTestCaseBuilder AddTestLocation(string description, string filePath, int lineNumber);
+
+        /// <summary>
         /// Adds a synchronous teardown action that runs after each test.
         /// </summary>
         /// <param name="action">The teardown action to execute.</param>

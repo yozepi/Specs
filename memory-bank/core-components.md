@@ -15,21 +15,21 @@ The specs.BDD layer provides a user-friendly Domain Specific Language (DSL) for 
 The specs.BDD layer implements a **Suite → Feature Set → Specification** hierarchy:
 
 1. **Suite** = A class inheriting from `Specifications` (one per subject under test)
-2. **Feature Set** = A method decorated with `[Describe]` (one per feature/aspect of the subject)
+2. **Feature Set** = A method decorated with `[Feature]` (one per feature/aspect of the subject)
 3. **Scenarios** = `Context[...]`/`Describe[...]` indexers (organize specs within a feature set)
 4. **Specifications** = `It[...]` indexer (individual test assertions)
 
-The `[Describe]` attribute and `Context[...]` indexer are part of the same paradigm at different hierarchy levels — NOT separate approaches.
+The `[Feature]` attribute and `Context[...]` indexer are part of the same paradigm at different hierarchy levels — NOT separate approaches.
 
 **Lifecycle operates at two levels**:
 - **Suite-level**: Lifecycle methods called at the class level apply to ALL feature sets
-- **Feature-level**: Lifecycle methods called inside a `[Describe]` method apply only to that feature set's specs
+- **Feature-level**: Lifecycle methods called inside a `[Feature]` method apply only to that feature set's specs
 
-### DescribeAttribute
+### FeatureAttribute
 
-**Location**: `specs.specification/Attributes/DescribeAttribute.cs`
+**Location**: `specs.specification/Attributes/FeatureAttribute.cs`
 
-**Purpose**: Marks a method as a specification context builder (feature set) within a suite. Each `[Describe]` method represents one feature or aspect of the subject under test.
+**Purpose**: Marks a method as a specification context builder (feature set) within a suite. Each `[Feature]` method represents one feature or aspect of the subject under test.
 
 **Properties**:
 - `Description` (string?, read-only) - Optional description for the feature set, used for reporting
@@ -41,7 +41,7 @@ public class Weather_Controller : Specifications  // SUITE
     // Suite-level lifecycle (applies to ALL feature sets)
     BeforeAll(() => { /* once for entire suite */ });
 
-    [Describe("Getting forecasts")]  // FEATURE SET
+    [Feature("Getting forecasts")]  // FEATURE SET
     public void getting_forecasts()
     {
         // Feature-level lifecycle (applies only to THIS feature set)
@@ -53,14 +53,14 @@ public class Weather_Controller : Specifications  // SUITE
         };
     }
 
-    [Describe("Updating data")]  // ANOTHER FEATURE SET
+    [Feature("Updating data")]  // ANOTHER FEATURE SET
     public void updating_data() { /* ... */ }
 }
 ```
 
 **Key Characteristics**:
 - `[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]`
-- Only one `[Describe]` attribute per method
+- Only one `[Feature]` attribute per method
 - Inherited by derived classes
 - Description is optional (defaults to null)
 
@@ -400,7 +400,7 @@ public void ProcessTestCase(CancellationToken cancellationToken)
 
 ## 12. nSpecTestHarness — 📌 REMOVED
 
-The `TestHarness` project (`nSpecTestHarness`, an nspec + NUnit bridge exposing `RunMySpecs()`) was deleted once `specs.BDD.UnitTests` — its last consumer — moved to `Specifications` + `[Describe]`. See `systemPatterns.md` section "Test Hosting" and decision #33.
+The `TestHarness` project (`nSpecTestHarness`, an nspec + NUnit bridge exposing `RunMySpecs()`) was deleted once `specs.BDD.UnitTests` — its last consumer — moved to `Specifications` + `[Feature]`. See `systemPatterns.md` section "Test Hosting" and decision #33.
 
 ---
 
@@ -450,9 +450,9 @@ src/specs.BDD.VSTestAdapter/
 ├── Discovery/
 │   ├── SpecsTestDiscoverer.cs          - ITestDiscoverer entry point
 │   ├── SpecificationClassScanner.cs    - Finds Specifications subclasses
-│   ├── ContextMethodScanner.cs         - Finds + validates [Describe] methods
+│   ├── ContextMethodScanner.cs         - Finds + validates [Feature] methods
 │   ├── SuiteTreeBuilder.cs             - Builds the whole-class suite tree
-│   ├── TestStructureExtractor.cs       - Flattens the tree into SpecTest records
+│   ├── ReportingLevelExtractor.cs       - Flattens the tree into SpecTest records
 │   ├── SourceLocationReader.cs         - Portable PDB sequence-point lookup
 │   └── InvalidSpecificationException.cs
 ├── Conversion/
@@ -493,16 +493,16 @@ src/specs.BDD.VSTestAdapter/
 
 ### ContextMethodScanner
 
-**Purpose**: Finds methods decorated with `[Describe]`; throws `InvalidSpecificationException` if none exist  
+**Purpose**: Finds methods decorated with `[Feature]`; throws `InvalidSpecificationException` if none exist  
 **Methods**: `FindContextMethods(Type) → IEnumerable<MethodInfo>`, `ValidateHasContextMethods(Type)`
 
 ### SuiteTreeBuilder
 
 **Purpose**: Single source of truth for suite-tree construction, shared by discovery and execution  
-**Key detail**: instantiates the spec class once and registers every `[Describe]` method as a *named child context* (`instance.Context[name] = () => method.Invoke(instance, null)`), then returns `instance.CoreBuilder.Build()`  
-**Why it matters**: `[Describe]` methods become real tree nodes that can own `BeforeAll` / `AfterAll` and appear in `ContextPath`
+**Key detail**: instantiates the spec class once and registers every `[Feature]` method as a *named child context* (`instance.Context[name] = () => method.Invoke(instance, null)`), then returns `instance.CoreBuilder.Build()`  
+**Why it matters**: `[Feature]` methods become real tree nodes that can own `BeforeAll` / `AfterAll` and appear in `ContextPath`
 
-### TestStructureExtractor
+### ReportingLevelExtractor
 
 **Purpose**: Builds the suite tree via `SuiteTreeBuilder` and flattens it into `SpecTest` records  
 **Key detail**: reads `Specifications.CoreBuilder` directly — no reflection; the member is `internal protected` and exposed through `InternalsVisibleTo("specs.BDD.VSTestAdapter")`  
@@ -557,8 +557,8 @@ public class SpecTest {
 
 ### InvalidSpecificationException
 
-**Purpose**: Thrown during discovery when a `Specifications` subclass has no `[Describe]` methods  
-**Rule**: Every class inheriting `Specifications` or `Spec` that is discovered by the adapter MUST have at least one `[Describe]` method.
+**Purpose**: Thrown during discovery when a `Specifications` subclass has no `[Feature]` methods  
+**Rule**: Every class inheriting `Specifications` or `Spec` that is discovered by the adapter MUST have at least one `[Feature]` method.
 
 ---
 
@@ -571,7 +571,7 @@ Demonstrates end-to-end usage of the adapter via `dotnet test`. Requires only:
 **Patterns demonstrated**:
 | File | Demonstrates |
 |------|-------------|
-| `CalculatorSpecs.cs` | Multiple `[Describe]` methods, nested `Context[...]` blocks |
+| `CalculatorSpecs.cs` | Multiple `[Feature]` methods, nested `Context[...]` blocks |
 | `StringSpecs.cs` | Second spec class in same assembly, 3-level context nesting |
 | `AsyncAndExceptionSpecs.cs` | `Act(async () => ...)`, `ItAsync["..."]`, async `BeforeAll/AfterAll`, exception capture in Act |
 

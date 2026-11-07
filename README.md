@@ -1,4 +1,4 @@
-﻿# Specs
+# Specs
 
 A .NET BDD testing framework with two coexisting API styles over a framework-agnostic core, plus a VSTest adapter for native IDE integration.
 
@@ -15,13 +15,24 @@ A .NET BDD testing framework with two coexisting API styles over a framework-agn
 
 Supplementary references: **[Core Components](memory-bank/core-components.md)**, **[Test Patterns](memory-bank/test-patterns.md)**, **[Glossary](memory-bank/glossary.md)**.
 
+## Installation
+
+Install the package for your test host; each brings in `specs.BDD` and `specs.core`.
+
+| Test host | Package |
+|---|---|
+| VSTest | `dotnet add package specs.BDD.VSTest` |
+| Microsoft.Testing.Platform | `dotnet add package specs.BDD.MTP` |
+
+For MTP under `dotnet test` on .NET 10, also add `"test": { "runner": "Microsoft.Testing.Platform" }` to `global.json` (see [Running on Microsoft.Testing.Platform](#running-on-microsofttestingplatform)).
+
 ## Solution Structure
 
 ### Deliverables (4 projects)
 - **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
 - **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core
-- **specs.BDD.VSTestAdapter** - VSTest discovery + execution for Test Explorer and `dotnet test`
-- **specs.BDD.TestingPlatform** - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
+- **specs.BDD.VSTestAdapter** (package `specs.BDD.VSTest`) - VSTest discovery + execution for Test Explorer and `dotnet test`
+- **specs.BDD.TestingPlatform** (package `specs.BDD.MTP`) - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
 
 Both runners compile the runner-agnostic discovery and execution code in `src/shared/specs.BDD.Runner/`.
 
@@ -33,11 +44,12 @@ Both runners compile the runner-agnostic discovery and execution code in `src/sh
 - **tests/mtp/specs.BDD.TestingPlatform.Tests** - MTP runner tests (NUnit on MTP)
 - **tests/mtp/specs.BDD.TestingPlatform.IntegrationTests** - The `specs.BDD.IntegrationTests` specs, run through MTP
 
-The MTP projects live in `tests/mtp/Specs.Mtp.slnx`; its `global.json` puts `dotnet test` in MTP mode, so run them from that folder:
+The MTP projects are in `Specs.Mtp.slnx` at the repo root. `tests/mtp/global.json` puts `dotnet test` in MTP mode, so run them from that folder:
 ```
 cd tests/mtp
-dotnet test --solution Specs.Mtp.slnx
+dotnet test --solution ../../Specs.Mtp.slnx
 ```
+The root holds two solutions, so other root commands must name one, e.g. `dotnet build Specs.sln`.
 
 ### Legacy / internal (1)
 - **Specs** - Legacy property-based `Spec` class and `Domain/` layer
@@ -60,7 +72,7 @@ public class MySpecs : Spec
 ```csharp
 public class MySpecs : Specifications
 {
-    [Describe("My feature")]
+    [Feature("My feature")]
     public void my_feature()
     {
         BeforeEach(() => { /* setup */ });
@@ -72,7 +84,7 @@ public class MySpecs : Specifications
 }
 ```
 
-> A `[Describe]`-decorated method is required for the VSTest adapter to discover tests in a suite.
+> A `[Feature]`-decorated method is required for the VSTest adapter to discover tests in a suite.
 
 ### Pending specs
 ```csharp
@@ -94,23 +106,23 @@ An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes 
 
 ## Running on Microsoft.Testing.Platform
 
-Reference `specs.BDD.TestingPlatform` instead of the VSTest adapter. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Describe]` → contexts → specs.
+Reference `specs.BDD.MTP` instead of `specs.BDD.VSTest`. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Feature]` → contexts → specs.
 
 Every spec has a path, which is its test ID and what `--treenode-filter` matches:
 ```
 /MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message
 ```
 ```
-dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Describe] and everything under it
+dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Feature] and everything under it
 dotnet test --treenode-filter "/*/*/*/*/when empty/*"      # specs directly inside every 'when empty' context
 ```
 `/` and `%` inside names are written as `%2F` and `%25`; filter operators such as `(`, `)`, `*`, `|`, `&`, `[` and `]` must be escaped with `\`.
 
-IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Describe]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Describe(Structure = TestStructure.PerDescribe)]` and `[TestStructure]` still run a `[Describe]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__TestStructure`):
+IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Feature]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Feature(Level = ReportingLevel.Feature)]` and `[ReportingLevel]` still run a `[Feature]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__ReportingLevel`):
 ```json
 {
   "SpecsBDD": {
-    "TestStructure": "PerDescribe",
+    "ReportingLevel": "Feature",
     "ShowSourceLocations": true,
     "ColorOutput": false
   }
