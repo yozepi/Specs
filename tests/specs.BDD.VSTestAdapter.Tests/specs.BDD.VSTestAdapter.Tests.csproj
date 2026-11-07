@@ -22,4 +22,8 @@
     <ProjectReference Include="..\..\src\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestFixtures\SampleSpecifications.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
