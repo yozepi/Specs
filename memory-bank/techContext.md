@@ -130,7 +130,7 @@ Every test project in `tests/` references `specs.BDD.VSTestAdapter` and — exce
 | `specs.core` | **None** at runtime (📌 `MinVer`, build-time only) | — |
 | `specs.specification` (specs.BDD) | **None** at runtime (📌 `MinVer`, build-time only) | `specs.core` |
 | `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` (📌 `MinVer`, build-time only) | `specs.core`, `specs.specification`; 📌 compiles `src/shared/specs.BDD.Runner/**/*.cs` |
-| 📌 NEW — `specs.BDD.TestingPlatform` | `Microsoft.Testing.Platform 2.5.1` and `Microsoft.Testing.Platform.MSBuild 2.5.1` (both `PrivateAssets="none"` so consumers get the entry-point generation and IDE capability targets), `System.Reflection.Metadata 6.0.0` (`MinVer`, build-time only) | `specs.core`, `specs.specification`; compiles `src/shared/specs.BDD.Runner/**/*.cs`. Sets `IsTestingPlatformApplication=false` (MTP's targets otherwise treat it as a test app), `Description`, `PackageTags`, and packs `build/specs.BDD.TestingPlatform.props` into `build/` and `buildMultiTargeting/` |
+| 📌 NEW — `specs.BDD.TestingPlatform` | `Microsoft.Testing.Platform 2.5.1` and `Microsoft.Testing.Platform.MSBuild 2.5.1` (both `PrivateAssets="none"` so consumers get the entry-point generation and IDE capability targets), `System.Reflection.Metadata 6.0.0` (`MinVer`, build-time only) | `specs.core`, `specs.specification`; compiles `src/shared/specs.BDD.Runner/**/*.cs`. Sets `IsTestingPlatformApplication=false` (MTP's targets otherwise treat it as a test app), `Description`, `PackageTags`, and packs `build/specs.BDD.MTP.props` into `build/` and `buildMultiTargeting/` |
 
 📌 UPDATED — versions are no longer written in the `.csproj` files; they come from `Directory.Packages.props` (see "Build Configuration").
 
@@ -145,7 +145,7 @@ Every test project in `tests/` references `specs.BDD.VSTestAdapter` and — exce
 | `specs.BDD.VSTestAdapter.Tests` | NUnit 3.14 / NUnit3TestAdapter 4.5 | NFluent 3.1 📌 (was 3.0; unified by central package management) | 📌 Moq 4.20.72 (`Mock<IFrameworkHandle>` in `TestInvoker_Tests`; `Mock<IRunContext>` / `Mock<ITestCaseFilterExpression>` in `SpecsTestExecutor_Tests`) | Microsoft.NET.Test.Sdk 17.8 |
 | `specs.BDD.IntegrationTests` 📌 RENAMED (was `specs.BDD.VSTestAdapter.IntegrationTests`; namespace now `specs.BDD.IntegrationTests`) | — (uses the Specs VSTest adapter itself) | NFluent 3.1 📌 | — | Microsoft.NET.Test.Sdk 17.8 |
 | 📌 NEW — `specs.BDD.TestingPlatform.Tests` (`tests/mtp/`) | NUnit 3.14 on MTP (`EnableNUnitRunner`, `NUnit3TestAdapter` `VersionOverride="6.3.1"` — 6.x adds MTP 2 support) | NFluent 3.1 | Moq 4.20 | MTP (no Test SDK) |
-| 📌 NEW — `specs.BDD.TestingPlatform.IntegrationTests` (`tests/mtp/`) | Specs MTP runner itself (MTP test app; compiles `..\..\specs.BDD.IntegrationTests\*.cs`) | NFluent 3.1 | — | MTP; imports `build/specs.BDD.TestingPlatform.props` directly (a project reference doesn't import package build props) |
+| 📌 NEW — `specs.BDD.TestingPlatform.IntegrationTests` (`tests/mtp/`) | Specs MTP runner itself (MTP test app; compiles `..\..\specs.BDD.IntegrationTests\*.cs`) | NFluent 3.1 | — | MTP; imports `build/specs.BDD.MTP.props` directly (a project reference doesn't import package build props) |
 
 > 📌 **`specs.core.UnitTests` and 📌 `specs.BDD.UnitTests` are self-hosted.** Neither references `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, or `TestHarness`; every test class derives from `Specifications` and declares `[Feature]` methods, and each project takes a `ProjectReference` on `specs.BDD.VSTestAdapter` so VSTest can discover and run them. 📌 The leftover global `<Using Include="NUnit.Framework" />` was removed from both.
 >
@@ -178,7 +178,18 @@ Centrally managed versions:
 | `Autofac.Extras.Moq` | 7.0.0 | Core tests |
 | `coverlet.collector` | 6.0.4 | Core + BDD tests |
 
-Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `PackageId` / `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` sets `Description` / `PackageTags` so far, so package IDs default to the assembly names `specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`, `specs.BDD.TestingPlatform`).
+Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` sets them so far).
+
+📌 UPDATED — Package IDs:
+
+| Project / assembly | `PackageId` |
+|--------------------|-------------|
+| `specs.core` | `specs.core` (default) |
+| `specs.BDD` (`specs.specification`) | `specs.BDD` (default) |
+| `specs.BDD.VSTestAdapter` | `specs.BDD.VSTest` (assembly keeps its name: VSTest loads only `*TestAdapter.dll`) |
+| `specs.BDD.TestingPlatform` | `specs.BDD.MTP` |
+
+NuGet auto-imports only `build/<PackageId>.props`, so the MTP props file is `build/specs.BDD.MTP.props`.
 
 ## 📌 NEW — Packaging & Release
 
@@ -224,7 +235,7 @@ flowchart TD
 
 | Workflow | Trigger | Steps |
 |----------|---------|-------|
-| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → upload `packages` artifact |
+| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution ../../Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → upload `packages` artifact. 📌 UPDATED — every root command names `Specs.sln` explicitly (two root solutions make bare commands ambiguous) |
 | `.github/workflows/release.yml` | Push of a `v*` tag | Same build/test (📌 including the MTP step)/pack, then `NuGet/login@v1` (OIDC → 1-hour API key) → `dotnet nuget push artifacts/*.nupkg --skip-duplicate` (`.snupkg` go up alongside) → `gh release create <tag> --generate-notes` (`--prerelease` when the tag contains `-`) |
 
 Versioning (MinVer, tag prefix `v`):
@@ -294,7 +305,7 @@ The adapter reads optional settings from the VSTest run settings, under a `Specs
 
 `VSAPPIDNAME=devenv.exe` selects emoji markers, as in the VSTest adapter.
 
-Consumer setup: reference the `specs.BDD.TestingPlatform` package (instead of the VSTest adapter). Its `build/specs.BDD.TestingPlatform.props` sets `IsTestProject=true`, `IsTestingPlatformApplication=true`, `OutputType=Exe` (unless already set), and registers the `TestingPlatformBuilderHook` item (`specs.BDD.TestingPlatform.TestingPlatformBuilderHook`), so the MTP MSBuild package generates an entry point that calls `AddSpecsBDD()`. A hand-written entry point can call `builder.AddSpecsBDD()` directly.
+Consumer setup: reference the `specs.BDD.TestingPlatform` package (instead of the VSTest adapter). Its `build/specs.BDD.MTP.props` sets `IsTestProject=true`, `IsTestingPlatformApplication=true`, `OutputType=Exe` (unless already set), and registers the `TestingPlatformBuilderHook` item (`specs.BDD.TestingPlatform.TestingPlatformBuilderHook`), so the MTP MSBuild package generates an entry point that calls `AddSpecsBDD()`. A hand-written entry point can call `builder.AddSpecsBDD()` directly.
 
 Command-line usage (from a test app or an MTP-mode `dotnet test`):
 
@@ -353,7 +364,7 @@ Specs/
 │       ├── Discovery/                      # SpecTreeBuilder, SpecNode, SpecPath
 │       ├── Execution/                      # SpecSelection, TestNodeFactory, MtpRunListener
 │       ├── Output/                         # ConsoleTreeReport
-│       └── build/specs.BDD.TestingPlatform.props   # packed to build/ + buildMultiTargeting/
+│       └── build/specs.BDD.MTP.props   # packed to build/ + buildMultiTargeting/
 │
 ├── tests/                                  # 📌 NEW — all test projects
 │   ├── Directory.Build.props               # 📌 NEW — imports root, IsPackable=false
@@ -407,14 +418,14 @@ dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj -
 dotnet test tests\specs.BDD.IntegrationTests\specs.BDD.IntegrationTests.csproj --filter IsPending=true
 
 # 📌 NEW — MTP runner tests (tests/mtp/global.json switches dotnet test to MTP mode)
-# 📌 UPDATED — Specs.Mtp.slnx now lives at the repo root, whose global.json stays in VSTest mode;
-# ci.yml still runs `dotnet test --solution Specs.Mtp.slnx` from tests/mtp (stale path, see progress.md)
+# 📌 UPDATED — Specs.Mtp.slnx lives at the repo root, whose global.json stays in VSTest mode;
+# CI runs `dotnet test --solution ../../Specs.Mtp.slnx` from tests/mtp
 cd tests\mtp
 dotnet test --project specs.BDD.TestingPlatform.Tests -c Release
 cd ..\..
 
 # 📌 UPDATED — Pack all deliverables (test projects are IsPackable=false) — same command CI uses
-dotnet pack -c Release -o artifacts
+dotnet pack Specs.sln -c Release -o artifacts
 
 # 📌 NEW — Cut a release (triggers .github/workflows/release.yml)
 git tag v1.0.0
@@ -445,7 +456,7 @@ git push origin v1.0.0
 | 📌 NEW — Runner-agnostic code goes in `src/shared/specs.BDD.Runner/` and must not reference VSTest or MTP types | It is compiled into both runners; a host type there breaks the other runner's build |
 | 📌 NEW — Shared-runner types stay `internal` | Each runner compiles its own copy; making them public would expose duplicate `specs.BDD.Runner.*` types from two assemblies |
 | 📌 NEW — MTP tests run only from `tests/mtp/` | Its `global.json` selects MTP mode; `dotnet test` on `Specs.sln` stays in VSTest mode and does not include the MTP projects |
-| 📌 NEW — `src/specs.BDD.TestingPlatform/build/` is shipped source, not build output | The MTP integration app imports `specs.BDD.TestingPlatform.props` and the package ships it as its MSBuild hook. A `[Bb]uild/` ignore rule (as in the deleted `src/.gitignore`) would drop it from clones and CI |
+| 📌 NEW — `src/specs.BDD.TestingPlatform/build/` is shipped source, not build output | The MTP integration app imports `specs.BDD.MTP.props` and the package ships it as its MSBuild hook. A `[Bb]uild/` ignore rule (as in the deleted `src/.gitignore`) would drop it from clones and CI |
 | 📌 NEW — MTP tree paths escape only `%` and `/` | Names keep spaces and punctuation so filters match them as written; `--treenode-filter` operators in names must be `\`-escaped by the caller |
 | 📌 `ContextPathFormat.Separator` (`" → "`) must not appear in user context descriptions | It is the delimiter for `ContextPath` parsing on the execution side |
 | 📌 Pending specs must never invoke any lifecycle action | A parked `xContext` may contain deliberately broken setup; execution derives pending state from the rebuilt tree, not the serialized `IsPending` flag |
@@ -481,7 +492,7 @@ The adapter behaves like any other VSTest extension:
 | "Go to source" navigates only to class | Source PDB missing or non-portable | Build with `<DebugType>portable</DebugType>` (default for SDK-style projects) |
 | Test result missing from Test Explorer | The adapter assembly wasn't copied to the output directory | Ensure the test project references `specs.BDD.VSTestAdapter` directly or via a package |
 | 📌 Test Explorer shows a flat list instead of a tree | The `TestCase.Hierarchy` (RFC-0033) property is missing or not exactly 4 elements | `TestCaseConverter.BuildHierarchy` must emit `[null, Namespace, Class, <[Feature]>]` (📌 first `ContextPath` segment) |
-| 📌 NEW — MTP project builds as a library / no entry point | A `ProjectReference` to `specs.BDD.TestingPlatform` does not import the package's `build/` props | Import `build\specs.BDD.TestingPlatform.props` directly (as the MTP integration app does), or consume the NuGet package |
+| 📌 NEW — MTP project builds as a library / no entry point | A `ProjectReference` to `specs.BDD.TestingPlatform` does not import the package's `build/` props | Import `build\specs.BDD.MTP.props` directly (as the MTP integration app does), or consume the NuGet package |
 | 📌 NEW — `dotnet test` ignores `--treenode-filter` / runs MTP projects as VSTest | Not in MTP mode | Run from a folder whose `global.json` has `"test": { "runner": "Microsoft.Testing.Platform" }` (e.g. `tests/mtp`) |
 | 📌 NEW — `--treenode-filter` matches nothing for a name with `(`, `)`, `*`, `\|`, `&`, `[`, `]` | Those are filter operators | Escape them with `\` (e.g. `Subtraction \(grouped\)`) |
 | 📌 NEW — IDE warns "The run request matched none of the N discovered specs" | The client sent UIDs that no longer exist (stale discovery) | Rebuild / refresh the test explorer |

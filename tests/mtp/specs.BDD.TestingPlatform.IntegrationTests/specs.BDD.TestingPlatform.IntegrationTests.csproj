@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- A project reference doesn't import the package's build props, so wire the builder hook in directly. -->
-  <Import Project="..\..\..\src\specs.BDD.TestingPlatform\build\specs.BDD.TestingPlatform.props" />
+  <Import Project="..\..\..\src\specs.BDD.TestingPlatform\build\specs.BDD.MTP.props" />
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

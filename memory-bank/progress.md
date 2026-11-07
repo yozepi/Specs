@@ -67,7 +67,7 @@ All 📌 four deliverables (`specs.core`, `specs.BDD`, `specs.BDD.VSTestAdapter`
 - ✅ Execution through the shared `SuiteRunner`: identical lifecycle, pending, grouped, and `ShouldThrow` semantics; grouped reports as `StandardOutputProperty`.
 - ✅ `SpecsBDD:ReportingLevel` / `ShowSourceLocations` / `ColorOutput` from `testconfig.json` or environment variables.
 - ✅ Same integration specs, same totals as VSTest (34 / 29 / 5).
-- ✅ `build/specs.BDD.TestingPlatform.props` is no longer gitignored (`src/.gitignore` deleted), so it ships with the runner.
+- ✅ `build/specs.BDD.MTP.props` is no longer gitignored (`src/.gitignore` deleted), so it ships with the runner.
 
 ### 📌 NEW — Shared runner core
 
@@ -97,6 +97,7 @@ The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, a
 - ✅ All deliverables on C# 10.
 - ✅ MinVer tag-based versioning (`v1.2.0` → `1.2.0`).
 - ✅ GitHub Actions CI on `main` / PRs (build, test, pack, artifact upload). Release workflow on `v*` tags (nuget.org via Trusted Publishing, plus a GitHub Release).
+- ✅ 📌 Runner packages published as `specs.BDD.VSTest` / `specs.BDD.MTP`; README documents installation.
 - ⏳ First release pending: no `v*` tag yet, and the nuget.org trust policy and `NUGET_USER` secret still need setting up.
 
 Decisions #34–35 in `systemPatterns.md`.
@@ -293,6 +294,16 @@ Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::
 
 > **📌 See**: `systemPatterns.md` section "`[Feature]` method identity (CodeLens / symbol navigation)" and decision #43.
 
+### 📌 NEW — Phase 18 — Runner package IDs (Nov 2026, commit `2738675`)
+
+- `PackageId` `specs.BDD.VSTest` (assembly `specs.BDD.VSTestAdapter`) and `specs.BDD.MTP` (assembly `specs.BDD.TestingPlatform`).
+- `build/specs.BDD.TestingPlatform.props` → `build/specs.BDD.MTP.props` so NuGet auto-imports it; integration project import updated.
+- CI and release workflows name `Specs.sln`; the MTP step uses `../../Specs.Mtp.slnx` (resolves the stale-path limitation).
+- README Installation section; `specs.core` / `specs.BDD` descriptions point to the runner packages.
+- No code or test-count change.
+
+> **📌 See**: `systemPatterns.md` decision #45; `techContext.md` "Packaging & Release".
+
 ### 📌 NEW — Phase 17 — `[Describe]` → `[Feature]` and `TestStructure` → `ReportingLevel` (Nov 2026, commit `ed6392f`)
 
 - **Breaking API rename**: `[Describe]` / `DescribeAttribute` → `[Feature]` / `FeatureAttribute` (the old name collided with the `Describe[...]` indexer, which stays); `TestStructure` (`PerSpec` / `PerDescribe`) → `ReportingLevel` (`Test` / `Feature`) in its own `Attributes/ReportingLevel.cs`; `[TestStructure]` → `[ReportingLevel]`; `Structure` / `StructureSetting` → `Level` / `LevelSetting`.
@@ -320,11 +331,11 @@ Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::
 | 📌 Parameterless `ShouldThrow<T>()` "Go to Source" lands on the `[Feature]` method | Its built-in verifier lives in `specs.BDD`, which the PDB cross-assembly guard rejects | 📌 RESOLVED — falls back to the declared `It[...]` line (decision #42) |
 | 📌 Legacy `Spec` API removed | Downstream code on `Spec` must migrate | See `architecture.md` "Migration Strategy" |
 | 📌 NEW — Not yet published to nuget.org | Consumers must use project references or locally packed `0.0.0-alpha.*` packages | Push the first `v*` tag once the trust policy and `NUGET_USER` secret exist |
-| 📌 NEW — Packages carry no `Description` / `PackageTags` / readme | nuget.org listing would be bare | Add per-package metadata to each deliverable `.csproj` (📌 done for `specs.BDD.TestingPlatform` only) |
+| 📌 NEW — Packages carry no `Description` / `PackageTags` / readme | nuget.org listing would be bare | Add per-package metadata to each deliverable `.csproj` (📌 `Description` / `PackageTags` done for `specs.BDD.TestingPlatform` only; 📌 `PackageId` now set for the two runners) |
 | 📌 NEW — VSTest Test Explorer nests only to the `[Feature]`; MTP in Visual Studio likewise | Context levels appear in the test name, not as tree nodes | VS Code + MTP shows the same; the full tree is available to MTP clients that honour group nodes and in console output |
 | 📌 NEW — MTP runner supports only discover / run requests and UID, tree-node, composite, and nop filters | Other request or filter types throw `NotSupportedException` | Use `--treenode-filter`; `--filter` is VSTest-only |
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
-| 📌 NEW — `Specs.Mtp.slnx` moved to the repo root but CI references were not updated | `.github/workflows/ci.yml` and `release.yml` still run `dotnet test --solution Specs.Mtp.slnx` with `working-directory: tests/mtp` (📌 `.vscode/settings.json` now points at `Specs.sln`) | Run `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` (verified locally); the root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp` |
+| 📌 RESOLVED — `Specs.Mtp.slnx` at the repo root made bare solution commands ambiguous | Workflows now name `Specs.sln` and run the MTP step as `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` | The root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp`; local bare `dotnet build` at the root still needs an explicit solution |
 | 📌 NEW — VSTest FQN is shared by every spec of a `[Feature]` | `--filter FullyQualifiedName~` can no longer target a context or spec by text; tools keyed on FQN see duplicates | Filter with `ContextPath` / `TestDescription` / `DisplayName`; key on `TestCase.Id` (decision #43) |
 
 ## Future Enhancements (Not Committed)

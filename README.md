@@ -15,13 +15,24 @@ A .NET BDD testing framework with two coexisting API styles over a framework-agn
 
 Supplementary references: **[Core Components](memory-bank/core-components.md)**, **[Test Patterns](memory-bank/test-patterns.md)**, **[Glossary](memory-bank/glossary.md)**.
 
+## Installation
+
+Install the package for your test host; each brings in `specs.BDD` and `specs.core`.
+
+| Test host | Package |
+|---|---|
+| VSTest | `dotnet add package specs.BDD.VSTest` |
+| Microsoft.Testing.Platform | `dotnet add package specs.BDD.MTP` |
+
+For MTP under `dotnet test` on .NET 10, also add `"test": { "runner": "Microsoft.Testing.Platform" }` to `global.json` (see [Running on Microsoft.Testing.Platform](#running-on-microsofttestingplatform)).
+
 ## Solution Structure
 
 ### Deliverables (4 projects)
 - **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
 - **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core
-- **specs.BDD.VSTestAdapter** - VSTest discovery + execution for Test Explorer and `dotnet test`
-- **specs.BDD.TestingPlatform** - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
+- **specs.BDD.VSTestAdapter** (package `specs.BDD.VSTest`) - VSTest discovery + execution for Test Explorer and `dotnet test`
+- **specs.BDD.TestingPlatform** (package `specs.BDD.MTP`) - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
 
 Both runners compile the runner-agnostic discovery and execution code in `src/shared/specs.BDD.Runner/`.
 
@@ -33,11 +44,12 @@ Both runners compile the runner-agnostic discovery and execution code in `src/sh
 - **tests/mtp/specs.BDD.TestingPlatform.Tests** - MTP runner tests (NUnit on MTP)
 - **tests/mtp/specs.BDD.TestingPlatform.IntegrationTests** - The `specs.BDD.IntegrationTests` specs, run through MTP
 
-The MTP projects live in `tests/mtp/Specs.Mtp.slnx`; its `global.json` puts `dotnet test` in MTP mode, so run them from that folder:
+The MTP projects are in `Specs.Mtp.slnx` at the repo root. `tests/mtp/global.json` puts `dotnet test` in MTP mode, so run them from that folder:
 ```
 cd tests/mtp
-dotnet test --solution Specs.Mtp.slnx
+dotnet test --solution ../../Specs.Mtp.slnx
 ```
+The root holds two solutions, so other root commands must name one, e.g. `dotnet build Specs.sln`.
 
 ### Legacy / internal (1)
 - **Specs** - Legacy property-based `Spec` class and `Domain/` layer
@@ -94,7 +106,7 @@ An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes 
 
 ## Running on Microsoft.Testing.Platform
 
-Reference `specs.BDD.TestingPlatform` instead of the VSTest adapter. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Feature]` → contexts → specs.
+Reference `specs.BDD.MTP` instead of `specs.BDD.VSTest`. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Feature]` → contexts → specs.
 
 Every spec has a path, which is its test ID and what `--treenode-filter` matches:
 ```

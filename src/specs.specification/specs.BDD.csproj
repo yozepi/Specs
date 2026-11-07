@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>10</LangVersion>
-    <Description>BDD authoring API for Specs: derive from Specifications and write nested Describe/Context/It specs with BeforeAll, BeforeEach, Act, AfterEach and AfterAll hooks, first-class async support, pending specs, and expected-exception specs.</Description>
+    <Description>BDD authoring API for Specs: derive from Specifications and write nested Describe/Context/It specs with BeforeAll, BeforeEach, Act, AfterEach and AfterAll hooks, first-class async support, pending specs, and expected-exception specs. Most users should install specs.BDD.VSTest or specs.BDD.MTP instead.</Description>
     <PackageTags>$(PackageTags);describe;context;it;async</PackageTags>
   </PropertyGroup>
 

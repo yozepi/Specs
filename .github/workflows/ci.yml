@@ -17,13 +17,15 @@ jobs:
         with:
           global-json-file: global.json
 
-      - run: dotnet restore
-      - run: dotnet build -c Release --no-restore
-      - run: dotnet test -c Release --no-build
+      # The root holds two solutions, so each command names one explicitly.
+      - run: dotnet restore Specs.sln
+      - run: dotnet build Specs.sln -c Release --no-restore
+      - run: dotnet test Specs.sln -c Release --no-build
       # tests/mtp/global.json switches dotnet test to Microsoft.Testing.Platform mode.
-      - run: dotnet test --solution Specs.Mtp.slnx -c Release
+      - run: dotnet test --solution ../../Specs.Mtp.slnx -c Release
         working-directory: tests/mtp
-      - run: dotnet pack -c Release --no-build -o artifacts
+      # Specs.sln contains every packable project, including specs.BDD.TestingPlatform.
+      - run: dotnet pack Specs.sln -c Release --no-build -o artifacts
 
       # Download from the run page to inspect exactly what a release would ship
       - uses: actions/upload-artifact@v4

@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>10</LangVersion>
-    <Description>Framework-agnostic core of the Specs BDD testing framework: hierarchical spec builder, immutable test case model, lifecycle executor, and public adapter interfaces for hosting the BeforeAll/BeforeEach/Act/AfterEach/AfterAll lifecycle in any test runner.</Description>
+    <Description>Framework-agnostic core of the Specs BDD testing framework: hierarchical spec builder, immutable test case model, lifecycle executor, and public adapter interfaces for hosting the BeforeAll/BeforeEach/Act/AfterEach/AfterAll lifecycle in any test runner. Most users should install specs.BDD.VSTest or specs.BDD.MTP instead.</Description>
     <PackageTags>$(PackageTags);test-framework;lifecycle</PackageTags>
   </PropertyGroup>
 

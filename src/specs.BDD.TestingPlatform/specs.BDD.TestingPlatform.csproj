@@ -5,7 +5,8 @@
     <Nullable>enable</Nullable>
     <!-- MTP's TestNode uses required members (C# 11). -->
     <LangVersion>12</LangVersion>
-    <Description>Microsoft.Testing.Platform runner for Specs: discovers and runs Specifications-based specs as a fully nested tree (namespace, class, [Feature], contexts, specs) in Visual Studio, VS Code, and dotnet test, with --treenode-filter support and optional grouped execution.</Description>
+    <PackageId>specs.BDD.MTP</PackageId>
+    <Description>Microsoft.Testing.Platform runner for Specs.BDD: discovers and runs Specifications-based specs as a fully nested tree (namespace, class, [Feature], contexts, specs) in Visual Studio, VS Code, and dotnet test, with --treenode-filter support and optional grouped execution.</Description>
     <PackageTags>$(PackageTags);mtp;microsoft-testing-platform;test-explorer;dotnet-test</PackageTags>
     <!-- TreeNodeFilter and IClientInfo are experimental MTP APIs. -->
     <NoWarn>$(NoWarn);TPEXP</NoWarn>
@@ -34,7 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="build\specs.BDD.TestingPlatform.props" Pack="true" PackagePath="build\;buildMultiTargeting\" />
+    <!-- NuGet only imports build props named after the PackageId. -->
+    <None Include="build\specs.BDD.MTP.props" Pack="true" PackagePath="build\;buildMultiTargeting\" />
   </ItemGroup>
 
 </Project>
