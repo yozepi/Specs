@@ -1,0 +1,45 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches: [main]
+    paths: ['documents/wiki/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write     # push to the repo's .wiki git repository
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The wiki must already exist: create any first page in the Wiki tab once.
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki
+
+      - name: Sync pages
+        run: |
+          rsync -a --delete --exclude '.git' --exclude 'wiki-preferences.md' documents/wiki/ wiki/
+          # Repo-relative source links don't resolve inside the wiki; point them at the repo instead.
+          sed -i -E "s#\]\(\.\./\.\./#](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/#g" wiki/*.md
+
+      - name: Commit and push
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+          git commit -m "Sync wiki from ${{ github.sha }}"
+          git push
