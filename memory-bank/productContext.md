@@ -219,6 +219,7 @@ It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
 | **Bring your own runner** 📌 | `specs.core` exposes `TestCaseExecutor` and its adapter interfaces publicly; the VSTest adapter is just one host |
 | **VSTest or MTP** 📌 NEW | Reference `specs.BDD.VSTestAdapter` or `specs.BDD.TestingPlatform`; specs and results are the same either way |
 | **Install and debug from NuGet** 📌 NEW | Tag-versioned `specs.core` / `specs.BDD` / `specs.BDD.VSTestAdapter` / 📌 `specs.BDD.TestingPlatform` packages ship together with XML docs (IntelliSense) and `.snupkg` symbols with SourceLink, so you can step into framework code (first release pending) |
+| **Start in one command** 📌 NEW | `dotnet new specs-vstest` or `dotnet new specs-mtp` (`-lang VB` for Visual Basic) creates a project that already builds and passes, wired to the runner package of the same version |
 | **Migration path** | NSpec-style / property-based code migrates to `Specifications` (method calls instead of property assignments) |
 
 ## What Makes Specs Different

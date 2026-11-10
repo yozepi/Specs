@@ -131,6 +131,7 @@ Every test project in `tests/` references `specs.BDD.VSTestAdapter` and — exce
 | `specs.specification` (specs.BDD) | **None** at runtime (📌 `MinVer`, build-time only) | `specs.core` |
 | `specs.BDD.VSTestAdapter` | `Microsoft.TestPlatform.ObjectModel 17.8.0`, `System.Reflection.Metadata 6.0.0` (📌 `MinVer`, build-time only) | `specs.core`, `specs.specification`; 📌 compiles `src/shared/specs.BDD.Runner/**/*.cs` |
 | 📌 NEW — `specs.BDD.TestingPlatform` | `Microsoft.Testing.Platform 2.5.1` and `Microsoft.Testing.Platform.MSBuild 2.5.1` (both `PrivateAssets="none"` so consumers get the entry-point generation and IDE capability targets), `System.Reflection.Metadata 6.0.0` (`MinVer`, build-time only) | `specs.core`, `specs.specification`; compiles `src/shared/specs.BDD.Runner/**/*.cs`. Sets `IsTestingPlatformApplication=false` (MTP's targets otherwise treat it as a test app), `Description`, `PackageTags`, and packs `build/specs.BDD.MTP.props` into `build/` and `buildMultiTargeting/` |
+| 📌 NEW — `specs.BDD.Templates` | **None** (content-only; `SuppressDependenciesWhenPacking`, `IncludeBuildOutput=false`; `MinVer` drives `StampTemplateVersion`) | — |
 
 📌 UPDATED — versions are no longer written in the `.csproj` files; they come from `Directory.Packages.props` (see "Build Configuration").
 
@@ -178,7 +179,7 @@ Centrally managed versions:
 | `Autofac.Extras.Moq` | 7.0.0 | Core tests |
 | `coverlet.collector` | 6.0.4 | Core + BDD tests |
 
-Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` sets them so far).
+Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. These copies are redundant but harmless. Per-package `Description` / `PackageTags` belong in each deliverable's `.csproj` (📌 only `specs.BDD.TestingPlatform` 📌 and `specs.BDD.Templates` set them so far).
 
 📌 UPDATED — Package IDs:
 
@@ -188,6 +189,7 @@ Some `.csproj` files still repeat `Nullable` / `ImplicitUsings` / `IsPackable`. 
 | `specs.BDD` (`specs.specification`) | `specs.BDD` (default) |
 | `specs.BDD.VSTestAdapter` | `specs.BDD.VSTest` (assembly keeps its name: VSTest loads only `*TestAdapter.dll`) |
 | `specs.BDD.TestingPlatform` | `specs.BDD.MTP` |
+| 📌 NEW — `specs.BDD.Templates` | `specs.BDD.Templates` (`PackageType=Template`) |
 
 NuGet auto-imports only `build/<PackageId>.props`, so the MTP props file is `build/specs.BDD.MTP.props`.
 
@@ -235,8 +237,8 @@ flowchart TD
 
 | Workflow | Trigger | Steps |
 |----------|---------|-------|
-| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution ../../Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → upload `packages` artifact. 📌 UPDATED — every root command names `Specs.sln` explicitly (two root solutions make bare commands ambiguous) |
-| `.github/workflows/release.yml` | Push of a `v*` tag | Same build/test (📌 including the MTP step)/pack, then `NuGet/login@v1` (OIDC → 1-hour API key) → `dotnet nuget push artifacts/*.nupkg --skip-duplicate` (`.snupkg` go up alongside) → `gh release create <tag> --generate-notes` (`--prerelease` when the tag contains `-`) |
+| `.github/workflows/ci.yml` | Push to `main`, any pull request | `checkout` (`fetch-depth: 0`) → `setup-dotnet` (`global-json-file`) → `restore` → `build -c Release` → `test` → 📌 `dotnet test --solution ../../Specs.Mtp.slnx -c Release` in `tests/mtp` → `pack -o artifacts` → 📌 NEW "Smoke-test templates" (install the packed template, scaffold `specs-vstest` + `specs-mtp` against `artifacts/`, `dotnet test` / `dotnet run` them) → upload `packages` artifact. 📌 UPDATED — every root command names `Specs.sln` explicitly (two root solutions make bare commands ambiguous) |
+| `.github/workflows/release.yml` | Push of a `v*` tag | Same build/test (📌 including the MTP step)/pack 📌 and template smoke test, then `NuGet/login@v1` (OIDC → 1-hour API key) → `dotnet nuget push artifacts/*.nupkg --skip-duplicate` (`.snupkg` go up alongside) → `gh release create <tag> --generate-notes` (`--prerelease` when the tag contains `-`) |
 
 Versioning (MinVer, tag prefix `v`):
 
@@ -253,6 +255,30 @@ One-time repo setup required before the first release:
 - A nuget.org Trusted Publishing policy for this repository and `release.yml`. No API key is stored.
 - Optional `nuget` GitHub environment with required reviewers as a manual approval gate (the job already targets `environment: nuget`).
 - Workflow permissions: `contents: write` (GitHub Release) and `id-token: write` (OIDC), both declared in `release.yml`.
+
+## 📌 NEW — Project Templates
+
+`specs.BDD.Templates` packs four `dotnet new` templates into `content/templates/`. Pack flow and rationale: `systemPatterns.md` section "Project Templates (`dotnet new`)" (decision #46).
+
+| Folder | `shortName` | Language | `identity` | Project file | References |
+|--------|-------------|----------|------------|--------------|------------|
+| `specs-vstest` | `specs-vstest` | C# | `Specs.BDD.Template.VSTest` | `Specs.Template.csproj` (`IsTestProject`, nullable) | `Microsoft.NET.Test.Sdk 17.14.1`, `NFluent 3.1.0`, `specs.BDD.VSTest` |
+| `specs-vstest-vb` | `specs-vstest` | VB | `Specs.BDD.Template.VSTest.VB` | `Specs.Template.vbproj` (`IsTestProject`) | same |
+| `specs-mtp` | `specs-mtp` | C# | `Specs.BDD.Template.MTP` | `Specs.Template.csproj` (`OutputType=Exe`, nullable) | `NFluent 3.1.0`, `specs.BDD.MTP` |
+| `specs-mtp-vb` | `specs-mtp` | VB | `Specs.BDD.Template.MTP.VB` | `Specs.Template.vbproj` (`OutputType=Exe`) | same |
+
+All target `net10.0` with implicit usings, contain one `CalculatorSpecs` suite (constructor `BeforeEach`, one `[Feature("Addition")]` with a context and an `It`), use `sourceName` `Specs.Template` and `preferNameDirectory`, ship an `ide.host.json` + `icon.png`, and run a `restore` post-action (`continueOnError`).
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `specsVersion` | The template package's own version (`@@SPECS_VERSION@@` stamped at pack time) | Replaces the `SPECS_VERSION` token in the runner `PackageReference` |
+| `-lang` (built-in) | C# | `VB` picks the `-vb` variant |
+
+```powershell
+dotnet new install specs.BDD.Templates           # or a local .nupkg path
+dotnet new specs-vstest -n MyApp.Specs           # VSTest: dotnet test
+dotnet new specs-mtp -n MyApp.Specs -lang VB     # MTP: dotnet run (or dotnet test with the MTP global.json setting)
+```
 
 ## 📌 Adapter Configuration (`.runsettings`)
 
@@ -365,6 +391,9 @@ Specs/
 │       ├── Execution/                      # SpecSelection, TestNodeFactory, MtpRunListener
 │       ├── Output/                         # ConsoleTreeReport
 │       └── build/specs.BDD.MTP.props   # packed to build/ + buildMultiTargeting/
+│   │
+│   └── specs.BDD.Templates/                # 📌 NEW — dotnet new template package (content only; `src` solution folder)
+│       └── templates/                      # specs-vstest, specs-vstest-vb, specs-mtp, specs-mtp-vb
 │
 ├── tests/                                  # 📌 NEW — all test projects
 │   ├── Directory.Build.props               # 📌 NEW — imports root, IsPackable=false
@@ -426,6 +455,11 @@ cd ..\..
 
 # 📌 UPDATED — Pack all deliverables (test projects are IsPackable=false) — same command CI uses
 dotnet pack Specs.sln -c Release -o artifacts
+
+# 📌 NEW — Try the packed templates locally (mirrors the CI smoke test)
+dotnet nuget add source "$PWD\artifacts" --name local-artifacts
+dotnet new install (Get-Item artifacts\specs.BDD.Templates.*.nupkg).FullName
+dotnet new specs-vstest -n Demo.Vs -o $env:TEMP\tpl\Demo.Vs
 
 # 📌 NEW — Cut a release (triggers .github/workflows/release.yml)
 git tag v1.0.0
