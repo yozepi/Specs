@@ -4,5 +4,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- CI path mapping (/_/) breaks tests that read [CallerFilePath] sources from disk -->
+    <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
   </PropertyGroup>
 </Project>

@@ -15,10 +15,13 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <ImplicitUsings>disable</ImplicitUsings>
     <NoWarn>$(NoWarn);NU5128;NU5110;NU5111</NoWarn>
+    <!-- Keeps .template.config/* files that NuGet would otherwise drop as dot-folders. -->
+    <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
 
+  <!-- PackagePath must use '/': on Linux a trailing '\' isn't treated as a folder and the files collapse. -->
   <ItemGroup>
-    <None Include="templates\**" Exclude="templates\**\template.json;templates\**\bin\**;templates\**\obj\**" Pack="true" PackagePath="content\templates\" />
+    <None Include="templates\**" Exclude="templates\**\template.json;templates\**\bin\**;templates\**\obj\**" Pack="true" PackagePath="content/templates/" />
     <TemplateJson Include="templates\**\template.json" />
   </ItemGroup>
 
@@ -29,7 +32,7 @@
                       Overwrite="true" />
     <ItemGroup>
       <None Include="$(IntermediateOutputPath)stamped\%(TemplateJson.RecursiveDir)template.json"
-               Pack="true" PackagePath="content\templates\%(TemplateJson.RecursiveDir)" />
+               Pack="true" PackagePath="content/templates/%(TemplateJson.RecursiveDir)" />
     </ItemGroup>
   </Target>
 

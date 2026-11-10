@@ -27,16 +27,21 @@ jobs:
       # Specs.sln contains every packable project, including specs.BDD.TestingPlatform and specs.BDD.Templates.
       - run: dotnet pack Specs.sln -c Release --no-build -o artifacts
 
-      # Installs the packed template, scaffolds both flavours against the just-built packages, and runs them.
+      # Installs the packed template, scaffolds every flavour (C# and VB) against the just-built packages, and runs them.
       - name: Smoke-test templates
         run: |
+          unzip -l artifacts/specs.BDD.Templates.*.nupkg
           dotnet nuget add source "$GITHUB_WORKSPACE/artifacts" --name local-artifacts
           dotnet new install artifacts/specs.BDD.Templates.*.nupkg
           mkdir "$RUNNER_TEMP/tpl" && cd "$RUNNER_TEMP/tpl"
           dotnet new specs-vstest -n Demo.Vs
           dotnet new specs-mtp -n Demo.Mtp
+          dotnet new specs-vstest -lang VB -n Demo.VsVb
+          dotnet new specs-mtp -lang VB -n Demo.MtpVb
           dotnet test Demo.Vs -c Release
           dotnet run --project Demo.Mtp -c Release
+          dotnet test Demo.VsVb -c Release
+          dotnet run --project Demo.MtpVb -c Release
 
       # Download from the run page to inspect exactly what a release would ship
       - uses: actions/upload-artifact@v4
