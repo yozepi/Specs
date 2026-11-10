@@ -243,9 +243,7 @@ namespace specs.BDD.VSTestAdapter.Tests.Discovery
 
             Check.That(todo.DeclaredLocation).IsNotNull();
             var (filePath, lineNumber) = todo.DeclaredLocation!.Value;
-            Check.That(filePath.Replace('\\', '/').EndsWith("/TestFixtures/SampleSpecifications.cs")).IsTrue();
-            var sourcePath = Path.Combine(AppContext.BaseDirectory, "TestFixtures", "SampleSpecifications.cs");
-            Check.That(File.ReadAllLines(sourcePath)[lineNumber - 1]).Contains("It[\"todo\"] = TODO;");
+            Check.That(File.ReadAllLines(filePath)[lineNumber - 1]).Contains("It[\"todo\"] = TODO;");
         }
 
         [Test]

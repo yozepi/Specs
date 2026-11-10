@@ -27,9 +27,9 @@ Specs is a .NET testing framework that provides **two complementary BDD-style AP
 
 ## Solution Structure
 
-The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects are built by `Specs.Mtp.slnx` (📌 UPDATED — moved to the repo root; it lists `specs.core`, `specs.BDD`, `specs.BDD.TestingPlatform`, and the two MTP projects). The projects stay in `tests/mtp/`, whose `global.json` runs `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
+The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **9 projects** — deliverables under `src/`, test projects under `tests/`. 📌 Two more MTP test projects are built by `Specs.Mtp.slnx` (📌 UPDATED — moved to the repo root; it lists `specs.core`, `specs.BDD`, `specs.BDD.TestingPlatform`, and the two MTP projects). The projects stay in `tests/mtp/`, whose `global.json` runs `dotnet test` in MTP mode. 📌 Runner-agnostic discovery/execution code lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners (it is not a project). 📌 Shared build settings, package versions, and the SDK pin live in root-level `Directory.Build.props`, `Directory.Packages.props`, and `global.json`. CI/release workflows live in `.github/workflows/`.
 
-### Deliverable Projects (📌 4)
+### Deliverable Projects (📌 4 + templates package)
 
 | Project | Folder | Purpose |
 |---------|--------|---------|
@@ -37,6 +37,7 @@ The solution (📌 `Specs.sln`, now at the repo root) contains 📌 **8 projects
 | **specs.BDD** (asm name) / `specs.specification` (folder) | `src/specs.specification/` | High-level BDD API built on specs.core (`Specifications` base class) |
 | **specs.BDD.VSTestAdapter** | `src/specs.BDD.VSTestAdapter/` | VSTest adapter implementing `ITestDiscoverer` + `ITestExecutor` |
 | 📌 NEW **specs.BDD.TestingPlatform** | `src/specs.BDD.TestingPlatform/` | Microsoft.Testing.Platform test framework (`AddSpecsBDD()`); full spec tree as test nodes, `--treenode-filter`, console tree report |
+| 📌 NEW **specs.BDD.Templates** | `src/specs.BDD.Templates/` | Content-only `dotnet new` template package: `specs-vstest` / `specs-mtp` in C# and VB (no assembly) |
 
 ### Test Projects (4 + 📌 2 MTP)
 
@@ -115,6 +116,7 @@ public class CalculatorSpecs : Specifications      // Suite
 - 📌 **Expected-exception specs** — `It[...] = ShouldThrow<T>()` / `ShouldThrow<T>(verify)` assert on the exception thrown by `Act`; an unverified `Act` exception fails only its own spec.
 - Adapter pattern for swappable test-framework integration.
 - 📌 NEW — **NuGet distribution**: all 📌 four deliverables are packed with shared metadata, XML docs, and `.snupkg` symbols. They are versioned from `v*` git tags and published together to nuget.org by a GitHub Actions release workflow.
+- 📌 NEW — **Project templates**: `dotnet new specs-vstest` / `specs-mtp` (C# or VB) scaffold a runnable spec project that references the runner package of the same version. The template package ships with the others and is smoke-tested on CI.
 
 **Out of scope**:
 

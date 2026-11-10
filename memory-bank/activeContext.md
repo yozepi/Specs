@@ -2,6 +2,8 @@
 
 ## Current Focus
 
+**📌 NEW — `dotnet new` templates package (staged, 25 files)** — a fifth packable project, `src/specs.BDD.Templates/` (`PackageId` `specs.BDD.Templates`, `PackageType=Template`), ships four project templates: `specs-vstest` and `specs-mtp`, each in C# and VB (paired by `groupIdentity`, chosen with `-lang`). Each scaffolds a `net10.0` project with NFluent and one `CalculatorSpecs` suite. `specs-vstest` references `specs.BDD.VSTest` + `Microsoft.NET.Test.Sdk`, and `specs-mtp` references `specs.BDD.MTP` as an `Exe` that runs with `dotnet run`. The package is content-only (no assembly, dependencies, or symbols). Its `StampTemplateVersion` target runs after MinVer and replaces `@@SPECS_VERSION@@` in each `template.json` with the package version, so the `specsVersion` parameter defaults to the matching Specs release. CI and release now smoke-test the packed templates: they install the `.nupkg` from `artifacts/`, scaffold both C# flavours against the just-packed packages, and run them. `Specs.sln` gains a `src` solution folder holding the templates project (9 projects). `specs.BDD.IntegrationTests.csproj` now excludes `TestResults\**` from `Compile` / `EmbeddedResource` / `None`. No runtime code or test-count change. See `systemPatterns.md` section "Project Templates (`dotnet new`)" and decision #46, and `techContext.md` "Project Templates".
+
 **📌 NEW — Runner NuGet package IDs renamed (committed `2738675`, 10 files)** — the runner packages now publish as `specs.BDD.VSTest` (assembly still `specs.BDD.VSTestAdapter`, because VSTest only loads `*TestAdapter.dll`) and `specs.BDD.MTP` (assembly still `specs.BDD.TestingPlatform`) via explicit `PackageId`. `build/specs.BDD.TestingPlatform.props` became `build/specs.BDD.MTP.props`, since NuGet auto-imports only `build/<PackageId>.props`; the MTP integration project's import follows. `ci.yml` / `release.yml` now name `Specs.sln` explicitly (two root solutions made bare `restore` / `build` / `test` / `pack` ambiguous), and the MTP step passes `../../Specs.Mtp.slnx` from `tests/mtp`. The README gained an Installation section (which package per test host, the `global.json` MTP runner setting for .NET 10), and the `specs.core` / `specs.BDD` descriptions point users to a runner package. `Specs.sln` also had incidental Visual Studio rewrites (TestingPlatform project GUID, `VisualStudioVersion`). No code or test-count change. See `techContext.md` "Packaging & Release" and `systemPatterns.md` decision #45. Elsewhere in this memory bank, `build/specs.BDD.TestingPlatform.props` is now `build/specs.BDD.MTP.props`.
 
 **📌 NEW — `[Describe]` → `[Feature]`, `TestStructure` → `ReportingLevel` (committed `ed6392f`, 64 files)** — the top-level suite attribute is now `[Feature]` (`FeatureAttribute`) so it no longer collides with the nested-context `Describe[...]` indexer. The grouping switch is `ReportingLevel` (`Test` / `Feature`, was `TestStructure.PerSpec` / `PerDescribe`), applied through `[ReportingLevel]` (assembly/class) and `[Feature(Level = ...)]` (method; was `Structure`, with `LevelSetting` replacing `StructureSetting`). The `.runsettings` element and the MTP `SpecsBDD__ReportingLevel` key are renamed too, and the old keys are no longer read. **Breaking** but a pure rename with no behaviour change. This memory bank uses the new names throughout; entries that describe earlier renames keep the names of their time. See `systemPatterns.md` decision #44 and `progress.md` Phase 17.
@@ -63,12 +65,31 @@ Alongside these: Test Explorer renders a real tree (RFC-0033 `TestCase.Hierarchy
 | `specs.BDD.UnitTests` | 📌 Self-hosted (was NUnit + nspec via `TestHarness`); 📌 149 results; moved to `tests/` |
 | Legacy `Spec` API | 📌 REMOVED — `Specifications` is the only API; `Examples/ConsoleExample` removed too |
 | TestHarness | 📌 REMOVED — no remaining consumer once `specs.BDD.UnitTests` self-hosted |
-| Build & release 📌 NEW | Central `Directory.Build.props` / `Directory.Packages.props` / `global.json`; MinVer tag versioning; CI + release workflows in place. **No `v*` tag or nuget.org release yet** |
+| Build & release 📌 NEW | Central `Directory.Build.props` / `Directory.Packages.props` / `global.json`; MinVer tag versioning; CI + release workflows in place, 📌 now with a template smoke test. **No `v*` tag or nuget.org release yet** |
+| 📌 NEW — `specs.BDD.Templates` | Content-only template package: `specs-vstest` / `specs-mtp` × C# / VB; default `specsVersion` stamped at pack time |
 | Documentation | Core files refreshed October 2026; memory bank consolidated to 6 core files + 4 supplementary references (`architecture.md`, `core-components.md`, `test-patterns.md`, `glossary.md`) |
 
 ## Recent Architectural Changes
 
-### 📌 NEW — `[Feature]` method identity (7 files, +96 / −37)
+### 📌 NEW — `dotnet new` templates (25 files, +429 / −2)
+
+The pack/install flow diagram lives in `systemPatterns.md` section "Project Templates (`dotnet new`)"; decision #46 records the rationale. Template parameters and versions are in `techContext.md` "Project Templates".
+
+| Area | File(s) | What changed |
+|------|---------|--------------|
+| Templates project 📌 NEW | `src/specs.BDD.Templates/specs.BDD.Templates.csproj` | `netstandard2.1`, `PackageType=Template`, `IncludeBuildOutput` / `IncludeSymbols` / `GenerateDocumentationFile` off, `SuppressDependenciesWhenPacking`, `EnableDefaultItems=false`, `NoWarn NU5128;NU5110;NU5111`. Packs `templates\**` (except `template.json`, `bin`, `obj`) to `content\templates\`. `StampTemplateVersion` (`BeforeTargets=_GetPackageFiles;GenerateNuspec`, `DependsOnTargets=MinVer`) writes stamped `template.json` copies to `obj\…\stamped\` and packs those instead |
+| Templates 📌 NEW | `templates/specs-vstest/`, `specs-vstest-vb/`, `specs-mtp/`, `specs-mtp-vb/` — each `.template.config/template.json`, `ide.host.json`, `icon.png`, `CalculatorSpecs.cs` / `.vb`, `Specs.Template.csproj` / `.vbproj` | `sourceName` `Specs.Template`; `specsVersion` parameter replaces the `SPECS_VERSION` token in the project file; `restore` post-action. VSTest projects: `IsTestProject`, `Microsoft.NET.Test.Sdk 17.14.1`, `specs.BDD.VSTest`. MTP projects: `OutputType=Exe`, `specs.BDD.MTP` (its props supply the rest) |
+| Solution | `Specs.sln` | New `src` solution folder containing `specs.BDD.Templates` (the other deliverables stay at the solution root) |
+| CI / release | `.github/workflows/ci.yml`, `release.yml` | New "Smoke-test templates" step after `pack`: adds `artifacts/` as a NuGet source, installs `specs.BDD.Templates.*.nupkg`, runs `dotnet new specs-vstest` / `specs-mtp` in `$RUNNER_TEMP`, then `dotnet test` (VSTest) and `dotnet run` (MTP). In `release.yml` it runs before the nuget.org push, so a broken template blocks the release |
+| Integration tests | `tests/specs.BDD.IntegrationTests/specs.BDD.IntegrationTests.csproj` | `Compile` / `EmbeddedResource` / `None` `Remove="TestResults\**"` |
+
+Open items noticed during the update:
+
+- The templates pin `NFluent 3.1.0` and `Microsoft.NET.Test.Sdk 17.14.1` as literals. Central package management does not reach generated projects, and the repo itself uses Test SDK 17.8.0.
+- The VB templates are only scaffolded locally. The CI smoke test covers the C# templates only.
+- `specs-mtp-vb/CalculatorSpecs.vb` closes `describe_addition` with a mis-indented `End Sub` (cosmetic).
+
+### 📌 `[Feature]` method identity (7 files, +96 / −37)
 
 BEFORE/AFTER diagrams and the property table live in `systemPatterns.md` section "`[Feature]` method identity (CodeLens / symbol navigation)"; decision #43 records the rationale.
 

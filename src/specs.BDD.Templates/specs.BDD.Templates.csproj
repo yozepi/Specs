@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <PackageId>specs.BDD.Templates</PackageId>
+    <PackageType>Template</PackageType>
+    <Description>dotnet new templates for Specs.BDD: scaffolds a ready-to-run spec project for the VSTest adapter (specs-vstest) or the Microsoft.Testing.Platform runner (specs-mtp).</Description>
+    <PackageTags>$(PackageTags);dotnet-new;templates</PackageTags>
+
+    <!-- Content-only package: no assembly, no dependencies, no symbols. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <NoWarn>$(NoWarn);NU5128;NU5110;NU5111</NoWarn>
+    <!-- Keeps .template.config/* files that NuGet would otherwise drop as dot-folders. -->
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+  </PropertyGroup>
+
+  <!-- PackagePath must use '/': on Linux a trailing '\' isn't treated as a folder and the files collapse. -->
+  <ItemGroup>
+    <None Include="templates\**" Exclude="templates\**\template.json;templates\**\bin\**;templates\**\obj\**" Pack="true" PackagePath="content/templates/" />
+    <TemplateJson Include="templates\**\template.json" />
+  </ItemGroup>
+
+  <!-- Bakes this build's package version into each template's default specsVersion. -->
+  <Target Name="StampTemplateVersion" BeforeTargets="_GetPackageFiles;GenerateNuspec" DependsOnTargets="MinVer">
+    <WriteLinesToFile File="$(IntermediateOutputPath)stamped\%(TemplateJson.RecursiveDir)template.json"
+                      Lines="$([System.IO.File]::ReadAllText('%(TemplateJson.FullPath)').Replace('@@SPECS_VERSION@@', '$(PackageVersion)'))"
+                      Overwrite="true" />
+    <ItemGroup>
+      <None Include="$(IntermediateOutputPath)stamped\%(TemplateJson.RecursiveDir)template.json"
+               Pack="true" PackagePath="content/templates/%(TemplateJson.RecursiveDir)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

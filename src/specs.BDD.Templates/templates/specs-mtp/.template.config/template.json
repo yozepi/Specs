@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Joe Cleland (yozepi@gmail.com)",
+  "classifications": [ "Test", "BDD", "Specs" ],
+  "identity": "Specs.BDD.Template.MTP",
+  "groupIdentity": "Specs.BDD.Template.MTP",
+  "name": "Specs.BDD Test Project (Microsoft.Testing.Platform)",
+  "description": "A spec based BDD testing project that runs on Microsoft.Testing.Platform (Test Explorer, dotnet test and dotnet run).",
+  "shortName": "specs-mtp",
+  "sourceName": "Specs.Template",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "symbols": {
+    "specsVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "Version of the specs.BDD packages to reference.",
+      "defaultValue": "@@SPECS_VERSION@@",
+      "replaces": "SPECS_VERSION"
+    }
+  },
+  "primaryOutputs": [ { "path": "Specs.Template.csproj" } ],
+  "postActions": [
+    {
+      "id": "restore",
+      "description": "Restore NuGet packages.",
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

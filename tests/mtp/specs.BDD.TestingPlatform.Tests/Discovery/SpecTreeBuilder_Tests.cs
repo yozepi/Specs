@@ -138,9 +138,7 @@ namespace specs.BDD.TestingPlatform.Tests.Discovery
             var leaf = Leaf($"{Ns}/PendingTreeSpec/pending/waits");
 
             Check.That(leaf.Location).IsNotNull();
-            Check.That(leaf.Location!.FilePath.Replace('\\', '/').EndsWith("/TestFixtures/TreeSpecs.cs")).IsTrue();
-            var sourcePath = Path.Combine(AppContext.BaseDirectory, "TestFixtures", "TreeSpecs.cs");
-            var declaredLine = File.ReadAllLines(sourcePath)[leaf.Location.LineNumber - 1];
+            var declaredLine = File.ReadAllLines(leaf.Location!.FilePath)[leaf.Location.LineNumber - 1];
             Check.That(declaredLine).Contains("It[\"waits\"] = TODO;");
         }
 

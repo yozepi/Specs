@@ -98,6 +98,7 @@ The property-based `Spec` class, `Domain/` layer, `Global.cs`, `Specs.csproj`, a
 - ✅ MinVer tag-based versioning (`v1.2.0` → `1.2.0`).
 - ✅ GitHub Actions CI on `main` / PRs (build, test, pack, artifact upload). Release workflow on `v*` tags (nuget.org via Trusted Publishing, plus a GitHub Release).
 - ✅ 📌 Runner packages published as `specs.BDD.VSTest` / `specs.BDD.MTP`; README documents installation.
+- ✅ 📌 NEW `specs.BDD.Templates`: `dotnet new specs-vstest` / `specs-mtp` (C# + VB), default runner version stamped at pack time; CI and release install the packed template and run both C# scaffolds.
 - ⏳ First release pending: no `v*` tag yet, and the nuget.org trust policy and `NUGET_USER` secret still need setting up.
 
 Decisions #34–35 in `systemPatterns.md`.
@@ -133,9 +134,11 @@ flowchart TD
     P15["Phase 15<br/>Declared It locations"]:::app
     P16["Phase 16<br/>Describe method identity"]:::app
     P17["Phase 17<br/>Feature / ReportingLevel rename"]:::app
+    P18["Phase 18<br/>Runner package IDs"]:::app
+    P19["Phase 19<br/>dotnet new templates"]:::app
 
     P1 --> P2 --> P3 --> P4
-    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16 --> P17
+    P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16 --> P17 --> P18 --> P19
 
     classDef app fill:#56B870,stroke:#3D8B50,color:#fff
     classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
@@ -313,6 +316,16 @@ Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::
 
 > **📌 See**: `systemPatterns.md` decision #44; `techContext.md` "Adapter Configuration" / "MTP Runner Configuration".
 
+### 📌 NEW — Phase 19 — `dotnet new` templates (Nov 2026, staged)
+
+- **New package**: `specs.BDD.Templates` (content-only, `PackageType=Template`) with `specs-vstest` and `specs-mtp`, each in C# and VB. `StampTemplateVersion` bakes the package version into each template's default `specsVersion`.
+- **CI / release**: a "Smoke-test templates" step installs the packed template from `artifacts/`, scaffolds both C# flavours, and runs them (`dotnet test` / `dotnet run`) before upload or publish.
+- **Solution**: `Specs.sln` gains a `src` solution folder with the templates project (9 projects).
+- **Housekeeping**: `specs.BDD.IntegrationTests` excludes `TestResults\**` from its items.
+- No runtime code or test-count change.
+
+> **📌 See**: `systemPatterns.md` section "Project Templates (`dotnet new`)" and decision #46; `techContext.md` "Project Templates".
+
 ## Known Limitations
 
 | Limitation | Impact | Workaround / Future |
@@ -337,13 +350,15 @@ Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::
 | 📌 NEW — MTP tests need their own folder / solution | `dotnet test` on `Specs.sln` does not run them | Run from `tests/mtp` (CI does) |
 | 📌 RESOLVED — `Specs.Mtp.slnx` at the repo root made bare solution commands ambiguous | Workflows now name `Specs.sln` and run the MTP step as `dotnet test --solution ../../Specs.Mtp.slnx` from `tests/mtp` | The root `global.json` has no MTP runner setting, so the MTP command must keep running from `tests/mtp`; local bare `dotnet build` at the root still needs an explicit solution |
 | 📌 NEW — VSTest FQN is shared by every spec of a `[Feature]` | `--filter FullyQualifiedName~` can no longer target a context or spec by text; tools keyed on FQN see duplicates | Filter with `ContextPath` / `TestDescription` / `DisplayName`; key on `TestCase.Id` (decision #43) |
+| 📌 NEW — Template third-party versions are literals | Scaffolded projects get `NFluent 3.1.0` / `Microsoft.NET.Test.Sdk 17.14.1` until the template files are edited; central package management does not apply | Bump them in `src/specs.BDD.Templates/templates/*/Specs.Template.*proj` when upgrading |
+| 📌 NEW — VB templates are not smoke-tested on CI | A broken VB template would ship unnoticed | Add `-lang VB` scaffolds to the smoke-test step |
 
 ## Future Enhancements (Not Committed)
 
 - Parallel test execution within a suite.
 - Data-driven specifications.
 - Roslyn analyzers for common authoring mistakes (missing `[Feature]`, etc.).
-- `dotnet new` templates.
+- ~~`dotnet new` templates.~~ 📌 DONE (`specs.BDD.Templates`, Phase 19).
 - Publish `specs.BDD.VSTestAdapter` as a standalone NuGet package. 📌 Release pipeline in place; the first tagged release is still pending.
 - ~~Migrate `specs.BDD.UnitTests` to self-hosting and retire `TestHarness`.~~ 📌 DONE.
 
@@ -351,8 +366,8 @@ Opt-in grouped mode: a root `[Feature]` becomes one `TestCase` (`Class::Method::
 
 | Metric | Status |
 |--------|--------|
-| Build cleanliness across all 📌 8 projects (+ 2 MTP) | ✅ Clean: 0 errors and 0 build warnings (📌 including with XML doc generation on the deliverables). One discovery warning is expected at test time, from the `SpecWithNoContextMethods` fixture |
-| 📌 Continuous integration | ✅ `ci.yml` builds, tests, and packs every push to `main` and every PR |
+| Build cleanliness across all 📌 9 projects (+ 2 MTP) | ✅ Clean: 0 errors and 0 build warnings (📌 including with XML doc generation on the deliverables). One discovery warning is expected at test time, from the `SpecWithNoContextMethods` fixture |
+| 📌 Continuous integration | ✅ `ci.yml` builds, tests, and packs every push to `main` and every PR, 📌 then scaffolds and runs the packed templates |
 | Test pass rate | ✅ 100% of runnable results (📌 VSTest 787 passed, 13 pending skipped, 0 failed of 800; MTP 99 passed, 5 skipped of 104) |
 | Self-hosted core tests | ✅ 📌 340 results passing via the Specs adapter |
 | Self-hosted BDD tests | ✅ 📌 149 results passing via the Specs adapter |

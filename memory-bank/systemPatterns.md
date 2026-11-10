@@ -900,6 +900,7 @@ The four `TestProperties` values (`ClassName`, `ContextMethod`, `ContextPath`, `
 | 43 | 📌 NEW **Tests identify the `[Feature]` *method*: VSTest FQN = `Class.DescribeMethod` + RFC-0017 `ManagedType` / `ManagedMethod`, uniqueness moves to a hashed `TestCase.Id`; MTP `MethodName` = the `[Feature]` method name** | IDEs (CodeLens, "Go to test", Visual Studio data-driven grouping) resolve tests to real C# symbols; the old FQN and the MTP describe-text method name matched no symbol | **Breaking for FQN consumers**: FQNs are no longer unique per spec, and `--filter FullyQualifiedName~` no longer sees context/spec text. `Id` is deterministic across discovery/execution (VSTest default Ids are derived from the FQN, which would now collide). Execution still addresses specs via `TestProperties`. Supersedes "FQNs unchanged" in #32 / #41 |
 | 44 | 📌 NEW **`[Describe]` renamed `[Feature]`; `TestStructure` renamed `ReportingLevel` (`Test` / `Feature`)** | `[Describe]` shared its name with the `Describe[...]` indexer that creates nested contexts, so spec authors could not tell the top-level marker from a nested context; `TestStructure` / `PerSpec` / `PerDescribe` described VSTest mechanics rather than what one result represents | **Breaking**: `DescribeAttribute` → `FeatureAttribute`, `TestStructure` → `ReportingLevel` (own file), `[TestStructure]` → `[ReportingLevel]`, `Structure` / `StructureSetting` → `Level` / `LevelSetting`, `.runsettings` / `SpecsBDD__` key → `ReportingLevel`. Behaviour, FQNs, and precedence unchanged |
 | 45 | 📌 NEW **Runner packages are named for their test host (`specs.BDD.VSTest`, `specs.BDD.MTP`), not their assemblies; the MTP props file is named for the `PackageId`** | Assembly names did not tell users which host each package targets. The VSTest assembly must stay `*TestAdapter.dll` for VSTest to load it, so only `PackageId` changes | NuGet auto-imports only `build/<PackageId>.props`, so `specs.BDD.TestingPlatform.props` became `specs.BDD.MTP.props` (otherwise `AddSpecsBDD()` would never be wired in for consumers). With two root solutions, workflows name `Specs.sln` explicitly. Package ID ≠ assembly name for both runners |
+| 46 | 📌 NEW **`dotnet new` templates ship as a content-only `specs.BDD.Templates` package, versioned with the rest and stamped at pack time; CI smoke-tests them** | New users need a correct project for their chosen host without reading setup docs, and the template must reference runner packages that exist at its own version | `PackageType=Template`, no assembly or dependencies. `StampTemplateVersion` depends on the `MinVer` target and rewrites `@@SPECS_VERSION@@` in each `template.json`. The templates pin NFluent and the Test SDK as literal versions, because central package management does not reach generated projects. CI / release install the packed template from `artifacts/` and run `specs-vstest` (`dotnet test`) and `specs-mtp` (`dotnet run`), so a broken template fails the build and blocks the release |
 
 ## Critical Execution Paths
 
@@ -1403,6 +1404,97 @@ Benefits:
 - Every push to `main` and every PR is built, tested, and packed on CI against the pinned SDK. The packages are kept as a downloadable run artifact.
 
 Turning on XML doc generation also meant fixing a few doc comments to keep the build warning-free. These were documentation-only changes; the file list is in `activeContext.md`.
+
+## 📌 NEW — Project Templates (`dotnet new`)
+
+`src/specs.BDD.Templates/` packs a content-only template package so a new user can scaffold a runnable Specs project in one command. Decision #46 records the rationale; template parameters and versions are in `techContext.md` "Project Templates".
+
+### 📌 BEFORE (hand-built test project)
+
+```mermaid
+---
+title: "Dynamic — Starting a Specs project (BEFORE)"
+---
+%%{init: {'theme': 'neutral'}}%%
+flowchart TD
+    DEV(["<b>Developer</b><br/>[Person]"]):::external
+    PRJ["<b>New test project</b><br/>[Container: .NET project]<br/>Hand-written csproj"]:::deprecated
+    RD["<b>README</b><br/>[Software System: docs]<br/>Package + host choice"]:::deprecated
+
+    DEV -->|"1. Reads setup steps [web]"| RD
+    DEV -->|"2. Creates + edits [dotnet new classlib]"| PRJ
+
+    subgraph LEGEND["Legend"]
+        direction LR
+        L1["Person"]:::external
+        L2["Deprecated"]:::deprecated
+    end
+
+    PRJ ~~~ LEGEND
+
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef deprecated fill:#95A5A6,stroke:#707B7C,color:#fff
+```
+
+Problems:
+
+- Users had to pick the right runner package and add the host-specific settings themselves (`Microsoft.NET.Test.Sdk` + `IsTestProject` for VSTest, `OutputType=Exe` for MTP).
+- Nothing in CI proved that the packed packages worked in a project outside the repo. Every in-repo test used project references.
+
+### 📌 AFTER (versioned template package, smoke-tested on CI)
+
+```mermaid
+---
+title: "Dynamic — Template pack and scaffold (AFTER)"
+---
+%%{init: {'theme': 'neutral', 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45, 'wrappingWidth': 160}}}%%
+flowchart TD
+    MINV["<b>MinVer</b><br/>[Library: build-time NuGet]<br/>Package version"]:::external
+    TPL["<b>specs.BDD.Templates</b><br/>[Container: template csproj]<br/>Content-only package"]:::app
+    STAMP("<b>StampTemplateVersion</b><br/>[Component: MSBuild target]<br/>@@SPECS_VERSION@@ → version"):::app
+    NUPKG[("<b>specs.BDD.Templates.nupkg</b><br/>[Container: NuGet package]<br/>content/templates/*")]:::data
+    DEV(["<b>Developer / CI smoke test</b><br/>[Person]"]):::external
+    NEW["<b>dotnet new</b><br/>[Software System: .NET SDK]<br/>specs-vstest / specs-mtp"]:::external
+    PRJ["<b>Scaffolded project</b><br/>[Container: net10.0]<br/>CalculatorSpecs, C# or VB"]:::app
+    RUN["<b>specs.BDD.VSTest / .MTP</b><br/>[Container: NuGet package]<br/>Same version as template"]:::app
+
+    TPL -->|"1. Version [MinVer target]"| MINV
+    TPL -->|"2. Stamps template.json [MSBuild]"| STAMP
+    STAMP ==>|"3. Packs [dotnet pack]"| NUPKG
+    DEV -->|"4. Installs + runs [dotnet new]"| NEW
+    NEW -->|"5. Reads template [nupkg]"| NUPKG
+    NEW ==>|"6. Generates [file system]"| PRJ
+    PRJ -->|"7. Restores [NuGet]"| RUN
+
+    subgraph LEGEND["Legend"]
+        direction TB
+        L1["App-owned"]:::app
+        L2["External / person"]:::external
+        L3[("Package")]:::data
+    end
+
+    RUN ~~~ LEGEND
+
+    classDef app fill:#56B870,stroke:#3D8B50,color:#fff
+    classDef external fill:#E8A838,stroke:#B07D20,color:#fff
+    classDef data fill:#9B6DC6,stroke:#6E4D8C,color:#fff
+```
+
+Benefits:
+
+- `dotnet new specs-vstest` or `dotnet new specs-mtp` (add `-lang VB` for Visual Basic) gives a project that builds and passes straight away.
+- The template's default `specsVersion` is the version it was packed with, so a template and the runner packages from the same tag always match. `--specsVersion` overrides it.
+- CI and release scaffold both C# templates against the freshly packed `artifacts/` and run them, which is the first end-to-end check of the packages as consumers see them. In `release.yml` this runs before the nuget.org push.
+
+Design notes:
+
+| Concern | Approach |
+|---------|----------|
+| One command per host, two languages | C# and VB templates share `shortName` and `groupIdentity` (`Specs.BDD.Template.VSTest` / `.MTP`); `tags.language` selects one |
+| Project naming | `sourceName` = `Specs.Template`, so `-n Demo` renames the project file and the C# namespace (VB uses `RootNamespace`) |
+| Version stamping | The `template.json` originals are excluded from packing. The target writes stamped copies under `obj/…/stamped/` and packs them to the same `content/templates/<name>/` path |
+| No assembly in the package | `IncludeBuildOutput=false`, `IncludeSymbols=false`, `SuppressDependenciesWhenPacking=true`; NU5128 / NU5110 / NU5111 suppressed. The `netstandard2.1` TFM exists only so the SDK can pack |
+| MTP template runs without `global.json` | The MTP project is an `Exe` (via `specs.BDD.MTP.props`), so `dotnet run` works anywhere. MTP-mode `dotnet test` additionally needs the .NET 10 `global.json` runner setting (see `techContext.md` "MTP Runner Configuration") |
 
 ## 📌 NEW — Shared Runner Core + Microsoft.Testing.Platform Runner
 
