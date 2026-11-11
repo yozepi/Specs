@@ -67,7 +67,7 @@ flowchart TD
 
 #### Symptom: No Specs tests are discovered at all
 
-**Cause:** No runner package, or the package doesn't match the host. `specs.BDD` alone has no runner. A VSTest project needs `specs.BDD.VSTest` **and** `Microsoft.NET.Test.Sdk`; an MTP project needs `specs.BDD.MTP`.
+**Cause:** No runner package, or the package doesn't match the host. A VSTest project needs `specs.BDD.VSTest` **and** `Microsoft.NET.Test.Sdk`; an MTP project needs `specs.BDD.MTP`.
 
 **Diagnosis:**
 

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\specs.BDD.VSTestAdapter\specs.BDD.VSTestAdapter.csproj" />
+    <ProjectReference Include="..\..\src\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
 </Project>

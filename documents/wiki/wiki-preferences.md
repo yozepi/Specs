@@ -114,7 +114,7 @@ Each subsection builds on the previous example:
 
 ### Access Requirements
 
-Not applicable — deliverables are NuGet packages (`specs.core`, `specs.BDD`, `specs.BDD.VSTest`, `specs.BDD.MTP`, templates). Document packaging/versioning from `Directory.Build.props`, `Directory.Packages.props`, and any CI workflows found; omit Azure, container registry, DNS, and certificate content.
+Not applicable — deliverables are NuGet packages (`specs.core`, `specs.BDD.VSTest`, `specs.BDD.MTP`, templates; `specs.BDD` is embedded in the runners). Document packaging/versioning from `Directory.Build.props`, `Directory.Packages.props`, and any CI workflows found; omit Azure, container registry, DNS, and certificate content.
 
 ## Troubleshooting
 

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\specs.BDD.TestingPlatform\specs.BDD.TestingPlatform.csproj" />
+    <ProjectReference Include="..\..\..\src\specs.specification\specs.BDD.csproj" />
     <!-- Built first so the acceptance tests can launch it. -->
     <ProjectReference Include="..\specs.BDD.TestingPlatform.IntegrationTests\specs.BDD.TestingPlatform.IntegrationTests.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>

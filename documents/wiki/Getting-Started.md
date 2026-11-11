@@ -27,7 +27,7 @@ The repo root holds two solutions (`Specs.sln` and `Specs.Mtp.slnx`), so every r
 
 | Solution | Contents | `dotnet test` mode |
 |----------|----------|--------------------|
-| `Specs.sln` | All five deliverables + the four VSTest-hosted test projects | VSTest |
+| `Specs.sln` | All five `src/` projects + the four VSTest-hosted test projects | VSTest |
 | `Specs.Mtp.slnx` | `specs.core`, `specs.BDD`, `specs.BDD.TestingPlatform` + the two MTP test projects | Microsoft.Testing.Platform (via [tests/mtp/global.json](../../tests/mtp/global.json)) |
 
 ## Configuration

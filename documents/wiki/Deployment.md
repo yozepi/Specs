@@ -2,7 +2,7 @@
 
 > How Specs is built, versioned, packaged, and published to nuget.org.
 
-Specs has no runtime environments. Its deliverables are five NuGet packages, built and published by GitHub Actions.
+Specs has no runtime environments. Its deliverables are four NuGet packages, built and published by GitHub Actions.
 
 ## Deployment Pipeline
 
@@ -71,10 +71,11 @@ A broken template or package fails CI and blocks the release.
 | Package ID | Project | Contents |
 |------------|---------|----------|
 | `specs.core` | `src/specs.core` | Core library, XML docs, symbols |
-| `specs.BDD` | `src/specs.specification` | Authoring API |
-| `specs.BDD.VSTest` | `src/specs.BDD.VSTestAdapter` | VSTest adapter (assembly `specs.BDD.VSTestAdapter.dll`) |
-| `specs.BDD.MTP` | `src/specs.BDD.TestingPlatform` | MTP framework + `build/specs.BDD.MTP.props` (also in `buildMultiTargeting/`) |
+| `specs.BDD.VSTest` | `src/specs.BDD.VSTestAdapter` | VSTest adapter (assembly `specs.BDD.VSTestAdapter.dll`) + embedded `specs.BDD.dll` |
+| `specs.BDD.MTP` | `src/specs.BDD.TestingPlatform` | MTP framework + embedded `specs.BDD.dll` + `build/specs.BDD.MTP.props` (also in `buildMultiTargeting/`) |
 | `specs.BDD.Templates` | `src/specs.BDD.Templates` | `PackageType=Template`; content only (no assembly, dependencies, or symbols) |
+
+The authoring API (`src/specs.specification`) is `IsPackable=false`. Both runners reference it with `PrivateAssets="all"`, and a target in [Directory.Build.props](../../Directory.Build.props) packs its `.dll` and `.xml` into each runner's `lib/` folder and its `.pdb` into the runner's `.snupkg`. In-repo projects that use the authoring API must reference `specs.BDD.csproj` directly, because it no longer flows through the runner reference.
 
 Shared package metadata comes from [Directory.Build.props](../../Directory.Build.props): author, MIT license expression, repository/project URL, `.snupkg` symbols with SourceLink, XML documentation, and `ContinuousIntegrationBuild` when running on GitHub Actions.
 

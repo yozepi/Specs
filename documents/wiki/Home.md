@@ -17,7 +17,7 @@
 | Build the repo | [Getting Started](Getting-Started) |
 | CI workflow | `.github/workflows/ci.yml` (push to `main`, pull requests) |
 | Release workflow | `.github/workflows/release.yml` (push of a `v*` tag) |
-| NuGet packages | `specs.core`, `specs.BDD`, `specs.BDD.VSTest`, `specs.BDD.MTP`, `specs.BDD.Templates` (first release pending) |
+| NuGet packages | `specs.core`, `specs.BDD.VSTest`, `specs.BDD.MTP`, `specs.BDD.Templates` (first release pending) |
 
 ## What Is This?
 
