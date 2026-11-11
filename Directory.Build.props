@@ -4,10 +4,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <Authors>Joe Cleland</Authors>
+    <Authors>Joe Cleland (yozepi@gmail.com)</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/yozepi/Specs</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/yozepi/Specs</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/yozepi/Specs/wiki</PackageProjectUrl>
+    <PackageIcon>Specs-BDD.png</PackageIcon>
 
     <!-- Shared tags; each .csproj appends its own via $(PackageTags) -->
     <PackageTags>bdd;specs;specifications;testing;tdd;rspec;nspec</PackageTags>
@@ -31,6 +32,37 @@
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)documents\images\Specs-BDD.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <!-- A ProjectReference with PrivateAssets="all" is embedded in this package instead of becoming a dependency. -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludePrivateProjectReferencesInPackage</TargetsForTfmSpecificBuildOutput>
+    <TargetsForTfmSpecificDebugSymbolsInPackage>$(TargetsForTfmSpecificDebugSymbolsInPackage);IncludePrivateProjectReferenceSymbolsInPackage</TargetsForTfmSpecificDebugSymbolsInPackage>
+    <!-- Otherwise ResolveReferences builds the referenced projects under NoBuild (NETSDK1085). -->
+    <BuildProjectReferences Condition="'$(NoBuild)' == 'true'">false</BuildProjectReferences>
+  </PropertyGroup>
+
+  <Target Name="_GetPrivateProjectReferenceAssemblies" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_PrivateProjectReferenceAssembly Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'all')->WithMetadataValue('Extension', '.dll'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IncludePrivateProjectReferencesInPackage" DependsOnTargets="_GetPrivateProjectReferenceAssemblies">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(_PrivateProjectReferenceAssembly)" />
+      <BuildOutputInPackage Include="@(_PrivateProjectReferenceAssembly->'%(RootDir)%(Directory)%(Filename).xml')" Condition="Exists('%(RootDir)%(Directory)%(Filename).xml')" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="IncludePrivateProjectReferenceSymbolsInPackage" DependsOnTargets="_GetPrivateProjectReferenceAssemblies">
+    <ItemGroup>
+      <TfmSpecificDebugSymbolsFile Include="@(_PrivateProjectReferenceAssembly->'%(RootDir)%(Directory)%(Filename).pdb')" Condition="Exists('%(RootDir)%(Directory)%(Filename).pdb')" TargetFramework="$(TargetFramework)" />
+    </ItemGroup>
+  </Target>
 
   <!-- The SDK silently defaults Description to "Package Description" -->
   <Target Name="ValidatePackageMetadata" BeforeTargets="GenerateNuspec" Condition="'$(IsPackable)' != 'false'">

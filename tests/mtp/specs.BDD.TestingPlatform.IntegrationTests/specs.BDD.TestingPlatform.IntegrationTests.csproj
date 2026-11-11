@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\specs.BDD.TestingPlatform\specs.BDD.TestingPlatform.csproj" />
+    <ProjectReference Include="..\..\..\src\specs.specification\specs.BDD.csproj" />
   </ItemGroup>
 
   <!-- The same specs as specs.BDD.IntegrationTests, run through Microsoft.Testing.Platform. -->

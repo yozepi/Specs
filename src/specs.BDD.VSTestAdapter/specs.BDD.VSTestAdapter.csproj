@@ -8,6 +8,7 @@
     <PackageId>specs.BDD.VSTest</PackageId>
     <Description>VSTest adapter for Specs.BDD: discovers and runs Specifications-based specs in Visual Studio Test Explorer and dotnet test, with source navigation, nested Test Explorer hierarchy, --filter support, and optional grouped execution.</Description>
     <PackageTags>$(PackageTags);vstest;testadapter;test-explorer;dotnet-test</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,11 +18,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\specs.core\specs.core.csproj" />
-    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
+    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\shared\specs.BDD.Runner\**\*.cs" LinkBase="Runner" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

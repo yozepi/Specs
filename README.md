@@ -17,7 +17,7 @@ Supplementary references: **[Core Components](memory-bank/core-components.md)**,
 
 ## Installation
 
-Install the package for your test host; each brings in `specs.BDD` and `specs.core`.
+Install the package for your test host; each includes `specs.BDD` and depends on `specs.core`.
 
 | Test host | Package |
 |---|---|
@@ -30,7 +30,7 @@ For MTP under `dotnet test` on .NET 10, also add `"test": { "runner": "Microsoft
 
 ### Deliverables (4 projects)
 - **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
-- **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core
+- **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core; shipped inside both runner packages, not published on its own
 - **specs.BDD.VSTestAdapter** (package `specs.BDD.VSTest`) - VSTest discovery + execution for Test Explorer and `dotnet test`
 - **specs.BDD.TestingPlatform** (package `specs.BDD.MTP`) - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
 

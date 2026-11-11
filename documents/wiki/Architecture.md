@@ -12,7 +12,7 @@ The system has two layers and two runners:
 - **`specs.BDD`** — the `Specifications` base class and the `[Feature]` / `[ReportingLevel]` attributes. It translates `BeforeEach(...)`, `It[...] = ...`, and friends into builder calls.
 - **`specs.BDD.VSTestAdapter`** (package `specs.BDD.VSTest`) and **`specs.BDD.TestingPlatform`** (package `specs.BDD.MTP`) — host-specific discovery and result reporting. Everything runner-agnostic (suite-tree building, root lifecycle, grouped / pending routing, source locations) lives in `src/shared/specs.BDD.Runner/` and is compiled into both runners as linked source.
 
-A fifth, content-only package, **`specs.BDD.Templates`**, ships the `dotnet new specs-vstest` / `specs-mtp` templates.
+`specs.BDD` is not published on its own: its assembly ships inside both runner packages. A separate content-only package, **`specs.BDD.Templates`**, ships the `dotnet new specs-vstest` / `specs-mtp` templates.
 
 ## C4 Level 1 — System Context
 
@@ -65,7 +65,7 @@ flowchart TD
 | Visual Studio / VS Code | Show discovered specs; run and debug them through the host |
 | VSTest Platform | Loads `specs.BDD.VSTestAdapter.dll` (`ITestDiscoverer` + `ITestExecutor`) |
 | Microsoft.Testing.Platform | Runs the test project as an executable with the Specs test framework registered via `AddSpecsBDD()` |
-| nuget.org | Distribution channel for all five packages (published by the release workflow) |
+| nuget.org | Distribution channel for all four packages (published by the release workflow) |
 
 ## C4 Level 2 — Container
 
@@ -118,9 +118,9 @@ flowchart TD
 | Container | Folder | Package ID | Runtime dependencies |
 |-----------|--------|------------|----------------------|
 | `specs.core` | [src/specs.core](../../src/specs.core) | `specs.core` | None |
-| `specs.BDD` | [src/specs.specification](../../src/specs.specification) | `specs.BDD` | `specs.core` |
-| `specs.BDD.VSTestAdapter` | [src/specs.BDD.VSTestAdapter](../../src/specs.BDD.VSTestAdapter) | `specs.BDD.VSTest` | `specs.BDD`, Microsoft.TestPlatform.ObjectModel, System.Reflection.Metadata |
-| `specs.BDD.TestingPlatform` | [src/specs.BDD.TestingPlatform](../../src/specs.BDD.TestingPlatform) | `specs.BDD.MTP` | `specs.BDD`, Microsoft.Testing.Platform (+ MSBuild), System.Reflection.Metadata |
+| `specs.BDD` | [src/specs.specification](../../src/specs.specification) | None (embedded in both runner packages) | `specs.core` |
+| `specs.BDD.VSTestAdapter` | [src/specs.BDD.VSTestAdapter](../../src/specs.BDD.VSTestAdapter) | `specs.BDD.VSTest` | `specs.core`, Microsoft.TestPlatform.ObjectModel, System.Reflection.Metadata |
+| `specs.BDD.TestingPlatform` | [src/specs.BDD.TestingPlatform](../../src/specs.BDD.TestingPlatform) | `specs.BDD.MTP` | `specs.core`, Microsoft.Testing.Platform (+ MSBuild), System.Reflection.Metadata |
 | `specs.BDD.Templates` | [src/specs.BDD.Templates](../../src/specs.BDD.Templates) | `specs.BDD.Templates` | None (content only) |
 
 > The VSTest assembly keeps the name `specs.BDD.VSTestAdapter.dll` because VSTest only loads assemblies ending in `TestAdapter.dll`; only the package ID differs.
@@ -420,11 +420,10 @@ title: "Deployment — NuGet package dependencies"
 flowchart TD
     subgraph RUNNERS["Runner packages (pick one)"]
         direction LR
-        PV["<b>specs.BDD.VSTest</b><br/>[Container: NuGet package]<br/>VSTest adapter"]:::app
-        PM["<b>specs.BDD.MTP</b><br/>[Container: NuGet package]<br/>MTP framework + props"]:::app
+        PV["<b>specs.BDD.VSTest</b><br/>[Container: NuGet package]<br/>VSTest adapter + specs.BDD"]:::app
+        PM["<b>specs.BDD.MTP</b><br/>[Container: NuGet package]<br/>MTP framework + specs.BDD"]:::app
     end
 
-    PB["<b>specs.BDD</b><br/>[Container: NuGet package]<br/>Authoring API"]:::app
     PC["<b>specs.core</b><br/>[Container: NuGet package]<br/>Zero dependencies"]:::app
     PT["<b>specs.BDD.Templates</b><br/>[Container: template package]<br/>dotnet new templates"]:::app
 
@@ -434,9 +433,8 @@ flowchart TD
         MP["<b>Microsoft.Testing.Platform</b><br/>[Software System: NuGet 2.5.1]<br/>MTP API + MSBuild"]:::external
     end
 
-    PV -->|"Depends on"| PB
-    PM -->|"Depends on"| PB
-    PB -->|"Depends on"| PC
+    PV -->|"Depends on"| PC
+    PM -->|"Depends on"| PC
     PV -->|"Depends on"| OM
     PM -->|"Depends on"| MP
     PT -.->|"Scaffolds a reference to"| RUNNERS
@@ -492,7 +490,7 @@ Specs/
 | `Action`-based public surface; async hooks run via `GetAwaiter().GetResult()` | One uniform API for sync and async | A parallel async-only pipeline |
 | `TestCaseExecutor` is the single lifecycle implementation and is public | Every runner, including third-party ones, gets identical semantics | Re-implementing the lifecycle in each adapter |
 | `[Feature]` methods are registered as named child contexts | They become tree nodes that can own `BeforeAll` / `AfterAll` | Invoking `[Feature]` methods directly |
-| Runner-agnostic code shared as linked source, not a separate assembly | Avoids a sixth package and a public API for implementation details | A shared `specs.BDD.Runner` package |
+| Runner-agnostic code shared as linked source, not a separate assembly | Avoids a fifth package and a public API for implementation details | A shared `specs.BDD.Runner` package |
 | MTP identifies nodes by tree path | Stable across discovery/execution, readable, and what `--treenode-filter` matches | Opaque generated IDs |
 | Pending is tree metadata in the core; skipping is runner policy | The builder knows `xContext` inheritance; reporting is host-specific | Teaching `TestCaseExecutor` about pending |
 

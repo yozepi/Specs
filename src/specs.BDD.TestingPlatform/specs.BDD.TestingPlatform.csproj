@@ -12,6 +12,7 @@
     <NoWarn>$(NoWarn);TPEXP</NoWarn>
     <!-- MTP's build targets treat every referencing project as a test app unless told otherwise. -->
     <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\specs.core\specs.core.csproj" />
-    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" />
+    <ProjectReference Include="..\specs.specification\specs.BDD.csproj" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +38,7 @@
   <ItemGroup>
     <!-- NuGet only imports build props named after the PackageId. -->
     <None Include="build\specs.BDD.MTP.props" Pack="true" PackagePath="build\;buildMultiTargeting\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
