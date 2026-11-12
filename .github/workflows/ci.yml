@@ -3,7 +3,19 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'documents/**'
+      - 'memory-bank/**'
+      - 'LICENSE'
+      - '.github/skills/**'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'documents/**'
+      - 'memory-bank/**'
+      - 'LICENSE'
+      - '.github/skills/**'
 
 jobs:
   build:

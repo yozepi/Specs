@@ -1,100 +1,80 @@
 # Specs
 
-A .NET BDD testing framework with two coexisting API styles over a framework-agnostic core, plus a VSTest adapter for native IDE integration.
+A .NET BDD testing framework. Write nested, readable specs with a full async lifecycle, and run them under VSTest (Visual Studio, `dotnet test`) or Microsoft.Testing.Platform (MTP).
 
-## 📚 Documentation
-
-**Before working on this project**, review the documentation in the `memory-bank/` folder. Read the 6 core files in order:
-
-1. **[Project Brief](memory-bank/projectbrief.md)** - Foundation: scope, goals, solution structure
-2. **[Product Context](memory-bank/productContext.md)** - Why the project exists and what it solves
-3. **[Active Context](memory-bank/activeContext.md)** - Current work focus and recent changes
-4. **[System Patterns](memory-bank/systemPatterns.md)** - Architecture, design patterns, key decisions
-5. **[Tech Context](memory-bank/techContext.md)** - Stack, dependencies, build and test commands
-6. **[Progress](memory-bank/progress.md)** - What works, what's left, known limitations
-
-Supplementary references: **[Core Components](memory-bank/core-components.md)**, **[Test Patterns](memory-bank/test-patterns.md)**, **[Glossary](memory-bank/glossary.md)**.
-
-## Installation
-
-Install the package for your test host; each includes `specs.BDD` and depends on `specs.core`.
-
-| Test host | Package |
-|---|---|
-| VSTest | `dotnet add package specs.BDD.VSTest` |
-| Microsoft.Testing.Platform | `dotnet add package specs.BDD.MTP` |
-
-For MTP under `dotnet test` on .NET 10, also add `"test": { "runner": "Microsoft.Testing.Platform" }` to `global.json` (see [Running on Microsoft.Testing.Platform](#running-on-microsofttestingplatform)).
-
-## Solution Structure
-
-### Deliverables (4 projects)
-- **specs.core** - Framework-agnostic core: builder, immutable test-case model, executor (.NET Standard 2.1)
-- **specs.BDD** (`specs.specification`) - High-level BDD authoring API built on specs.core; shipped inside both runner packages, not published on its own
-- **specs.BDD.VSTestAdapter** (package `specs.BDD.VSTest`) - VSTest discovery + execution for Test Explorer and `dotnet test`
-- **specs.BDD.TestingPlatform** (package `specs.BDD.MTP`) - Microsoft.Testing.Platform (MTP) runner that renders the full spec tree
-
-Both runners compile the runner-agnostic discovery and execution code in `src/shared/specs.BDD.Runner/`.
-
-### Test projects (4 + 2 MTP)
-- **specs.core.UnitTests** - Core framework tests, written in Specs itself
-- **specs.BDD.UnitTests** - BDD API tests
-- **specs.BDD.VSTestAdapter.Tests** - Adapter component tests
-- **specs.BDD.IntegrationTests** - End-to-end VSTest pipeline tests
-- **tests/mtp/specs.BDD.TestingPlatform.Tests** - MTP runner tests (NUnit on MTP)
-- **tests/mtp/specs.BDD.TestingPlatform.IntegrationTests** - The `specs.BDD.IntegrationTests` specs, run through MTP
-
-The MTP projects are in `Specs.Mtp.slnx` at the repo root. `tests/mtp/global.json` puts `dotnet test` in MTP mode, so run them from that folder:
-```
-cd tests/mtp
-dotnet test --solution ../../Specs.Mtp.slnx
-```
-The root holds two solutions, so other root commands must name one, e.g. `dotnet build Specs.sln`.
-
-### Legacy / internal (1)
-- **Specs** - Legacy property-based `Spec` class and `Domain/` layer
-
-## Two API Styles, One Paradigm
-
-Both styles express the same **Suite → Feature Set → Scenario → Specification** hierarchy and differ only in syntax.
-
-### 1. Property-Based API (Legacy `Spec` class)
 ```csharp
-public class MySpecs : Spec
+public class CalculatorSpecs : Specifications
 {
-    BeforeEach = () => { /* setup */ };
-    Act = () => { /* action */ };
-    It["should work"] = () => { /* assertion */ };
-}
-```
+    private Calculator _calc = null!;
+    private int _result;
 
-### 2. Method-Based API (`Specifications` class)
-```csharp
-public class MySpecs : Specifications
-{
-    [Feature("My feature")]
-    public void my_feature()
+    [Feature("Addition")]
+    public void addition()
     {
-        BeforeEach(() => { /* setup */ });
-        Act(() => { /* action */ });
-        Describe["feature"] = () => {
-            It["should work"] = () => { /* assertion */ };
-        };
+        BeforeEach(() => _calc = new Calculator());
+        Act(() => _result = _calc.Add(2, 3));
+
+        It["returns the sum"] = () => Check.That(_result).IsEqualTo(5);
     }
 }
 ```
 
-> A `[Feature]`-decorated method is required for the VSTest adapter to discover tests in a suite.
+## Features
+
+- Hierarchical `Describe` / `Context` / `It` specs inside `[Feature]` methods, with inherited setup and act
+- Lifecycle: `BeforeAll`, `BeforeEach`, `Act`, `AfterEach`, `AfterAll`; `BeforeAll`/`AfterAll` run once per context, even for partial runs
+- First-class async on every hook
+- Pending specs (`TODO`, `xIt`, `xContext`) reported as Skipped and filterable
+- Expected-exception specs with `ShouldThrow<T>()`
+- Two runners that share one execution core: VSTest and Microsoft.Testing.Platform
+- Framework-agnostic core with no test-framework dependencies
+
+## Packages
+
+| Package | Purpose |
+|---|---|
+| `specs.BDD.VSTest` | VSTest adapter (Test Explorer, `dotnet test`); includes `specs.BDD` |
+| `specs.BDD.MTP` | Microsoft.Testing.Platform runner with the full spec tree; includes `specs.BDD` |
+| `specs.core` | Framework-agnostic core (pulled in transitively) |
+| `specs.BDD.Templates` | `dotnet new` templates |
+
+## Quick start
+
+Scaffold a project:
+
+```
+dotnet new install specs.BDD.Templates
+dotnet new specs-vstest -n MyTests      # or specs-mtp
+```
+
+Or add a package to an existing test project. The examples use NFluent, which must be installed separately (`dotnet add package NFluent`) and imported with `using NFluent;`:
+
+```
+dotnet add package specs.BDD.VSTest     # or specs.BDD.MTP
+```
+
+For MTP under `dotnet test` on .NET 10, add this to `global.json`:
+
+```json
+{ "test": { "runner": "Microsoft.Testing.Platform" } }
+```
+
+A `[Feature]`-decorated method is required for a suite to be discovered.
+
+## Writing specs
 
 ### Pending specs
+
 ```csharp
-It["is not written yet"] = TODO;               // ItAsync["..."] = TODOAsync;
-xIt["is excluded for now"] = () => { /* kept, never run */ };   // also xItAsync
-xContext["a pending scenario"] = () => { /* every spec inside is pending */ };   // also xDescribe
+It["is not written yet"] = TODO;
+xIt["is excluded for now"] = () => { /* never run */ };
+xContext["a pending scenario"] = () => { /* every spec inside is pending */ };
 ```
-Pending specs are discovered but never executed (no `BeforeEach` / `Act` / `AfterEach`; a context whose selected specs are all pending skips its `BeforeAll` / `AfterAll`). The adapter reports them as **Skipped**, and grouped results list them with a `○ ... - PENDING` marker. Select them with `dotnet test --filter IsPending=true` (or exclude them with `IsPending=false`).
+
+Select them with `dotnet test --filter IsPending=true`, or exclude with `IsPending=false`.
 
 ### Expected exceptions
+
 ```csharp
 Act(() => calculator.Divide(1, 0));
 
@@ -102,23 +82,21 @@ It["throws"] = ShouldThrow<DivideByZeroException>();
 It["explains why"] = ShouldThrow<DivideByZeroException>(ex =>
     Check.That(ex.Message.ToLowerInvariant()).Contains("zero"));
 ```
-An exception thrown by `Act` is captured for each spec. `ShouldThrow<T>` passes when it is assignable to `T` (and the optional verifier succeeds), and fails if `Act` threw nothing or another type. Any other spec whose `Act` throws fails with the `Act` exception; `AfterEach` still runs.
 
 ## Running on Microsoft.Testing.Platform
 
-Reference `specs.BDD.MTP` instead of `specs.BDD.VSTest`. The test project becomes a test application (it defaults to `<OutputType>Exe</OutputType>`), and the whole tree shows up as nested nodes: namespace → class → `[Feature]` → contexts → specs.
+Each spec has a path that is its test ID and what `--treenode-filter` matches:
 
-Every spec has a path, which is its test ID and what `--treenode-filter` matches:
 ```
 /MyTests/My.Specs/CartSpecs/Cart/when empty/shows a message
 ```
-```
-dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"     # a [Feature] and everything under it
-dotnet test --treenode-filter "/*/*/*/*/when empty/*"      # specs directly inside every 'when empty' context
-```
-`/` and `%` inside names are written as `%2F` and `%25`; filter operators such as `(`, `)`, `*`, `|`, `&`, `[` and `]` must be escaped with `\`.
 
-IDEs receive the full tree, but Visual Studio's Test Explorer only nests four levels, so it shows namespace › class › `[Feature]` › `describe → context → spec` (VS Code shows only namespace › class › `describe → context → spec`). Console runs show each spec's full path and print an indented tree report. `[Feature(Level = ReportingLevel.Feature)]` and `[ReportingLevel]` still run a `[Feature]` as one result. Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__ReportingLevel`):
+```
+dotnet test --treenode-filter "/*/*/CartSpecs/Cart/**"
+```
+
+Runner settings go in `[appname].testconfig.json` or environment variables (`SpecsBDD__ReportingLevel`):
+
 ```json
 {
   "SpecsBDD": {
@@ -129,22 +107,41 @@ IDEs receive the full tree, but Visual Studio's Test Explorer only nests four le
 }
 ```
 
-## Key Features
-- Hierarchical test organization with parent-child contexts
-- Five-phase lifecycle (SetupOnce, SetupEach, Act, TeardownEach, TeardownOnce)
-- `BeforeAll` / `AfterAll` fire exactly once per context, even for partial test runs
-- Full async/await support on every lifecycle hook
-- Pending specs (`TODO`, `xIt`, `xContext`) reported as Skipped and filterable via `IsPending`
-- Fluent API for test construction
-- Framework-agnostic core with adapter pattern (zero external dependencies)
-- Test Explorer integration with hierarchical nesting and source navigation
-- Two coexisting API styles for gradual migration
+## Repository layout
 
-## Technology Stack
-- .NET Standard 2.1 (deliverables), net8.0 (tests)
-- Microsoft.TestPlatform.ObjectModel (VSTest adapter only)
-- Microsoft.Testing.Platform 2.x (MTP runner only)
-- NUnit, NFluent (tests)
+| Path | Contents |
+|---|---|
+| `src/specs.core` | Core: builder, immutable test-case model, executor (.NET Standard 2.1) |
+| `src/specs.specification` | `specs.BDD` authoring API (`Specifications`) |
+| `src/specs.BDD.VSTestAdapter` | VSTest runner (package `specs.BDD.VSTest`) |
+| `src/specs.BDD.TestingPlatform` | MTP runner (package `specs.BDD.MTP`) |
+| `src/specs.BDD.Templates` | `dotnet new` templates |
+| `src/shared/specs.BDD.Runner` | Discovery/execution code compiled into both runners |
+| `tests/` | Test projects; `tests/mtp/` holds the MTP-hosted ones |
+
+## Build and test
+
+The root holds two solutions, so name one explicitly.
+
+```
+dotnet build Specs.sln
+dotnet test Specs.sln
+```
+
+MTP projects live in `Specs.Mtp.slnx`; run them from `tests/mtp`, whose `global.json` enables MTP mode:
+
+```
+cd tests/mtp
+dotnet test --solution ../../Specs.Mtp.slnx
+```
+
+Requires the .NET SDK pinned in [global.json](global.json).
+
+## Documentation
+
+- [Wiki](https://github.com/yozepi/Specs/wiki): [Getting Started](https://github.com/yozepi/Specs/wiki/Getting-Started), [Usage Guide](https://github.com/yozepi/Specs/wiki/Usage-Guide), [Architecture](https://github.com/yozepi/Specs/wiki/Architecture), [Testing](https://github.com/yozepi/Specs/wiki/Testing), [Troubleshooting](https://github.com/yozepi/Specs/wiki/Troubleshooting)
+- [memory-bank/](memory-bank/projectbrief.md): project context for contributors
 
 ## License
-See [LICENSE](LICENSE) file for details.
+
+See [LICENSE](LICENSE).
