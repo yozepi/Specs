@@ -47,7 +47,7 @@ dotnet new install specs.BDD.Templates
 dotnet new specs-vstest -n MyTests      # or specs-mtp
 ```
 
-Or add a package to an existing test project:
+Or add a package to an existing test project. The examples use NFluent, which must be installed separately (`dotnet add package NFluent`) and imported with `using NFluent;`:
 
 ```
 dotnet add package specs.BDD.VSTest     # or specs.BDD.MTP
