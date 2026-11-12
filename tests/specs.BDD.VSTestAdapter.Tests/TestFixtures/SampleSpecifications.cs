@@ -313,6 +313,36 @@ namespace specs.BDD.VSTestAdapter.Tests.TestFixtures
         }
     }
 
+    /// <summary>A spec whose constructor-registered AfterAll throws when <see cref="TriggerFailure"/> is set.</summary>
+    public class SpecWithFailingRootAfterAll : Specifications
+    {
+        /// <summary>When <c>true</c>, the root AfterAll throws. Reset after use.</summary>
+        public static bool TriggerFailure { get; set; }
+
+        /// <summary>When <c>true</c>, the "first" spec throws. Reset after use.</summary>
+        public static bool FailFirstSpec { get; set; }
+
+        public SpecWithFailingRootAfterAll()
+        {
+            AfterAll(() =>
+            {
+                if (TriggerFailure)
+                    throw new InvalidOperationException("root cleanup failure");
+            });
+        }
+
+        [Feature("cleanup")]
+        public void cleanup()
+        {
+            It["first"] = () =>
+            {
+                if (FailFirstSpec)
+                    throw new InvalidOperationException("spec failure");
+            };
+            It["second"] = () => { };
+        }
+    }
+
     /// <summary>A spec whose constructor-registered BeforeAll throws when <see cref="TriggerFailure"/> is set.</summary>
     public class SpecWithFailingRootBeforeAll : Specifications
     {

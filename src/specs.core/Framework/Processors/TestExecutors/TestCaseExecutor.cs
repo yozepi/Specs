@@ -2,6 +2,7 @@
 using specs.core.Framework.ParameterValidation;
 using System;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace specs.core.Framework.Processors.TestExecutors
@@ -53,37 +54,93 @@ namespace specs.core.Framework.Processors.TestExecutors
                 {
                     testContext.SetupOnce();
 
-                    foreach (var test in tests)
+                    Exception? runFailure = null;
+                    try
                     {
-                        if (cancellationToken.IsCancellationRequested)
-                            break;
-
-                        testContext.SetupEach();
-
+                        RunTests(tests, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        runFailure = ex;
+                        throw;
+                    }
+                    finally
+                    {
+                        // Context cleanup always runs; it must not mask the original failure.
                         try
                         {
-                            ActExceptionContext.Run(testContext.Act, test.Test);
-                            logger.LogAssertSuccess(test.Description);
+                            testContext.TeardownOnce();
                         }
-                        catch (Exception ex)
+                        catch when (runFailure != null)
                         {
-                            logger.LogAssertFailure(ex, test.Description);
-                            if (settings.StopOnAssertFailure)
-                            {
-                                throw;
-                            }
                         }
-
-                        testContext.TeardownEach();
                     }
-
-                    testContext.TeardownOnce();
                 }
             }
             catch (Exception ex)
             {
                 logger.LogException(ex);
                 throw;
+            }
+        }
+
+        private void RunTests(System.Collections.Generic.IEnumerable<TestInstance> tests, CancellationToken cancellationToken)
+        {
+            foreach (var test in tests)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+
+                Exception? failure = null;
+                Exception? fatal = null;
+
+                try
+                {
+                    testContext.SetupEach();
+                    try
+                    {
+                        ActExceptionContext.Run(testContext.Act, test.Test);
+                    }
+                    catch (Exception ex)
+                    {
+                        failure = ex;
+                    }
+                }
+                catch (Exception setupEx)
+                {
+                    fatal = setupEx;
+                }
+
+                // Teardown runs even if setup threw, so partially built resources are released.
+                try
+                {
+                    testContext.TeardownEach();
+                }
+                catch (Exception teardownEx)
+                {
+                    // Outcome is reported after teardown so a throwing AfterEach fails this spec.
+                    fatal ??= teardownEx;
+                    failure ??= teardownEx;
+                }
+
+                if (fatal != null)
+                {
+                    logger.LogAssertFailure(failure ?? fatal, test.Description);
+                    ExceptionDispatchInfo.Capture(fatal).Throw();
+                }
+
+                if (failure == null)
+                {
+                    logger.LogAssertSuccess(test.Description);
+                }
+                else
+                {
+                    logger.LogAssertFailure(failure, test.Description);
+                    if (settings.StopOnAssertFailure)
+                    {
+                        ExceptionDispatchInfo.Capture(failure).Throw();
+                    }
+                }
             }
         }
     }

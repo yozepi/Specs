@@ -177,6 +177,26 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                             Check.That(_caughtActException).IsNotNull();
                             Check.That(_caughtActException).IsInstanceOf<InvalidOperationException>();
                         };
+
+                        It[$"should still run {nameof(ITestContextAdapter.TeardownEach)} and {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                        {
+                            mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownEach(), Times.Once());
+                            mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownOnce(), Times.Once());
+                        };
+
+                        Context[$"when {nameof(ITestContextAdapter.TeardownOnce)} also throws..."] = () =>
+                        {
+                            BeforeEach(() =>
+                            {
+                                mocker.Mock<ITestContextAdapter>().Setup(m => m.TeardownOnce())
+                                    .Throws<InvalidCastException>();
+                            });
+
+                            It["should preserve the original failure"] = () =>
+                            {
+                                Check.That(_caughtActException).IsInstanceOf<InvalidOperationException>();
+                            };
+                        };
                     };
                 };
             };
@@ -277,6 +297,12 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                     {
                         Check.That(_caughtActException).IsNotNull();
                         Check.That(_caughtActException).IsInstanceOf<NullReferenceException>();
+                    };
+
+                    It[$"should still run {nameof(ITestContextAdapter.TeardownEach)} and {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownEach(), Times.Once());
+                        mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownOnce(), Times.Once());
                     };
 
                     It["should not assert the test"] = () =>
@@ -412,7 +438,7 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                 {
                     mocker.Mock<ITestContextAdapter>()
                         .Setup(x => x.TeardownEach())
-                        .Callback(() => methodCallOrder.Add(CalledMethods.TeardownOnce));
+                        .Callback(() => methodCallOrder.Add(CalledMethods.TeardownEach));
                 });
 
                 It[$"should assert the test before running {nameof(ITestContextAdapter.TeardownEach)}"] = () =>
@@ -421,14 +447,14 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         .That(methodCallOrder)
                         .ContainsExactly(
                             CalledMethods.Assert,
-                            CalledMethods.TeardownOnce);
+                            CalledMethods.TeardownEach);
                 };
 
                 Context[$"when {nameof(ITestContextAdapter.TeardownEach)} fails..."] = () =>
                 {
                     BeforeEach(() =>
                     {
-                        mocker.Mock<ITestContextAdapter>().Setup(m => m.TeardownOnce())
+                        mocker.Mock<ITestContextAdapter>().Setup(m => m.TeardownEach())
                             .Throws<InvalidCastException>();
                     });
 
@@ -444,10 +470,32 @@ namespace specs.core.UnitTests.Framework.Processors.TestExecutors
                         Check.That(_caughtActException).IsInstanceOf<InvalidCastException>();
                     };
 
-                    It["should have already asserted the test"] = () =>
+                    It[$"should still run {nameof(ITestContextAdapter.TeardownOnce)}"] = () =>
+                    {
+                        mocker.Mock<ITestContextAdapter>().Verify(x => x.TeardownOnce(), Times.Once());
+                    };
+
+                    It["should report the current spec as failed, not passed"] = () =>
                     {
                         mocker.Mock<ILoggingAdapter>()
-                            .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Once());
+                            .Verify(x => x.LogAssertFailure(Moq.It.IsAny<InvalidCastException>(), testCaseDescription), Times.Once());
+                        mocker.Mock<ILoggingAdapter>()
+                            .Verify(x => x.LogAssertSuccess(testCaseDescription), Times.Never());
+                    };
+
+                    Context["when the assertion also failed..."] = () =>
+                    {
+                        BeforeEach(() =>
+                        {
+                            tests.Clear();
+                            tests.Add(new TestInstance(testCaseDescription, () => throw new InvalidOperationException("Test Failed")));
+                        });
+
+                        It["should keep the assertion failure"] = () =>
+                        {
+                            mocker.Mock<ILoggingAdapter>()
+                                .Verify(x => x.LogAssertFailure(Moq.It.IsAny<InvalidOperationException>(), testCaseDescription), Times.Once());
+                        };
                     };
                 };
 
