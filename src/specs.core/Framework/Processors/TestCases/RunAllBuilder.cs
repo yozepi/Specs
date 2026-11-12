@@ -32,7 +32,7 @@ namespace specs.core.Framework.Processors.TestCases
                     {
                         return null;
                     }
-                    return new RunAllRunner(actions).RunAll;
+                    return new RunAllRunner(actions.ToArray()).RunAll;
                 });
 
                 resetFactory = false;
